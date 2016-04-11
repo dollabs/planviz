@@ -1,0 +1,41 @@
+# Project specific files
+/logs
+/pom.xml
+
+# Emacs backup files
+*~
+
+# Packages
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases
+*.log
+*.sql
+*.sqlite
+
+# Java
+/lib
+/pom.xml
+*.class
+
+# Clojure
+classes
+/target
+.lein-*
+.nrepl*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
