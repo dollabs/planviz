@@ -21,6 +21,7 @@ Here are the steps to build **planviz** locally:
    `# apt-get install rabbitmq-server`
 
 1. Install [boot](https://github.com/dollabs/plan-schema#building)
+
    ````
    $ boot --version
    #http://boot-clj.com
@@ -30,7 +31,9 @@ Here are the steps to build **planviz** locally:
    BOOT_VERSION=2.5.5
    $
    ````
+
 2. Clone and install [plan-schema](https://github.com/dollabs/plan-schema)
+
    ````
    $ mkdir -p ~/src/github/dollabs
    $ cd ~/src/github/dollabs
@@ -38,23 +41,27 @@ Here are the steps to build **planviz** locally:
    $ cd plan-schema
    $ boot local
    ````
+
 3. Clone and install [webtasks](https://github.com/dollabs/webtasks)
+
    ````
    $ cd ..
    $ git clone https://github.com/dollabs/webtasks
    $ cd webtasks
    $ boot local
    ````
+
 4. Clone and install [webkeys](https://github.com/dollabs/webkeys)
+
    ````
    $ cd ..
    $ git clone https://github.com/dollabs/webkeys
    $ cd webkeys
    $ boot local
    ````
+
 5. Clone this repo
-  * For convenience you may add the [planviz/bin](bin) directory to your `PATH`
-(or simply refer to the startup script as `./bin/planviz`).
+
    ````
    $ cd ..
    $ git clone https://github.com/dollabs/planviz
@@ -62,7 +69,11 @@ Here are the steps to build **planviz** locally:
    $ boot build-jar
    ````
 
-6. Run the demo (*this config uses the example plans from* **plan-schema**)
+6. Run the demo
+  * *NOTE* this config uses the example plans from **plan-schema**
+  * For convenience you may add the [planviz/bin](bin) directory to your `PATH`
+(or simply refer to the startup script as `./bin/planviz`).
+
    ````
    $ planviz demo
    ````
