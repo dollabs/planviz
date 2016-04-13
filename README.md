@@ -13,72 +13,84 @@ The **planviz** application is part of the [PAMELA](https://github.com/dollabs/p
 
 ## Building
 
-The **planviz** application uses [boot](http://boot-clj.com/) as a build tool.
-
-Check [here for more information on setting up boot](https://github.com/dollabs/plan-schema#building).
-
-Here are the steps to build **webtasks** locally:
+Here are the steps to build **planviz** locally:
 
 1. Install [RabbitMQ](https://www.rabbitmq.com/)
- * For Debian GNU/Linux systems simply do `apt-get install rabbitmq-server`
-1. Install boot (see links above)
+ * For Debian GNU/Linux systems simply do
+   `apt-get install rabbitmq-server`
+
+1. Install [boot](https://github.com/dollabs/plan-schema#building)
+````
+$ boot --version
+#http://boot-clj.com
+#Wed Apr 13 13:18:30 CDT 2016
+BOOT_CLOJURE_NAME=org.clojure/clojure
+BOOT_CLOJURE_VERSION=1.8.0
+BOOT_VERSION=2.5.5
+$
+````
 2. Clone and install [plan-schema](https://github.com/dollabs/plan-schema)
+````
+mkdir -p ~/src/github/dollabs
+cd ~/src/github/dollabs
+git clone https://github.com/dollabs/plan-schema
+cd plan-schema
+boot local
+````
 3. Clone and install [webtasks](https://github.com/dollabs/webtasks)
+````
+cd ..
+git clone https://github.com/dollabs/webtasks
+cd webtasks
+boot local
+````
 4. Clone and install [webkeys](https://github.com/dollabs/webkeys)
+````
+cd ..
+git clone https://github.com/dollabs/webkeys
+cd webkeys
+boot local
+````
 5. Clone this repo
-  * `boot build-jar`
   * For convenience you may add the [planviz/bin](bin) directory to your `PATH`
 (or simply refer to the startup script as `./bin/planviz`).
-  * `boot seattle` (this config uses the example plans from **plan-schema**)
-
-
-## Invocation Example
-
 ````
-planviz -v -v -i ../viz/common/choice-tpn.json -i ../plan-schema/html/examples/sept14/sept14.htn.json=../plan-schema/html/examples/sept14/sept14.tpn.json &
-open localhost:8080
+cd ..
+git clone https://github.com/dollabs/planviz
+cd planviz
+boot build-jar
 ````
 
-## Quick configuration
+6. Run the demo
+  * `planviz demo` (this config uses the example plans from **plan-schema**)
 
-It is possible to configure PLANVIZ to use a configuration file instead
-of constructing a long command line. Here's an example of creating
-a config file and running with just **planviz demo**:
+## Commands (*a la* IRC)
 
+* `/who` see which clients are connected
+* `/whoami` see the host and port of your browser connection (remote id)
+* `/msg user ...` privte message for user
+* `/nick firefox` set nickname for this connection
+* `/list` list available plans
+* `/show v1.tpn` show a specific plan
+* `/next` view the next plan
+* `/prev` view the previous plan
+* `/manual` manual mode (do not respond to other user updates)
+* `/auto` automatic mode (highlight relevent selections from others)
+* `/?` help
+* `free format text` broadcast message
 
-````
-tmarble@cerise 270 :) planviz -v -v --host localhost -i ../plan-schema/html/examples/sept14/sept14.htn.json=../plan-schema/html/examples/sept14/sept14.tpn.json visualize save-config
-saved configuration to /home/tmarble/src/lispmachine/pamela/planviz/config/planviz.edn
-tmarble@cerise 271 :) mv config/planviz.edn config/demo.edn
-tmarble@cerise 272 :) cat config/demo.edn
-{:verbose 2,
- :exchange "tpn-updates",
- :input
- ["../plan-schema/html/examples/sept14/sept14.htn.json=../plan-schema/html/examples/sept14/sept14.tpn.json"],
- :rmq-host "localhost",
- :rmq-port 5672,
- :host "localhost",
- :port 8080,
- :arguments ["visualize"]}
-tmarble@cerise 273 :) planviz demo
-repl?: false
-cwd: /home/tmarble/src/lispmachine/pamela/planviz
-verbosity level: 2
-rmq-host: localhost
-rmq-port: 5672
-exchange: tpn-updates
-host: localhost
-port: 8080
-input: [../plan-schema/html/examples/sept14/sept14.htn.json=../plan-schema/html/examples/sept14/sept14.tpn.json]
-cmd: visualize (valid)
-Sifting output files...
-Compiling ClojureScript...
-• public/js/app.js
-LOAD-INPUT: ../plan-schema/html/examples/sept14/sept14.htn.json=../plan-schema/html/examples/sept14/sept14.tpn.json
-PLANVIZ server ready
-...Writing target dir(s)...
-````
+## Key bindings
 
+* **z** or **=**  (zoom-in)
+* **x** or **-** (zoom-out)
+* **ArrowRight** (pan-right)
+* **ArrowLeft** (pan-left)
+* **ArrowUp** (pan-up)
+* **ArrowDown** (pan-down)
+* **A-ArrowRight** or **C-ArrowRight** (next-plan) *use Alt- or Control- key*
+* **A-ArrowLeft** or **C-ArrowLeft** (prev-plan)
+* **1** (reset) *zoom out to 100%*
+* **p** (list-plans)
 
 ## Development status and Contributing
 

@@ -1,6 +1,8 @@
 # Project specific files
 /logs
 /pom.xml
+/out
+/resources
 
 # Emacs backup files
 *~

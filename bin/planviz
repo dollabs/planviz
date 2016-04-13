@@ -1,0 +1,54 @@
+#!/bin/sh
+# planviz
+#
+# Copyright © 2016 Dynamic Object Language Labs Inc.
+#
+# This software is licensed under the terms of the
+# Apache License, Version 2.0 which can be found in
+# the file LICENSE at the root of this distribution.
+
+
+program=$(basename $0)
+dir=$(dirname $0)
+export PLANVIZ_CWD="$(pwd -P)"
+cd "$dir"
+cd ..
+top="."
+jar="$top/target/planviz.jar"
+
+# ensure pamela does not use PAGER to guess we are in the repl
+unset PAGER
+
+verbose=0
+
+# functions ------------------------------------------
+log() {
+  # do NOT log now
+  # echo $* >> "$logfile"
+  echo $*
+}
+
+vlog() {
+    [ $verbose -eq 0 ] || log "$@"
+}
+
+vvlog() {
+    [ $verbose -lt 2 ] || log "$@"
+}
+
+err() {
+  # as log only echos we do not need to repeat this here
+  # log "${program}: $*"
+  echo >&2 "${program}: $*"
+}
+
+# main program -----------------------------------------------
+
+# vlog "-- starting $program at $(date) --"
+
+if [ -e "$jar" ]; then
+    java -jar "$jar" $@
+else
+    args="$@"
+    boot run -a "$args"
+fi
