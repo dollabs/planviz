@@ -18,6 +18,7 @@ The **planviz** application uses [boot](http://boot-clj.com/) as a build tool.
 Check [here for more information on setting up boot](https://github.com/dollabs/plan-schema#building).
 
 Here are the steps to build **webtasks** locally:
+
 1. Install [RabbitMQ](https://www.rabbitmq.com/)
  * For Debian GNU/Linux systems simply do `apt-get install rabbitmq-server`
 1. Install boot (see links above)
