@@ -17,18 +17,19 @@ Here are the steps to build **planviz** locally:
 
 1. Install [RabbitMQ](https://www.rabbitmq.com/)
  * For Debian GNU/Linux systems simply do
+
    `apt-get install rabbitmq-server`
 
 1. Install [boot](https://github.com/dollabs/plan-schema#building)
-````
-$ boot --version
-#http://boot-clj.com
-#Wed Apr 13 13:18:30 CDT 2016
-BOOT_CLOJURE_NAME=org.clojure/clojure
-BOOT_CLOJURE_VERSION=1.8.0
-BOOT_VERSION=2.5.5
-$
-````
+   ````
+   $ boot --version
+   #http://boot-clj.com
+   #Wed Apr 13 13:18:30 CDT 2016
+   BOOT_CLOJURE_NAME=org.clojure/clojure
+   BOOT_CLOJURE_VERSION=1.8.0
+   BOOT_VERSION=2.5.5
+   $
+   ````
 2. Clone and install [plan-schema](https://github.com/dollabs/plan-schema)
 ````
 mkdir -p ~/src/github/dollabs
@@ -61,14 +62,14 @@ cd planviz
 boot build-jar
 ````
 
-6. Run the demo
-  * `planviz demo` (this config uses the example plans from **plan-schema**)
+6. Run the demo (*this config uses the example plans from* **plan-schema**)
+  * `planviz demo`
 
 ## Commands (*a la* IRC)
 
 * `/who` see which clients are connected
 * `/whoami` see the host and port of your browser connection (remote id)
-* `/msg user ...` privte message for user
+* `/msg user ...` private message for user
 * `/nick firefox` set nickname for this connection
 * `/list` list available plans
 * `/show v1.tpn` show a specific plan
