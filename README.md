@@ -60,7 +60,9 @@ Here are the steps to build **planviz** locally:
    $ boot local
    ````
 
-5. Clone this repo
+5. Clone and build **planviz** (_NOTE:_ you may see various warnings
+like `WARNING: Use of undeclared Var planviz.components/x21694 at line 42`
+that do not prevent building)
 
    ````
    $ cd ..
