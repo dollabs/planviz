@@ -7,6 +7,21 @@ it (and the required libraries) to build it locally.
 
 Check out the [CHANGELOG](CHANGELOG.md)
 
+
+## News
+
+The [DOLL](http://dollabs.com/) team (including
+[Paul Robertson](https://twitter.com/DrPaulRobertson),
+[Dan Cerys](https://twitter.com/dcerys),
+[Prakash Manghwani](https://twitter.com/manghwani), and
+[Tom Marble](https://twitter.com/tmarble)) recently demoed
+PLANVIZ in the talk **Model based programming in PAMELA** at
+[Clojure/west](http://clojurewest.org/speakers#tmarble).
+Check out the [ClojureTV](https://youtu.be/WLovW6hlYHM) video
+and the [slides](https://github.com/dollabs/pamela/blob/master/doc/slides/ClojureWestHelloPamela.pdf).
+
+For more details visit the [PAMELA project page](http://dollabs.com/projects/pamela).
+
 ## Documentation
 
 The **planviz** application is part of the [PAMELA](https://github.com/dollabs/pamela) suite of tools.
@@ -20,7 +35,7 @@ Here are the steps to build **planviz** locally:
 
    `# apt-get install rabbitmq-server`
 
-1. Install [boot](https://github.com/dollabs/plan-schema#building)
+1. Install [boot](https://github.com/dollabs/plan-schema#building).
    Please note the steps to install **boot.properties** and **profile.boot**
    to your `~/.boot/` directory (so that the cider deftask is available).
 
