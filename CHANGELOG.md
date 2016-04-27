@@ -17,7 +17,7 @@ Changed
   * Various ClojureScript performance improvements
 * Fixed plan loading to pre-load corresponding TPN (when available)
 * Added a hide/show tooltips function
-* * nReorganized actions.cljs function order
+* Reorganized actions.cljs function order
 * Updated dependencies
 * Removed vestiges of non graphic rendering support
 

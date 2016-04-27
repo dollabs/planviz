@@ -21,6 +21,8 @@ Here are the steps to build **planviz** locally:
    `# apt-get install rabbitmq-server`
 
 1. Install [boot](https://github.com/dollabs/plan-schema#building)
+   Please note the steps to install **boot.properties** and **profile.boot**
+   to your `~/.boot/` directory (so that the cider deftask is available).
 
    ````
    $ boot --version
