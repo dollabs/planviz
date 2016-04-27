@@ -86,14 +86,13 @@
    :ui/show-virtual? false;; nodes and edges
    :ui/node-ids? false ;; show node ids
    :ui/edge-ids? false ;; show edge -ids
-   :ui/graph-click nil
-   })
+   :ui/tooltips? true ;; show tooltips
+   :ui/graph-click nil})
 
 (def plans-state-initial-empty
   (let [tables (set (vals comp/plans-refs))]
     (apply merge
-      {:plans/pan-zoom
-       [:pan-zoom/pan-zoom-by-id (pan-zoom-key-fn pan-zoom-plans)]
+      {:plans/pan-zoom [:pan-zoom/pan-zoom-by-id (pan-zoom-key-fn pan-zoom-plans)]
        :plans/ui-opts [:ui/singleton :singleton]
        :plans/plans []
        :om.next/tables tables}
@@ -344,8 +343,6 @@
 (defn plans-query [q]
   (plans-parser {:state plans-state} q))
 
-(declare app-query)
-
 (defn merge-ui-opts [ui-opts]
   (plans-query `[(plans/ui-opts {:ui-opts ~ui-opts})])
   nil)
@@ -365,8 +362,7 @@
 
 (def message-box-initial
   {:message-box/id message-box-id
-   :message-box/value "planviz"
-   })
+   :message-box/value "planviz"})
 
 (def input-box-id :cmd)
 (def input-box-placeholder "/command, or /? for help ")
@@ -377,8 +373,7 @@
    :input-box/start 0
    :input-box/end 0
    :input-box/placeholder input-box-placeholder
-   :input-box/size 80
-   })
+   :input-box/size 80})
 
 (def app-state-initial
   (let [tables (set (vals comp/app-refs))]
@@ -589,20 +584,43 @@
 (defn get-plan [plid]
   (let [ref [:plan/by-plid plid]
         q [{ref comp/plan-query}]]
-    ;; (get-in (plans-query q) [ref plid])))
     (get (plans-query q) ref)))
 
 (defn get-network [network-plid-id]
   (let [ref [:network/network-by-plid-id network-plid-id]
         q [{ref comp/network-query}]]
-    (get (plans-query q) ref)
-    ))
+    (get (plans-query q) ref)))
+
+(defn get-network-end [plid]
+  (let [ref [:plan/by-plid plid]
+        k :plan/begin
+        q [{ref [k]}]
+        begin (get-in (plans-query q) [ref k])
+        nref [:network/network-by-plid-id begin]
+        nk :network/end
+        nq [{nref [nk]}]]
+    (get-in (plans-query nq) [nref nk])))
+
+(defn get-network-basics [plid]
+  (let [ref [:plan/by-plid plid]
+        k :plan/begin
+        q [{ref [k]}]
+        begin (get-in (plans-query q) [ref k])
+        nref [:network/network-by-plid-id begin]
+        nks [:network/id :network/width :network/height :network/type]
+        nq [{nref nks}]]
+    (get (plans-query nq) nref)))
+
+(defn get-network-parent [network-plid-id]
+  (let [nref [:network/network-by-plid-id network-plid-id]
+        nk :network/parent
+        nq [{nref [nk]}]]
+    (get-in (plans-query nq) [nref nk])))
 
 (defn get-plans-state [k]
   (get (plans-query [k]) k))
 
 (defn clear-plans []
-  ;; (merge-ui-state ui-state-initial)
   (plans-query '[(plans/clear)])
   nil)
 
@@ -613,12 +631,10 @@
     (app-merge-pan-zoom pz true)))
 
 (defn show-plan [plid]
-  (let [plan (if (not (#{:none :loading} plid)) (get-plan plid))
-        begin (if plan (:plan/begin plan))
-        network (if begin (get-network begin))
-        {:keys [network/width network/height network/type]} network
-        [width height] (if (= plid :none) [800 800] [width height])
-        ]
+  (let [{:keys [network/id network/width network/height network/type]}
+        (if (not (#{:none :loading} plid)) (get-network-basics plid))
+        begin (if id (composite-key plid id))
+        [width height] (if (= plid :none) [800 800] [width height])]
     (merge-ui-opts {:ui/show-plan plid
                     :ui/show-network begin
                     :ui/network-type type})
@@ -633,7 +649,8 @@
 
 (defn loading [loading?]
   (if loading?
-    (set-plans-size nil nil)))
+    (set-plans-size nil nil)
+    (set-plans-size 800 800)))
 
 (defn show-network [network]
   (merge-ui-opts {:ui/show-network network}))
@@ -649,6 +666,9 @@
 
 (defn edge-ids [edge-ids?]
   (merge-ui-opts {:ui/edge-ids? edge-ids?}))
+
+(defn tooltips [tooltips?]
+  (merge-ui-opts {:ui/tooltips? tooltips?}))
 
 (defn all-normal [plid]
   (plans-query `[(plans/all-normal {:plid ~plid})])

@@ -74,8 +74,6 @@
         width (* (+ tip-len 2) xchar)
         height (* 1.5 ychar)
         x-tip (- x (/ width 2))
-        ;; x-tip (- x 60)
-        ;; x-tip x
         y-tip (case type
                 :activity
                 (+ y ychar -3)
@@ -92,21 +90,27 @@
 ;; 0.5 for started
 ;; 1 for finished/reached
 (defn selection-score [sel]
-  (let [{:keys [node/begin-state node/state]} sel
+  (let [{:keys [node/id node/begin-state node/state]} sel
+        node? (keyword? id)
         edge-state (if-not state (:edge/state sel))]
     (cond
-      (or (and edge-state (= edge-state :finished)) (= state :reached))
+      (or (and (not node?) (= edge-state :finished))
+        (and node? (= state :reached)))
       1
-      (or (and edge-state (= edge-state :normal))
-        (nil? begin-state) (= begin-state :normal))
+      (or
+        (and (not node?)
+          (or (nil? edge-state) (= edge-state :normal)))
+        (and node?
+          (or (nil? begin-state) (= begin-state :normal))))
       0
       :else
       0.5)))
 
 (defn hem-node-state [tpn-selection]
   (let [total (count tpn-selection)
-        score (reduce + 0 (map selection-score tpn-selection))
-        done (/ score total)]
+        scores (map selection-score tpn-selection)
+        score (reduce + 0 scores)
+        done (if (pos? total) (/ score total) 0)]
     (if (zero? done)
       :normal
       (if (= 1 done)
@@ -118,13 +122,13 @@
                    node/label node/sequence-label
                    node/probability node/selected?
                    node/tpn-selection] :as props}]
-  (let [{:keys [ui/rendering ui/network-type ui/node-ids?
+  (let [{:keys [ui/network-type ui/node-ids? ui/tooltips?
                 ui/graph-click]} ui-opts
         state (if tpn-selection
                 (hem-node-state tpn-selection)
                 state)]
     (html
-      (if (= rendering :graphic)
+      ;; (if (= rendering :graphic)
         (let [xlink (cond
                       (#{:p-begin :p-end} type)
                       "parallel"
@@ -173,7 +177,8 @@
             labels
             (if node-ids?
               [[:text {:textAnchor "middle" :x x :y y-node-id} (name id)]])
-            [(tooltip :g.node-tooltip.hide x y tip type)]))))))
+            (if tooltips?
+              [(tooltip :g.node-tooltip.hide x y tip type)]))))))
 
 (def node-memo (memoize node))
 
@@ -225,9 +230,10 @@
                    edge/selected?]
              :as props}
             node-factory]
-  (let [{:keys [ui/rendering ui/network-type ui/graph-click]} ui-opts]
+  (let [{:keys [ui/network-type ui/tooltips?
+                ui/graph-click]} ui-opts]
     (html
-      (if (= rendering :graphic)
+      ;; (if (= rendering :graphic)
         (let [[x0 y0] [(:node/x from) (:node/y from)]
               [x1 y1] [(:node/x to) (:node/y to)]
               [x y d ratio] (link-arc-memo type x0 y0 x1 y1)
@@ -253,14 +259,15 @@
            (if target-attrs
              [:path target-attrs])
            [:path attrs]
-           [(tooltip :g.edge-tooltip.hide x y tip type)]])))))
+           (if tooltips?
+             [(tooltip :g.edge-tooltip.hide x y tip type)])]))))
 
 (def edge-memo (memoize edge))
 
 (defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
                     edge/from edge/to edge/bounds edge/cost edge/reward
                     edge/probability edge/order] :as props}]
-  (let [{:keys [ui/rendering ui/show-virtual? ui/edge-ids?]} ui-opts
+  (let [{:keys [ui/show-virtual? ui/edge-ids?]} ui-opts
         virtual? (= type :virtual)
         label? (or show-virtual? (not virtual?))
         label (and label? (or name label))
@@ -303,7 +310,7 @@
                        network/nodes network/edges
                        network/width network/height] :as props}
                node-factory edge-factory label-factory]
-  (let [{:keys [ui/rendering ui/show-virtual?]} ui-opts
+  (let [{:keys [ui/show-virtual?]} ui-opts
         edges-to-show (if show-virtual? edges
                           (remove #(= :virtual (:edge/type %)) edges))
         edges? (pos? (count edges-to-show))
@@ -313,16 +320,16 @@
     (html
       (concatv
         [:g]
-        (if (= rendering :graphic)
+        ;; (if (= rendering :graphic)
           (concatv
             (if edges? (map edge-factory edges-to-show))
             (if nodes? (map node-factory nodes-to-show))
-            (if edges? (map label-factory edges-to-show))))))))
+            (if edges? (map label-factory edges-to-show)))))))
 
 (defn plan [{:keys [plans/ui-opts plan/plid plan/name plan/type plan/networks]
              :as props}
             network-factory]
-  (let [{:keys [ui/rendering ui/show-network]} ui-opts
+  (let [{:keys [ui/show-network]} ui-opts
         networks-to-show (if (or (nil? show-network) (= :all show-network))
                            networks
                            (filter #(= (network-key-fn %) show-network) networks))
@@ -385,12 +392,12 @@
   (let [{:keys [pan-zoom/width pan-zoom/height
                 pan-zoom/vp-width pan-zoom/vp-height
                 pan-zoom/pan pan-zoom/zoom]} pan-zoom
-        {:keys [ui/rendering ui/show-plan ui/show-network ui/graph-click]} ui-opts
+        {:keys [ui/show-plan ui/graph-click]} ui-opts
         plans-to-show (if (or (nil? show-plan) (= :all show-plan))
                         plans
                         (filter #(= (:plan/plid %) show-plan) plans))
         plans? (pos? (count plans-to-show))
-        rendering (or rendering :graphic)
+        ;; rendering (or rendering :graphic)
         loading? (not (and width height))
         [width height] [(or width 800) (or height 800)]
         viewbox  (str "0 0 " width " " height)

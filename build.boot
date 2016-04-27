@@ -5,7 +5,7 @@
 ;; the file LICENSE at the root of this distribution.
 
 (def project 'dollabs/planviz)
-(def version "0.8.1")
+(def version "0.8.2")
 (def description "Planning Network Visualization")
 (def project-url "https://github.com/dollabs/planviz")
 (def main 'planviz.cli)
@@ -14,9 +14,9 @@
   :source-paths #{"src" "html"}
   :resource-paths #{"src" "html"}
   :dependencies   '[[org.clojure/clojure "1.8.0"]
-                    [org.clojure/clojurescript "1.8.40"]
+                    [org.clojure/clojurescript "1.8.51"]
                     ;; both
-                    [avenir "0.2.0"]
+                    [avenir "0.2.1"]
                     [dollabs/webtasks "0.2.1"]
                     [dollabs/webkeys "0.2.0"]
                     [org.clojure/core.async "0.2.374"]
@@ -26,9 +26,9 @@
                     [com.cognitect/transit-clj "0.8.285"]
                     [environ "1.0.2"]
                     [clj-time "0.11.0"]
-                    [com.taoensso/timbre "4.3.1"]
+                    [com.taoensso/timbre "4.4.0-alpha1"]
                     [com.novemberain/langohr "3.5.1"]
-                    [dollabs/plan-schema "0.2.1"]
+                    [dollabs/plan-schema "0.2.2"]
                     ;; web server
                     [org.clojure/data.json "0.2.6"]
                     [ring/ring-core "1.4.0"]
@@ -37,13 +37,13 @@
                     [amalloy/ring-gzip-middleware "0.1.3"]
                     [compojure "1.5.0"]
                     [enlive "1.1.6"]
-                    [aleph "0.4.1"]
+                    [aleph "0.4.2-alpha1"]
                     ;; client
                     [com.cognitect/transit-cljs "0.8.237"]
                     [cljsjs/react-dom-server "0.14.3-0"] ;; for sablono
                     [cljsjs/react-dom "0.14.3-1"] ;; for sablono
-                    [org.omcljs/om "1.0.0-alpha32"]
-                    [sablono "0.6.3"]
+                    [org.omcljs/om "1.0.0-alpha34"]
+                    [sablono "0.7.1"]
                     ;; cljs-dev
                     [com.cemerick/piggieback "0.2.1"     :scope "test"]
                     [weasel                 "0.7.0"      :scope "test"]

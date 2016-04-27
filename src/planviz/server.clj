@@ -714,7 +714,10 @@
                       :begin begin
                       :n-keys n-keys
                       :parts parts
-                      :n-parts n-parts}]
+                      :n-parts n-parts
+                      :type :tpn-network
+                      ;; NOTE: we do NOT have a corresponding HTN!
+                      }]
     (log/info "NEW RMQ PLAN, switch plan-id to" plan-id)
     (swap! state assoc :rmq-plan-id plan-id) ;; most recent rmq plan
     (swap! state assoc-in [:plans plan-id] plan-details)
@@ -895,7 +898,8 @@
                 node/node-by-plid-id edge/edge-by-plid-id]} plan
         plan-id (first (keys by-plid))
         plan (get by-plid plan-id)
-        plan-begin (:plan/begin plan)]
+        {:keys [plan/begin plan/type plan/corresponding]} plan
+        plan-begin begin]
     (if-not plan-begin
       (log/error "LOAD-PLAN failed for plan" plan)
       (let [begin (keyword (second (string/split (name plan-begin) #":")))
@@ -912,7 +916,8 @@
            :n-keys n-keys
            :parts parts
            :n-parts n-parts
-           })))))
+           :type type
+           :corresponding corresponding})))))
 
 (defn load-input [filename]
   (if (not= filename "-")

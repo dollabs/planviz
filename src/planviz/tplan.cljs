@@ -77,7 +77,7 @@
             :network/network-by-plid-id network-by-plid-id)))))
 
 (defn temporal-constraint? [edge]
-  (= (:edge/type edge) :temporal-constraint))
+  (keyword-identical? (:edge/type edge) :temporal-constraint))
 
 (defn all-nodes []
   (keys (:node/node-by-plid-id @graph)))
@@ -142,8 +142,8 @@
         edge {:plan/plid plid
               :edge/id id
               :edge/type :virtual
-              :edge/from (node-key-fn from)
-              :edge/to (node-key-fn to)
+              :edge/from from-id
+              :edge/to to-id
               :edge/state :normal
               :edge/weight 1
               :edge/hidden false}
@@ -168,6 +168,7 @@
 
 ;; set incoming and outgoing (ignore constraint edges / zero weight)
 (defn add-incoming-outgoing [d]
+  (println "TPLAN add-incoming-outgoing")
   (doseq [[edge-id edge] (:edge/edge-by-plid-id @graph)]
     (let [{:keys [edge/weight edge/from edge/to]} edge
           ;; _ (swap! notes conj (str "AIO " edge-id " from " from " to " to))
@@ -176,8 +177,7 @@
       (update-node (update-in from [:node/outgoing] conj edge-id))
       (update-node (update-in to [:node/incoming] conj edge-id))
       ))
-  true ;; for chain
-  )
+  true) ;; for chain
 
 (defn map-nodes [node-fn]
   (doseq [[node-id node] (:node/node-by-plid-id @graph)]
@@ -201,41 +201,55 @@
           (recur (first more) (rest more))))
       @visited)))
 
-(defn rank-sweep [begin min-length moves]
-  (reset! moves 0)
-  (update-node (assoc (get-node begin) :node/rank 0))
-  (visit-nodes begin #{}
-    (fn [node]
-      (map-incoming node
-        (fn [edge]
-          (let [old-rank (:node/rank node)
-                from (get-node (:edge/from edge))
-                rank (max old-rank (+ (:node/rank from) min-length))]
-            (when (not= rank old-rank)
-              (update-node (assoc node :node/rank rank))
-              (swap! moves inc))
-            nil)))
-      (map-outgoing node
-        (fn [edge]
-          (when-not (temporal-constraint? edge)
-            (let [rank (+ (:node/rank node) min-length)
-                  to (get-node (:edge/to edge))
-                  old-rank (:node/rank to)
-                  rank (max rank old-rank)]
-              (when (not= rank old-rank)
-                (update-node (assoc to :node/rank rank))
-                (swap! moves inc))
-              (node-key-fn to)))))))) ;; visit to
+(defn rank-sweep [min-length moves]
+  (let [node-ids @moves]
+    (reset! moves [])
+    (doseq [node-id node-ids]
+      (let [node (get-node node-id)]
+        (map-incoming node
+          (fn [edge]
+            (when-not (temporal-constraint? edge)
+              (let [old-rank (:node/rank node)
+                    from (get-node (:edge/from edge))
+                    rank (max old-rank (+ (:node/rank from) min-length))]
+                (when (not= rank old-rank)
+                  (update-node (assoc node :node/rank rank))
+                  (swap! moves conj (node-key-fn node))
+                  nil)))))
+        (map-outgoing node
+          (fn [edge]
+            (when-not (temporal-constraint? edge)
+              (let [rank (+ (:node/rank node) min-length)
+                    to (get-node (:edge/to edge))
+                    old-rank (:node/rank to)
+                    rank (max rank old-rank)]
+                (when (not= rank old-rank)
+                  (update-node (assoc to :node/rank rank))
+                  (swap! moves conj (node-key-fn to)))))))))))
 
 (defn rank [d]
   (let [{:keys [network-plid-id min-length]} @graph-params
         {:keys [network/network-by-plid-id]} @graph
         network (get network-by-plid-id network-plid-id)
         {:keys [network/begin]} network
-        moves (atom 1)]
-    (while (pos? @moves)
-      (rank-sweep begin min-length moves))
-    ;; save in ranking map
+        moves (atom [begin])]
+    (println "TPLAN rank")
+    (update-node (assoc (get-node begin) :node/rank 0))
+    (while (pos? (count @moves))
+      ;; (println "  rank moves" (count @moves))
+      (rank-sweep min-length moves))
+    true ;; for chain
+    ))
+
+(defn save-ranking [d]
+  (let [{:keys [network-plid-id]} @graph-params
+        ;; {:keys [node/node-by-plid-id]} @graph
+        {:keys [network/network-by-plid-id]} @graph
+        network (get network-by-plid-id network-plid-id)
+        {:keys [network/begin]} network
+        ]
+    (println "TPLAN save-ranking")
+    ;; save in ranking map -- in outgoing order!!!
     (swap! graph-params assoc :ranking {})
     (visit-nodes begin #{}
       (fn [node]
@@ -251,8 +265,55 @@
               (fn [edge]
                 (:edge/to edge)))
             ))))
-    true ;; for chain
-    ))
+    true)) ;; for chain
+
+(defn balance-sweep [d min-length node-ids done]
+  ;; (println "  balance-sweep" (count node-ids))
+  (if (empty? node-ids)
+    (do
+      (success! d true)
+      true)
+    (let [visit (atom #{})
+          _ (doseq [node-id node-ids]
+              (swap! done conj node-id)
+              (let [node (get-node node-id)]
+                (map-outgoing node
+                  (fn [edge]
+                    (when-not (temporal-constraint? edge)
+                      (let [{:keys [node/rank]} node
+                            node-plid-id (node-key-fn node)
+                            {:keys [edge/to edge/type]} edge
+                            to (get-node to)
+                            rightmost (- (:node/rank to) min-length)
+                            slack (- rightmost rank)
+                            balance-edge? (keyword-identical? type :null-activity)]
+                        (when (and balance-edge? (pos? slack))
+                          ;; move node rank to rightmost
+                          (swap! graph-params
+                            (fn [gp]
+                              (let [old-nodes (get-in gp [:ranking rank])
+                                    old-nodes (vec (filter
+                                                     #(not= % node-plid-id)
+                                                     old-nodes))]
+                                (-> gp
+                                  (assoc-in [:ranking rank] old-nodes)
+                                  (update-in [:ranking rightmost] conj
+                                    node-plid-id)))))
+                          (update-node (assoc node :node/rank rightmost)))))))
+                (map-incoming node
+                  (fn [edge]
+                    (when-not (temporal-constraint? edge)
+                      (let [from (:edge/from edge)]
+                        (if-not (or (@visit from) (@done from))
+                          (swap! visit conj from))))))))
+          start (tasks/deferred)
+          finish (-> start
+                   (sleep 5) ;; pace
+                   (chain #(balance-sweep d min-length @visit done)))]
+      (tasks/on-realized finish #(identity true)) ;; consume finish
+      (success! start true)
+      true ;; finish
+      )))
 
 ;; Nodes having equal in- and out-edge weights and multiple feasible
 ;; ranks are moved to a feasible rank with the fewest nodes.
@@ -260,41 +321,15 @@
 ;; end node and greedily balance ranks moving towards the head.
 ;; NOTE we must ignore temporal constraint edges
 (defn balance [d]
-  (let [{:keys [network-plid-id min-length]} @graph-params
+  (let [dbalance (tasks/deferred)
+        {:keys [network-plid-id min-length]} @graph-params
         {:keys [network/network-by-plid-id]} @graph
         network (get network-by-plid-id network-plid-id)
-        {:keys [network/end]} network]
-    (visit-nodes end #{}
-      (fn [node]
-        (let [{:keys [node/rank node/outgoing]} node
-              node-plid-id (node-key-fn node)]
-          (map-outgoing node
-            (fn [edge]
-              (let [{:keys [edge/to edge/type]} edge
-                    to (get-node to)
-                    rightmost (- (:node/rank to) min-length)
-                    slack (- rightmost rank)
-                    balance-edge? (= type :null-activity)]
-                (when (and balance-edge? (pos? slack))
-                  ;; move node rank to rightmost
-                  (swap! graph-params
-                    (fn [gp]
-                      (let [old-nodes (get-in gp [:ranking rank])
-                            old-nodes (vec (filter
-                                             #(not= % node-plid-id)
-                                             old-nodes))]
-                        (-> gp
-                          (assoc-in [:ranking rank] old-nodes)
-                          (update-in [:ranking rightmost] conj
-                            node-plid-id)))))
-                  (update-node (assoc node :node/rank rightmost))))))
-          (map-incoming node
-            (fn [edge]
-              (let [from (get-node (:edge/from edge))
-                    from-plid-id (node-key-fn from)]
-                from-plid-id))))))
-    true ;; for chain
-    ))
+        {:keys [network/end]} network
+        done (atom #{})]
+    (println "TPLAN balance")
+    (balance-sweep dbalance min-length [end] done)
+    dbalance)) ;; for chain
 
 ;; values must be a sorted vector
 (defn calc-median [values]
@@ -321,7 +356,7 @@
 
 (defn calc-min [node node-ids]
   (loop [y-min 0 node-id (first node-ids) more (rest node-ids)]
-    (if (or (nil? node-id) (= (node-key-fn node) node-id))
+    (if (or (nil? node-id) (keyword-identical? (node-key-fn node) node-id))
       y-min
       (let [prev (get-node node-id)
             y (+ (:node/y prev) (rho prev prev)) ;; fix if rho by node
@@ -339,6 +374,7 @@
 (defn medianpos [iteration]
   (let [{:keys [plan-type ranking]} @graph-params
         ranks (count (keys ranking))]
+    ;; (println "TPLAN medianpos" iteration)
     (if (odd? iteration)
       (doseq [r (range (dec ranks) -1 -1)]  ;; bottom to top, downward priority
         (let [node-ids (get ranking r)
@@ -366,7 +402,7 @@
                     y-median (calc-median y-down)
                     y-new (max y-min
                             (if (or
-                                (and (= plan-type :htn-network)
+                                (and (keyword-identical? plan-type :htn-network)
                                     ;; (nil? down-priority))
                                   (= down-priority 1))
                                 (> down-priority 1)
@@ -402,7 +438,7 @@
                     y-median (calc-median y-up)
                     y-new (max y-min
                             (if (or
-                                (and (= plan-type :htn-network)
+                                (and (keyword-identical? plan-type :htn-network)
                                   (= up-priority 1))
                                 (> up-priority 1))
                             y-median y))]
@@ -425,12 +461,12 @@
         ranks (range (count (keys ranking)))
         x0 (/ ranksep 2)
         y0 (* 2 nodesep)
-        x-key (if (= plan-type :htn-network) :node/y :node/x)
-        y-key (if (= plan-type :htn-network) :node/x :node/y)
+        x-key (if (keyword-identical? plan-type :htn-network) :node/y :node/x)
+        y-key (if (keyword-identical? plan-type :htn-network) :node/x :node/y)
         ]
     (loop [r (first ranks) more (rest ranks) x x0 ymax y0]
       (if-not r ;; done
-        (if (= plan-type :htn-network)
+        (if (keyword-identical? plan-type :htn-network)
           ;; normal
           ;; (set-width-height (+ ymax y0) x)
           ;; extra margin on the bottom
@@ -473,12 +509,9 @@
 
 (defn add-virtual-nodes []
   (let [{:keys [network-plid-id]} @graph-params
-        {:keys [network/network-by-plid-id]} @graph
-        network (get network-by-plid-id network-plid-id)
-        {:keys [network/begin]} network]
-    (visit-nodes begin #{}
-      (fn [node]
-        ;; (println "VISIT" (node-key-fn node))
+        {:keys [node/node-by-plid-id]} @graph]
+    (doseq [node-id (keys node-by-plid-id)]
+      (let [node (get node-by-plid-id node-id)]
         (map-outgoing node
           (fn [edge]
             (let [{:keys [edge/to edge/weight edge/hidden edge/type]} edge
@@ -486,20 +519,9 @@
                   to (get-node to-id)
                   from-rank (:node/rank node)
                   to-rank (:node/rank to)]
-              ;; (println "TYPE" type)
-              (cond
-                (= type :temporal-constraint)
-                nil
-                (and (not hidden) (pos? weight)
-                  (> to-rank (inc from-rank)))
-                (do
-                  (virtualize-path node edge to)
-                  to-id) ;; follow this edge
-                (and (not hidden) (pos? weight))
-                to-id ;; follow this edge
-                :else
-                nil ;; do NOT follow this edge
-                ))))))))
+              (if (and (not hidden) (pos? weight)
+                    (> to-rank (inc from-rank)))
+                (virtualize-path node edge to)))))))))
 
 ;; determine number of crossings assuming left-id is to the
 ;; left of right-id
@@ -514,7 +536,7 @@
                         edge/from edge/type]} left-edge
                 left-from (get-node from)
                 left-rank (:node/rank left-from)
-                left-tc? (= type :temporal-constraint)
+                left-tc? (keyword-identical? type :temporal-constraint)
                 ignore? (or (> left-rank rank)
                           (and (not left-tc?)
                             (or hidden (zero? weight))))]
@@ -527,18 +549,14 @@
                                   edge/from edge/type]} right-edge
                           right-from (get-node from)
                           right-rank (:node/rank right-from)
-                          right-tc? (= type :temporal-constraint)
+                          right-tc? (keyword-identical? type :temporal-constraint)
                           ignore? (or (> right-rank rank)
                                     (and (not right-tc?)
                                       (or hidden (zero? weight))))
-                          left-w (if ignore? 0
-                                     (if left-tc? 0.9 1))
-                          right-w (if ignore? 0
-                                      (if right-tc? 0.9 1))
                           left-p (:node/p left-from)
                           right-p (:node/p right-from)
-                          c (if (<= left-p right-p)
-                              0 (+ left-w right-w))]
+                          c (if (or ignore? (<= left-p right-p))
+                              0 (+ (if left-tc? 0.9 1) (if right-tc? 0.9 1)))]
                       c)))))))))))
 
 (defn set-positions [rank]
@@ -548,7 +566,7 @@
       (recur (inc p) (first more) (rest more)))))
 
 ;; calculate crossing cost from ranking
-(defn crossing [&[ranking]]
+(defn crossing [ranking]
   (let [ranking (or ranking (:ranking @graph-params))]
     (reduce + 0
       (for [r (range (count (keys ranking)))]
@@ -584,15 +602,22 @@
                        p))))))]
     [node-id (calc-median positions)]))
 
+(defn median-for-node-top [node-id]
+  (median-for-node true node-id))
+
+(defn median-for-node-bottom [node-id]
+  (median-for-node false node-id))
+
 ;; returns new ranking
 (defn wmedian [ranking i]
+  ;; (println "  DEBUG wmedian" i)
   (let [max-rank (count (keys ranking))]
     (if (even? i)
       (loop [r 0 ranking ranking] ;; top to bottom
         (if (= r max-rank)
           ranking
           (let [rank (get ranking r)
-                node-median (map (partial median-for-node true) rank)
+                node-median (map median-for-node-top rank)
                 new-rank (mapv first (sort-by second < node-median))]
             (set-positions new-rank)
             (recur (inc r) (assoc ranking r new-rank)))))
@@ -600,7 +625,7 @@
         (if (neg? r)
           ranking
           (let [rank (get ranking r)
-                node-median (map (partial median-for-node false) rank)
+                node-median (map median-for-node-bottom rank)
                 new-rank (mapv first (sort-by second < node-median))]
             (set-positions new-rank)
             (recur (dec r) (assoc ranking r new-rank))))))))
@@ -699,23 +724,35 @@
                   (recur (next-rank r) changed? (assoc ranking r new-rank)))))]
         (recur improved? new-ranking)))))
 
+(defn mincross-sweep [d max-iterations i br-bc]
+  (let [[br bc] br-bc]
+    ;; (println "TPLAN mincross-sweep" i "bc" bc)
+    (if (or (zero? bc) (= i max-iterations))
+      (do
+        (swap! graph-params assoc :ranking br)
+        (tasks/timeout #(success! d true))
+        true)
+      (let [start (tasks/deferred)
+            finish (-> start
+                     (sleep 5) ;; pace
+                     (chain #(mincross-sweep d max-iterations
+                               (inc i) (transpose (wmedian br i) i))))]
+        (tasks/on-realized finish #(identity true)) ;; consume finish
+        (success! start true)
+        true)))) ;; finish
+
 (defn mincross [d]
   ;; add virtual nodes and edges
+  (println "TPLAN mincross")
   (let [{:keys [plan-type]} @graph-params]
-    ;; CANNOT get ranking here because it will be mutated in add-virtual-nodes
-    (when (not= plan-type :htn-network)
-      (add-virtual-nodes)
-      (let [max-iterations 24
-            br (:ranking @graph-params)
-            [br bc];; best ranking, bc = best crossing score for br
-            (loop [i 0 br-bc [br (crossing br)]]
-              (let [[br bc] br-bc]
-                (if (or (zero? bc) (= i max-iterations))
-                  br-bc
-                  (recur (inc i) (transpose (wmedian br i) i)))))]
-        (swap! graph-params assoc :ranking br)))
-    true ;; for chain
-    ))
+    (if (keyword-identical? plan-type :htn-network)
+      true ;; for deferreds
+      (let [dmincross (tasks/deferred)
+            max-iterations 2 ;; heuristic - not found case needing more
+            _ (add-virtual-nodes) ;; will mutate ranking!
+            br (:ranking @graph-params)]
+        (mincross-sweep dmincross max-iterations 0 [br (crossing br)])
+        dmincross))))
 
 ;; -------------------------------------------------------------------
 
@@ -735,7 +772,7 @@
 ;; where beymns is a vector of beymn
 ;; beymn is a vector of [begin end y y-min y-max]
 ;; for each begin in option(s)
-(defn get-option-beymns [options opts & [option-id]]
+(defn get-option-beymns [options opts option-id]
   (let [option-ids (if option-id [option-id] (keys opts))
         begins (apply concat (map #(keys (get opts %)) option-ids))
         begins (sort ;; right to left
@@ -823,12 +860,11 @@
                   (update-node (update-in node [:node/y] add-delta))
                   (if-let [end (:node/end node)] ;; interior begin/end
                     (move-begin options end add-delta-mn))
-                  (remove nil?
-                    (map-outgoing node
-                      (fn [edge]
-                        (let [{:keys [edge/to edge/weight edge/hidden]} edge]
-                          (if-not (or hidden (zero? weight))
-                            to))))))))
+                  (map-outgoing node
+                    (fn [edge]
+                      (let [{:keys [edge/to edge/weight edge/hidden]} edge]
+                        (if-not (or hidden (zero? weight))
+                          to)))))))
             (if-not (empty? more)
               (recur b (first more) (rest more)))))))
     ;;node end, here we've balanced option-id
@@ -836,12 +872,6 @@
     (let [{:keys [begin opt-order todo opts parent]} (get @options end-id)
           y-rho (rho nil nil)]
       (when (zero? todo)
-        ;; (doseq [opt-id opt-order]
-        ;;   (let [beymns (get-option-beymns options opts opt-id)
-        ;;         mn (reduce min-max-fn (map #(subvec % 3) beymns))]
-        ;;     ;; because each option might have been adjusted
-        ;;     ;; (min-max-begin options parent mn)
-        ;;     ))
         (loop [prev-max math/js-min-int
                opt-id (first opt-order)
                more (rest opt-order)]
@@ -852,9 +882,7 @@
                           y-min
                           (+ prev-max y-rho))
                 delta (if (> y-min start-y) ;; round up to next y-rho
-                        ;; 0.01 is to prevent fencepost error
-                        (- start-y y-min)
-                        0)
+                        (- start-y y-min) 0)
                 y-max (+ y-max delta)] ;; delta will change y-max
             ;; because each option might have been adjusted
             (when-not (zero? delta)
@@ -865,14 +893,13 @@
                     (update-node (update-in node [:node/y] add-delta))
                     (if-let [end (:node/end node)] ;; interior b/end
                       (move-begin options end add-delta-mn))
-                    (remove nil?
-                      (map-outgoing node
-                        (fn [edge]
-                          (let [{:keys [edge/to edge/weight edge/hidden]} edge]
-                            (if-not (or hidden (zero? weight))
-                              to)))))))))
+                    (map-outgoing node
+                      (fn [edge]
+                        (let [{:keys [edge/to edge/weight edge/hidden]} edge]
+                          (if-not (or hidden (zero? weight))
+                            to))))))))
             (if parent
-              (if (= opt-id (first opt-order)) ;; first one
+              (if (keyword-identical? opt-id (first opt-order)) ;; first one
                 (min-max-begin options parent mn true)
                 (min-max-begin options parent mn false)))
             (if-not (empty? more)
@@ -887,7 +914,7 @@
         nexts (get-nexts node)]
     ;; (println "SB" option-id "BEGIN-ID" begin-id "NODE-ID" node-id
     ;;   "END-ID" end-id "BEGIN-MN" begin-mn "NEXTS" nexts "#" (count nexts))
-    (when (= node-id option-id) ;; this node-id is a new option for end-id
+    (when (keyword-identical? node-id option-id) ;; this node-id is a new option for end-id
       ;; (println "this node-id is a new option for end-id")
       (swap! options assoc-in
         [end-id :opts option-id node-id] begin-mn))
@@ -898,7 +925,7 @@
            :parent [end-id :opts option-id node-id]
            :todo (count nexts)
            :opts {}})
-        (when-not (= node-id option-id) ;; new begin
+        (when-not (keyword-identical? node-id option-id) ;; new begin
           ;; (println "New begin within this option")
           (swap! options assoc-in [end-id :opts option-id node-id] begin-mn))
         (doseq [next nexts]
@@ -910,15 +937,14 @@
             (when (zero? (count nexts))
               ;; (println "TPN END (*-begin)!")
               (sg-option-end options option-id :network-end)))))
-      (if (= node-id end-id)
+      (if (keyword-identical? node-id end-id)
         (sg-option-end options option-id end-id)
         (if (and (zero? (count nexts))
-              (= option-id (get-in @options [:network-end :begin])))
+              (keyword-identical? option-id (get-in @options [:network-end :begin])))
           (sg-option-end options option-id :network-end)
           (if (= 1 (count nexts)) ;; NOT the end
             (do
               (when-not (= begin-mn mn)
-                ;; (println "  Updating" end-id option-id begin-id "with" begin-mn)
                 (swap! options assoc-in
                   [end-id :opts option-id begin-id] begin-mn))
               (sg-balance options option-id begin-id (first nexts) end-id))))))))
@@ -945,64 +971,66 @@
         {:keys [plan/type plan/name]} plan0
         plan-type type
         network (get network-by-plid-id network-plid-id)
-        {:keys [network/begin network/end]} network]
-    (map-nodes
-      (fn [node]
+        {:keys [network/begin network/end network/nodes]} network]
+    (println "TPLAN position")
+    (doseq [node-id nodes]
+      (let [node (get-node node-id)]
         (map-incoming node
           (fn [edge]
-            (let [node-id (node-key-fn node)
-                  node (get-node node-id) ;; may have mutated
+            (let [node (get-node node-id)
                   {:keys [edge/hidden edge/weight edge/type edge/from]} edge
                   edge-type type
                   {:keys [node/type node/outgoing]} (get-node from)
                   from-type type
-                  edge-fn (fn [edge]
-                            (let [{:keys [edge/hidden edge/weight]} edge]
-                              (if-not (or hidden (zero? weight))
-                                (edge-key-fn edge))))
-                  n-outgoing (count (remove nil?
-                                      (map (comp edge-fn get-edge) outgoing)))
-                  {:keys [node/up-priority node/incoming node/type]} node
+                  edge-fn (fn [sum edge-id]
+                            (let [{:keys [edge/type edge/hidden edge/weight]}
+                                  (get-edge edge-id)]
+                              (+ sum
+                                (if (and (#{:activity :null-activity} type)
+                                      (not (or hidden (zero? weight))))
+                                  1 0))))
+                  n-outgoing (reduce edge-fn 0 outgoing)
+                  {:keys [node/up-priority node/type]} node
                   up-priority (+ (or up-priority 0)
-                                (if (or (= edge-type :virtual)
+                                (if (or (keyword-identical? edge-type :virtual)
                                       (and
                                         (or
-                                          (= from-type :state)
-                                          (= type :state))
+                                          (keyword-identical? from-type :state)
+                                          (keyword-identical? type :state))
                                         (= 1 n-outgoing)))
                                   0.1 0)
-                                (if hidden 0 weight))
-                  node (assoc node :node/up-priority up-priority)]
-              (update-node node))))
+                                (if hidden 0 weight))]
+              (update-node (assoc node :node/up-priority up-priority)))))
         (map-outgoing node
           (fn [edge]
-            (let [node-id (node-key-fn node)
-                  node (get-node node-id) ;; may have mutated
+            (let [node (get-node node-id)
                   {:keys [edge/hidden edge/weight edge/type edge/to]} edge
                   edge-type type
                   {:keys [node/type node/incoming]} (get-node to)
                   to-type type
-                  edge-fn (fn [edge]
-                            (let [{:keys [edge/hidden edge/weight]} edge]
-                              (if-not (or hidden (zero? weight))
-                                (edge-key-fn edge))))
-                  n-incoming (count (remove nil?
-                                      (map (comp edge-fn get-edge) incoming)))
-                  {:keys [node/down-priority node/outgoing node/type]} node
+                  edge-fn (fn [sum edge-id]
+                            (let [{:keys [edge/type edge/hidden edge/weight]}
+                                  (get-edge edge-id)]
+                              (+ sum
+                                (if (and (#{:activity :null-activity} type)
+                                      (not (or hidden (zero? weight))))
+                                  1 0))))
+                  n-incoming (reduce edge-fn 0 incoming)
+                  {:keys [node/down-priority node/type]} node
                   down-priority (+ (or down-priority 0)
-                                  (if (and (= plan-type :htn-network)
-                                        (= to end))
+                                  (if (and (keyword-identical? plan-type
+                                             :htn-network)
+                                        (keyword-identical? to end))
                                     -0.5 0)
-                                  (if (or (= edge-type :virtual)
+                                  (if (or (keyword-identical? edge-type :virtual)
                                         (and
                                           (or
-                                            (= to-type :state)
-                                            (= type :state))
+                                            (keyword-identical? to-type :state)
+                                            (keyword-identical? type :state))
                                           (= 1 n-incoming)))
                                     0.1 0)
-                                  (if hidden 0 weight))
-                  node (assoc node :node/down-priority down-priority)]
-              (update-node node))))))
+                                  (if hidden 0 weight))]
+              (update-node (assoc node :node/down-priority down-priority)))))))
     (medianpos 0)
     (medianpos 1)
     (when (not= plan-type :htn-network)
@@ -1012,8 +1040,7 @@
       (medianpos 4)
       (medianpos 5))
     (set-coord plan-type)
-    true ;; for chain
-    ))
+    true)) ;; for chain
 
 (defn clean-nodes
   ([nodes]
@@ -1090,48 +1117,30 @@
         {:keys [plan/by-plid network/network-by-plid-id]} @graph
         plan0 (get by-plid plid)
         {:keys [plan/type plan/name]} plan0
-        network (get network-by-plid-id network-plid-id)
+        network (if (keyword-identical? type :htn-network)
+                  (get network-by-plid-id network-plid-id))
         {:keys [network/begin]} network]
-    (if (= type :htn-network)
-      (let [end-node (create-vnode 0)
-            end-id (node-key-fn end-node)]
-        (swap! graph
-          (fn [g]
-            (let [{:keys [network/network-by-plid-id]} g
-                  network (assoc (get network-by-plid-id network-plid-id)
-                            :network/end end-id)
-                  network-by-plid-id (assoc network-by-plid-id
-                                       network-plid-id network)]
-              (assoc g
-                :network/network-by-plid-id network-by-plid-id))))
-        ;; put edges in order
-        (map-nodes
-          (fn [node]
-            (when (> (count (:node/outgoing node)) 1)
-              (let [{:keys [node/outgoing]} node
-                    out-edges (map get-edge outgoing)
-                    pio-fn #(vector (or (:edge/order %) 0)
-                              (:plan/plid %) (:edge/id %))
-                    out-order (sort-by first (mapv pio-fn out-edges))
-                    outgoing (mapv (fn [[o p i]] (composite-key p i))
-                               out-order)]
-                (update-node (assoc node :node/outgoing outgoing))))))
-        (visit-nodes begin #{}
-          (fn [node]
-            (if (and (not= (:node/type node) :virtual)
-                  (zero? (count (:node/outgoing node))))
-              (map-outgoing node
-                (fn [edge]
-                  (let [to (get-node (:edge/to edge))]
-                    (node-key-fn to))))))) ;; visit to
-        true)
-      true)))
+    (println "TPLAN initialize-htn")
+    (when (keyword-identical? type :htn-network)
+      ;; put edges in order
+      (map-nodes
+        (fn [node]
+          (when (> (count (:node/outgoing node)) 1)
+            (let [{:keys [node/outgoing]} node
+                  out-edges (map get-edge outgoing)
+                  pio-fn #(vector (or (:edge/order %) 0)
+                            (:plan/plid %) (:edge/id %))
+                  out-order (sort-by first (mapv pio-fn out-edges))
+                  outgoing (mapv (fn [[o p i]] (composite-key p i))
+                             out-order)]
+              (update-node (assoc node :node/outgoing outgoing)))))))
+    true))
 
 (defn setup-graph [plan]
   (let [plid (first (keys (:plan/by-plid plan)))
         plan0 (get-in plan [:plan/by-plid plid])
         {:keys [plan/type plan/name plan/begin]} plan0
-        gp (if (= type :htn-network) graph-params-htn graph-params-tpn)]
+        gp (if (keyword-identical? type :htn-network) graph-params-htn graph-params-tpn)]
     (reset! graph plan)
     (reset! graph-params
       (assoc gp
@@ -1143,6 +1152,7 @@
     true))
 
 (defn return-graph [& args]
+  (println "TPLAN return-graph")
   @graph)
 
 (defn layout [plan]
@@ -1158,12 +1168,13 @@
                  (sleep a-little)
                  (chain rank)
                  (sleep a-little)
+                 (chain save-ranking)
+                 (sleep a-little)
                  (chain balance)
                  (sleep a-little)
                  (chain mincross)
                  (sleep a-little)
                  (chain position)
-                 (sleep a-little)
                  (sleep a-little)
                  (chain return-graph)
                  (sleep a-little)

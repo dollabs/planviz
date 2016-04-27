@@ -69,8 +69,7 @@
       :input-box/start
       :input-box/end
       :input-box/placeholder
-      :input-box/size
-      ])
+      :input-box/size])
   Object
   (render [this]
     (let [props (om/props this)]
@@ -93,13 +92,11 @@
       :pan-zoom/vp-width ;; 800
       :pan-zoom/vp-height ;; 800
       :pan-zoom/pan ;; [0 0]
-      :pan-zoom/zoom ;; 1.0
-      ])
+      :pan-zoom/zoom]) ;; 1.0
   Object
   (render [this]
     (let [props (om/props this)]
-      (ui/pan-zoom props)
-      )))
+      (ui/pan-zoom props))))
 
 (def pan-zoom-factory (om/factory PanZoom {:keyfn pan-zoom-key-fn}))
 (def pan-zoom-query (om/get-query PanZoom))
@@ -119,8 +116,8 @@
       :ui/show-virtual? ;; false;; nodes and edges
       :ui/node-ids? ;; false ;; show node ids
       :ui/edge-ids? ;; false ;; show edge -ids
-      :ui/graph-click ;; fn when a graph item is clicked
-      ])
+      :ui/tooltips? ;; show tooltips
+      :ui/graph-click]) ;; fn when a graph item is clicked
   Object
   (render [this]
     (let [props (om/props this)]
@@ -142,7 +139,6 @@
   static om/Ident
   (ident [_ props]
     (gsi-ident-fn props))
-    ;; [:gsi/gsi-by-plid-id (gsi-key-fn props)])
   static om/IQueryParams
   (params [_]
     {:node (with-meta [:plan/plid :node/id :node/state :node/begin-state]
@@ -169,7 +165,7 @@
     [:node/node-by-plid-id (node-key-fn props)])
   static om/IQueryParams
   (params [_]
-    {:ui-opts ui-opts-query
+    {:ui-opts [:ui/network-type :ui/node-ids? :ui/tooltips? :ui/graph-click]
      :selection gsi-query})
   static om/IQuery
   (query [_]
@@ -236,8 +232,9 @@
     [:edge/edge-by-plid-id (edge-key-fn props)])
   static om/IQueryParams
   (params [_]
-    {:node node-query
-     :ui-opts ui-opts-query})
+    {:node [:plan/plid :node/id :node/x :node/y]
+     :ui-opts [:ui/network-type :ui/tooltips? :ui/graph-click]
+     })
   static om/IQuery
   (query [_] ;; NORMAL QUOTE below
     '[{:plans/ui-opts ?ui-opts}
@@ -295,8 +292,8 @@
     [:edge/edge-by-plid-id (edge-key-fn props)])
   static om/IQueryParams
   (params [_]
-    {:node node-query
-     :ui-opts ui-opts-query})
+    {:node [:node/x :node/y]
+     :ui-opts [:ui/show-virtual? :ui/edge-ids?]})
   static om/IQuery
   (query [_] ;; NORMAL QUOTE below
     '[{:plans/ui-opts ?ui-opts}
@@ -344,7 +341,7 @@
 (def label-query (om/get-query Label))
 (def label-refs (assoc node-refs
                   :edge/from :node/node-by-plid-id
-                 :edge/to :node/node-by-plid-id))
+                  :edge/to :node/node-by-plid-id))
 
 ;; Network ------------------------------------------------------------
 
@@ -356,7 +353,7 @@
   (params [_]
     {:nodes node-query
      :edges edge-query
-     :ui-opts ui-opts-query})
+     :ui-opts [:ui/show-virtual?]})
   static om/IQuery
   (query [_]
     '[{:plans/ui-opts ?ui-opts}
@@ -393,7 +390,7 @@
   static om/IQueryParams
   (params [_]
     {:networks network-query
-     :ui-opts ui-opts-query})
+     :ui-opts [:ui/show-network]})
   static om/IQuery
   (query [_]
     '[{:plans/ui-opts ?ui-opts}
@@ -419,19 +416,17 @@
   static om/IQueryParams
   (params [_]
     {:pan-zoom pan-zoom-query
-     :ui-opts ui-opts-query
+     :ui-opts [:ui/show-plan :ui/graph-click]
      :plans plan-query})
   static om/IQuery
   (query [_]
     '[{:plans/pan-zoom ?pan-zoom}
       {:plans/ui-opts ?ui-opts}
-      {:plans/plans ?plans}
-      ]) ;; all plans
+      {:plans/plans ?plans}]) ;; all plans
   Object
   (render [this]
     (let [props (om/props this)]
-      (ui/plans props plan-factory)
-      )))
+      (ui/plans props plan-factory))))
 
 (def plans-query (om/get-query Plans))
 (def plans-refs (assoc plan-refs
@@ -461,8 +456,7 @@
       :app/plans
       {:app/message-box ?message-box}
       {:app/input-box ?input-box}
-      {:app/pan-zoom ?pan-zoom}
-      ])
+      {:app/pan-zoom ?pan-zoom}])
   Object
   (render [this]
     (let [props (om/props this)]
