@@ -30,7 +30,7 @@ The **planviz** application is part of the [PAMELA](https://github.com/dollabs/p
 
 Here are the steps to build **planviz** locally:
 
-1. Install [RabbitMQ](https://www.rabbitmq.com/)
+1. Install [RabbitMQ](https://www.rabbitmq.com/) Server
  * For Debian GNU/Linux systems simply do
 
    `# apt-get install rabbitmq-server`
@@ -92,9 +92,17 @@ that do not prevent building)
   * *NOTE* this config uses the example plans from **plan-schema**
   * For convenience you may add the [planviz/bin](bin) directory to your `PATH`
 (or simply refer to the startup script as `./bin/planviz`).
+  * Note that the single argument to `planviz FOO` refers to a configuration file
+    with details in `config/FOO.edn`.
 
    ````
    $ planviz demo
+   ````
+
+7. After you see `PLANVIZ server ready` you can open a (or several) browser windows to [http://localhost:8080](http://localhost:8080)
+
+   ````
+   $ open http://localhost:8080
    ````
 
 ## Commands (*a la* IRC)
