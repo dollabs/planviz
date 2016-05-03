@@ -16,6 +16,9 @@
               [planviz.ui :as ui
                :refer [node-key-fn edge-key-fn network-key-fn]]))
 
+(defn non-zero? [x]
+  (and x (not (zero? x))))
+
 ;; helper function
 (defn reversev [s]
   (vec (reverse s)))
@@ -446,10 +449,37 @@
                   (update-node (assoc node :node/y y-new)))
                 (recur (first more) (rest more))))))))))
 
-(defn calc-label-width [label-char label]
-  (let [n (count label)
-        extra (if (> n 25) 4 6)]
+(defn calc-label-width [label-char n]
+  (let [extra (if (> n 25) 4 6)]
     (* (+ n extra) label-char)))
+
+(defn construct-label [name label sequence-label plant plantid command bounds]
+  (let [full (str plant
+               (if-not (empty? plantid) ".")
+               plantid
+               (if-not (empty? command) "$")
+               command)
+        label (str
+                (if-not (empty? full) full name)
+                (if label " (") label
+                ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
+                (if sequence-label " ▹ ")
+                sequence-label
+                (if label ")"))
+        label (if (vector? bounds)
+                (str label (if label " ") bounds)
+                label)]
+    label))
+
+(defn construct-extra [cost reward probability]
+  (let [extra (str
+                (if (non-zero? cost) "cost: ")
+                (if (non-zero? cost) cost)
+                (if (non-zero? reward) " reward: ")
+                (if (non-zero? reward) reward)
+                (if (non-zero? probability) " probability: ")
+                (if (non-zero? probability) probability))]
+    extra))
 
 (defn set-coord [plan-type]
   ;; y starts at 2 * nodesep, x starts at 1/2 ranksep
@@ -478,12 +508,18 @@
         (let [nodes (get ranking r)
               edge-fn (fn [edge] ;; returns xrank
                         (let [{:keys [edge/hidden edge/weight
-                                      edge/name edge/label]} edge
-                              edge-label (or name label)]
-                          (if (or hidden (zero? weight)
-                                (empty? edge-label))
+                                      edge/name edge/label edge/bounds
+                                      edge/sequence-label
+                                      edge/plant edge/plantid edge/command
+                                      edge/cost edge/reward
+                                      edge/probability]} edge
+                              label (construct-label name label sequence-label
+                                      plant plantid command bounds)
+                              extra (construct-extra cost reward probability)
+                              max-label (max (count label) (count extra))]
+                          (if (or hidden (zero? weight))
                             0
-                            (calc-label-width label-char edge-label))))
+                            (calc-label-width label-char max-label))))
               node-fn (fn [node] ;; returns [xrank ymax]
                         (let [{:keys [node/y]} node
                               y (+ y y0)]

@@ -15,13 +15,11 @@
             [sablono.core :as html :refer-macros [html]]
             [avenir.utils :as au :refer [assoc-if remove-fn concatv]]
             [avenir.math :as math :refer [sqrt PI_2 sin cos atan]]
+            [planviz.tplan :as tplan :refer [non-zero?]]
             [plan-schema.core :as pschema
              :refer [composite-key composite-key-fn]]))
 
 ;; generic utilities
-
-(defn non-zero? [x]
-  (and x (not (zero? x))))
 
 (defonce SQRT3 (sqrt 3))
 
@@ -147,6 +145,10 @@
                          }]
               top (- y 10)
               ychar 8
+              ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
+              label (if sequence-label
+                      (str label "\n▹ " sequence-label)
+                      label)
               lines (if label (string/split label #"\n"))
               labels (if lines
                        (for [i (range (count lines))
@@ -265,23 +267,23 @@
 (def edge-memo (memoize edge))
 
 (defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
+                    edge/sequence-label
+                    edge/plant edge/plantid edge/command
                     edge/from edge/to edge/bounds edge/cost edge/reward
                     edge/probability edge/order] :as props}]
   (let [{:keys [ui/show-virtual? ui/edge-ids?]} ui-opts
         virtual? (= type :virtual)
         label? (or show-virtual? (not virtual?))
-        label (and label? (or name label))
+        label (if label? (tplan/construct-label name label sequence-label
+                           plant plantid command bounds))
         label (if edge-ids?
                 (str label " = "
                   (clojure.core/name id)
                   (if order " {")
                   order
-                  (if order "}")
-                  )
+                  (if order "}"))
                 label)
-        label (if (vector? bounds)
-                (str label (if label " ") bounds)
-                label)
+        extra (tplan/construct-extra cost reward probability)
         [x0 y0] [(:node/x from) (:node/y from)]
         [x1 y1] [(:node/x to) (:node/y to)]
         [x y d ratio] (if label?
@@ -289,16 +291,9 @@
                         [x0 y0 0 0])
         order (if edge-ids? order)
         above [:text {:textAnchor "middle"
-                      :x (- x 5) :y (+ y -5 (if order (* 7 order) 0))} label]
-        extra (str
-                (if (non-zero? cost) "cost: ")
-                (if (non-zero? cost) cost)
-                (if (non-zero? reward) " reward: ")
-                (if (non-zero? reward) reward)
-                (if (non-zero? probability) " probability: ")
-                (if (non-zero? probability) probability))
+                      :x (- x 5) :y (+ y -3 (if order (* 7 order) 0))} label]
         below (if (not (empty? extra))
-                [:text {:textAnchor "middle" :x x :y (+ y 11)} extra])]
+                [:text {:textAnchor "middle" :x x :y (+ y 12)} extra])]
     (html
       (if below
         [:g above below]

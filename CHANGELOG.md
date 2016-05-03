@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file. This change
 
 Added
 - *TBD*
+Changed
+- Show between labels on activities (in parens)
+- Show sequence-labels on nodes and activities (if present)
+- Fixed edge/plant-id to be edge/plantid
+- ui.cljs now calculates label width using the same algorithm as tplan.cljs
 
 ### [0.8.2] - 2016-04-27
 

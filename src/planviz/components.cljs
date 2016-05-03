@@ -258,7 +258,7 @@
       :edge/sequence-end
       ;; FOR :activity
       :edge/plant
-      :edge/plant-id
+      :edge/plantid
       :edge/command
       :edge/cost
       :edge/reward
@@ -317,7 +317,7 @@
       :edge/sequence-end
       ;; FOR :activity
       :edge/plant
-      :edge/plant-id
+      :edge/plantid
       :edge/command
       :edge/cost
       :edge/reward
