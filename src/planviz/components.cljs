@@ -117,7 +117,9 @@
       :ui/node-ids? ;; false ;; show node ids
       :ui/edge-ids? ;; false ;; show edge -ids
       :ui/tooltips? ;; show tooltips
-      :ui/graph-click]) ;; fn when a graph item is clicked
+      :ui/graph-click ;; fn when a graph item is clicked
+      :ui/css ;; source for css
+      ])
   Object
   (render [this]
     (let [props (om/props this)]

@@ -14,10 +14,7 @@
               [plan-schema.core :as pschema :refer [composite-key]]
               ;; [planviz.components :as comp]
               [planviz.ui :as ui
-               :refer [node-key-fn edge-key-fn network-key-fn]]))
-
-(defn non-zero? [x]
-  (and x (not (zero? x))))
+               :refer [node-key-fn edge-key-fn network-key-fn non-zero?]]))
 
 ;; helper function
 (defn reversev [s]
@@ -453,34 +450,6 @@
   (let [extra (if (> n 25) 4 6)]
     (* (+ n extra) label-char)))
 
-(defn construct-label [name label sequence-label plant plantid command bounds]
-  (let [full (str plant
-               (if-not (empty? plantid) ".")
-               plantid
-               (if-not (empty? command) "$")
-               command)
-        label (str
-                (if-not (empty? full) full name)
-                (if label " (") label
-                ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
-                (if sequence-label " ▹ ")
-                sequence-label
-                (if label ")"))
-        label (if (vector? bounds)
-                (str label (if label " ") bounds)
-                label)]
-    label))
-
-(defn construct-extra [cost reward probability]
-  (let [extra (str
-                (if (non-zero? cost) "cost: ")
-                (if (non-zero? cost) cost)
-                (if (non-zero? reward) " reward: ")
-                (if (non-zero? reward) reward)
-                (if (non-zero? probability) " probability: ")
-                (if (non-zero? probability) probability))]
-    extra))
-
 (defn set-coord [plan-type]
   ;; y starts at 2 * nodesep, x starts at 1/2 ranksep
   ;; will calculate w and h
@@ -513,9 +482,9 @@
                                       edge/plant edge/plantid edge/command
                                       edge/cost edge/reward
                                       edge/probability]} edge
-                              label (construct-label name label sequence-label
+                              label (ui/construct-label name label sequence-label
                                       plant plantid command bounds)
-                              extra (construct-extra cost reward probability)
+                              extra (ui/construct-extra cost reward probability)
                               max-label (max (count label) (count extra))]
                           (if (or hidden (zero? weight))
                             0

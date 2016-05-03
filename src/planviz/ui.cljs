@@ -15,11 +15,12 @@
             [sablono.core :as html :refer-macros [html]]
             [avenir.utils :as au :refer [assoc-if remove-fn concatv]]
             [avenir.math :as math :refer [sqrt PI_2 sin cos atan]]
-            [planviz.tplan :as tplan :refer [non-zero?]]
             [plan-schema.core :as pschema
              :refer [composite-key composite-key-fn]]))
 
 ;; generic utilities
+(defn non-zero? [x]
+  (and x (not (zero? x))))
 
 (defonce SQRT3 (sqrt 3))
 
@@ -266,6 +267,34 @@
 
 (def edge-memo (memoize edge))
 
+(defn construct-label [name label sequence-label plant plantid command bounds]
+  (let [full (str plant
+               (if-not (empty? plantid) ".")
+               plantid
+               (if-not (empty? command) "$")
+               command)
+        label (str
+                (if-not (empty? full) full name)
+                (if label " (") label
+                ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
+                (if sequence-label " ▹ ")
+                sequence-label
+                (if label ")"))
+        label (if (vector? bounds)
+                (str label (if label " ") bounds)
+                label)]
+    label))
+
+(defn construct-extra [cost reward probability]
+  (let [extra (str
+                (if (non-zero? cost) "cost: ")
+                (if (non-zero? cost) cost)
+                (if (non-zero? reward) " reward: ")
+                (if (non-zero? reward) reward)
+                (if (non-zero? probability) " probability: ")
+                (if (non-zero? probability) probability))]
+    extra))
+
 (defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
                     edge/sequence-label
                     edge/plant edge/plantid edge/command
@@ -274,7 +303,7 @@
   (let [{:keys [ui/show-virtual? ui/edge-ids?]} ui-opts
         virtual? (= type :virtual)
         label? (or show-virtual? (not virtual?))
-        label (if label? (tplan/construct-label name label sequence-label
+        label (if label? (construct-label name label sequence-label
                            plant plantid command bounds))
         label (if edge-ids?
                 (str label " = "
@@ -283,7 +312,7 @@
                   order
                   (if order "}"))
                 label)
-        extra (tplan/construct-extra cost reward probability)
+        extra (construct-extra cost reward probability)
         [x0 y0] [(:node/x from) (:node/y from)]
         [x1 y1] [(:node/x to) (:node/y to)]
         [x y d ratio] (if label?

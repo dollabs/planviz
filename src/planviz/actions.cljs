@@ -19,7 +19,9 @@
             [planviz.state :as st]
             [planviz.tplan :as tplan]
             [plan-schema.core :as pschema :refer [composite-key]]
-            [goog.dom :as gdom]))
+            [goog.dom :as gdom]
+            [goog.fs :as fs]
+            [goog.net.XhrIo :as xhr]))
 
 (def edge-states [:normal
                   :impossible ;; grey
@@ -945,6 +947,9 @@
                 :success-fn recv-msg :error-fn generic-reply}
         :msg user comment))))
 
+(defn no-plan? [showing]
+  (or (not showing) (#{:all :none :loading} showing)))
+
 (defn user-action [action]
   (let [client (st/app-get :app/client)
         {:keys [planviz remote nick type plid selection pan zoom chat]} action
@@ -952,10 +957,8 @@
         plan-data (get plans plid)
         loaded? (:loaded? plan-data)
         showing (:ui/show-plan (st/get-ui-opts))
-        no-plan? (or (not showing) (#{:all :none} showing))
         ready? (or (not (auto?)) (not plid) loaded?)
-        to-show (if no-plan? plid showing)
-        ]
+        to-show (if (no-plan? showing) plid showing)]
     (if ready?
       (do
         (case type
@@ -1072,6 +1075,49 @@
                 :edge/state (get edge-states
                               (mod (swap! i inc) edge-states-n))))))))))
 
+(defn get-css [d]
+  (let [{:keys [ui/css]} (st/get-ui-opts)]
+    (if (string? css)
+      true
+      (let [dcss (tasks/deferred)]
+        (xhr/send "/css/planviz.css"
+          (fn [e]
+            (let [xhr (.-target e)]
+              (if (.isSuccess xhr)
+                (do
+                  (st/merge-ui-opts {:ui/css (.getResponseText xhr)})
+                  (success! dcss true))
+                (error! dcss false)))))
+        dcss))))
+
+(defn export-plan [d]
+  (let [{:keys [ui/show-plan ui/css]} (st/get-ui-opts)
+        filename (str (name show-plan) ".svg")
+        application (gdom/getElement "application")
+        plans (gdom/getElement "plans")
+        dataurl "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjIwIiBzdHlsZT0iZmlsbDp5ZWxsb3c7Ij48L2NpcmNsZT4KICA8dGV4dCB4PSIxNSIgeT0iMzUiPkhlbGxvPC90ZXh0Pgo8L3N2Zz4K"
+        a (.createElement js/document "a")]
+    (println "exporting" show-plan "css" (count css))
+    (println "bigplan:" (count (.-innerHTML plans)))
+    (set! (.-id a) "download")
+    (set! (.-download a) filename)
+    (set! (.-href a) dataurl)
+    (.appendChild application a)
+    (.click a)
+    (tasks/timeout #(.removeChild application a) 20)
+    true))
+
+(defn export []
+  (let [{:keys [ui/show-plan]} (st/get-ui-opts)]
+    (if (no-plan? show-plan)
+      (status-msg "cannot export: no plan shown")
+      (let [start (tasks/deferred)
+            finish (-> start
+                     (chain get-css)
+                     (chain export-plan))]
+        (success! start true)
+        finish))))
+
 (declare help)
 
 (def execute-methods
@@ -1090,6 +1136,7 @@
    "normal" #'color-normal
    "color" #'color-test
    "help" #'help
+   "export" #'export
    "?" #'help})
 
 (defn help []
