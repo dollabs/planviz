@@ -20,7 +20,7 @@
             [planviz.tplan :as tplan]
             [plan-schema.core :as pschema :refer [composite-key]]
             [goog.dom :as gdom]
-            [goog.fs :as fs]
+            [goog.crypt.base64 :as base64]
             [goog.net.XhrIo :as xhr]))
 
 (def edge-states [:normal
@@ -1090,21 +1090,37 @@
                 (error! dcss false)))))
         dcss))))
 
+(defn string->octet-array [s]
+  (into-array (map #(.charCodeAt % 0) s)))
+
+(defn create-data-url [data-str mime-type]
+  (let [data (string->octet-array data-str)
+        data-base64 (base64/encodeByteArray data)]
+    (str "data:" mime-type ";base64," data-base64)))
+
 (defn export-plan [d]
   (let [{:keys [ui/show-plan ui/css]} (st/get-ui-opts)
         filename (str (name show-plan) ".svg")
         application (gdom/getElement "application")
         plans (gdom/getElement "plans")
-        dataurl "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgogIDxjaXJjbGUgY3g9IjMwIiBjeT0iMzAiIHI9IjIwIiBzdHlsZT0iZmlsbDp5ZWxsb3c7Ij48L2NpcmNsZT4KICA8dGV4dCB4PSIxNSIgeT0iMzUiPkhlbGxvPC90ZXh0Pgo8L3N2Zz4K"
+        svg (.-innerHTML plans)
+        lt (inc (string/index-of svg ">"))
+        svg-header "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
+        svg-begin "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n "
+        css-begin "\n<style type=\"text/css\">\n<![CDATA[\n"
+        css-end "\n]]>\n</style>\n"
+        svg (str svg-header svg-begin (subs svg 4 lt)
+              css-begin css css-end
+              (string/replace (subs svg lt) #">" ">\n"))
+        dataurl (create-data-url svg "image/svg+xml")
         a (.createElement js/document "a")]
-    (println "exporting" show-plan "css" (count css))
-    (println "bigplan:" (count (.-innerHTML plans)))
+    (println "exporting" show-plan "as" filename)
     (set! (.-id a) "download")
     (set! (.-download a) filename)
     (set! (.-href a) dataurl)
     (.appendChild application a)
     (.click a)
-    (tasks/timeout #(.removeChild application a) 20)
+    (tasks/timeout #(.removeChild application a) 5)
     true))
 
 (defn export []

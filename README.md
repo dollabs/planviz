@@ -5,8 +5,9 @@ Planning Network Visualization
 As this is a pre-release version **planviz**. You can clone
 it (and the required libraries) to build it locally.
 
-Check out the [CHANGELOG](CHANGELOG.md)
+![Example PLANVIZ visualization](doc/choice.svg)
 
+Check out the [CHANGELOG](CHANGELOG.md)
 
 ## News
 
@@ -117,6 +118,7 @@ that do not prevent building)
 * `/prev` view the previous plan
 * `/manual` manual mode (do not respond to other user updates)
 * `/auto` automatic mode (highlight relevent selections from others)
+* `/export` export current plan as SVG
 * `/?` help
 * `free format text` broadcast message
 
