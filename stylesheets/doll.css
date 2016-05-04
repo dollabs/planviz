@@ -1,0 +1,32 @@
+a.doll {
+    width: 0px;
+    height: 0px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    transition: none;
+    z-index: -10;
+}
+
+img.doll {
+    /* position: relative; */
+    /* margin: 0 auto; */
+    /* max-width: 739px; */
+    /* padding: 5px; */
+    padding: 10px;
+    background: white;
+    /* margin: 10px 0 10px 0; */
+    /* border: 1px solid #ebebeb; */
+    border: 2px solid #007edf;
+    box-shadow: none;
+    overflow: hidden;
+    /* box-shadow: 0 0 5px #ebebeb; */
+    /* -webkit-box-shadow: 0 0 5px #ebebeb; */
+    /* -moz-box-shadow: 0 0 5px #ebebeb; */
+    /* -o-box-shadow: 0 0 5px #ebebeb; */
+    /* -ms-box-shadow: 0 0 5px #ebebeb; */
+}
+
+a.doll:hover img.doll {
+    border: 2px solid lightblue;
+}

@@ -1,9 +1,0 @@
-{:rmq-port 5672,
- :arguments [],
- :verbose 0,
- :port 8080,
- :host "localhost",
- :rmq-host "localhost",
- :input [],
- :exchange "tpn-updates",
- :version true}

@@ -1,9 +1,0 @@
-{:verbose 0,
- :exchange "tpn-updates",
- :input
- ["../plan-schema/examples/seattle-2016/seattle.htn.edn=../plan-schema/examples/seattle-2016/seattle.tpn.edn"],
- :rmq-host "localhost",
- :rmq-port 5672,
- :host "localhost",
- :port 8080,
- :arguments ["visualize"]}
