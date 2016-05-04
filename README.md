@@ -5,7 +5,7 @@ Planning Network Visualization
 As this is a pre-release version **planviz**. You can clone
 it (and the required libraries) to build it locally.
 
-![Example PLANVIZ visualization](doc/choice.svg)
+![Example PLANVIZ visualization](https://raw.githubusercontent.com/dollabs/planviz/master/doc/choice.svg)
 
 Check out the [CHANGELOG](CHANGELOG.md)
 
