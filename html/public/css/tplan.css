@@ -1,0 +1,401 @@
+/* Copyright (c) 2016 Dynamic Object Language Labs Inc.
+
+   This software is licensed under the terms of the
+   Apache License, Version 2.0 which can be found in
+   the file LICENSE at the root of this distribution.
+*/
+
+svg, g, rect, circle, text, symbol, use {
+    pointer-events: all;
+}
+
+.plain {
+    fill: none;
+    stroke: black;
+    stroke-width: 1px;
+}
+
+#arrowhead {
+    fill: #444;
+}
+
+#arrowlight {
+    fill: lightblue;
+}
+
+#arrow {
+    /* fill: #555; */
+    fill: rgba(100,100,100,0.9);
+}
+
+#arrow-long {
+    /* fill: #888; */
+    fill: rgba(150,150,150,0.9);
+}
+
+#arrow-very-long {
+    /* fill: #ccc; */
+    fill: rgba(200,200,200,0.9);
+}
+
+#choicehem > circle {
+    fill: blue;
+}
+
+.outline {
+    fill: none;
+    stroke: green;
+    stroke-width: 1px;
+}
+
+.planview {
+    fill: rgba(0,0,255,0.2);
+    stroke: none;
+}
+
+
+.activity-normal, .null-activity-normal, .parallel-edge-normal {
+    fill: none;
+    stroke: #444;
+    stroke-width: 3.0px;
+}
+
+.choice-edge-normal {
+    fill: none;
+    stroke: #888;
+    stroke-width: 3.0px;
+}
+
+.target-unselected {
+    fill: none;
+}
+
+.node .target-unselected {
+    fill: none;
+    stroke: none;
+}
+
+.node .target-selected {
+    opacity: 0.67;
+    fill: yellow;
+}
+
+.node:hover .target-selected, .node:hover .target-unselected {
+                                  opacity: 0.67;
+                                  fill: Fuchsia;
+                              }
+
+.edge .target {
+    fill-opacity: 0.67;
+    opacity: 0.67;
+    stroke-width: 8px;
+}
+
+.edge .target-unselected {
+    fill-opacity: 0.67;
+    opacity: 0.67;
+    stroke: none;
+    stroke-width: 8px;
+}
+
+.edge .target-selected {
+    fill-opacity: 0.67;
+    opacity: 0.67;
+    stroke: yellow;
+    stroke-width: 8px;
+}
+
+.edge:hover .target-selected, .edge:hover .target-unselected {
+                                  stroke: Fuchsia;
+                                  stroke-width: 8px;
+                              }
+
+.activity-active, .null-activity-active, .activity-started, .null-activity-started, .choice-edge-active, .parallel-edge-active, .choice-edge-started, .parallel-edge-started {
+    fill: none;
+    stroke: blue;
+    stroke-width: 3.0px;
+}
+
+.activity-finished, .null-activity-finished, .choice-edge-finished, .parallel-edge-finished {
+    fill: none;
+    stroke: #00ff00;
+    stroke-width: 3.0px;
+}
+
+.activity-negotiation, .null-activity-negotiation, .activity-start, .null-activity-start, .choice-edge-negotiation, .parallel-edge-negotiation  {
+    fill: none;
+    stroke: orange;
+    stroke-width: 3.0px;
+}
+
+.activity-best, .null-activity-best, .choice-edge-best, .parallel-edge-best {
+    fill: none;
+    stroke: magenta;
+    stroke-width: 3.0px;
+}
+
+.activity-impossible, .null-activity-impossible, .choice-edge-impossible, .parallel-edge-impossible  {
+    fill: none;
+    stroke: grey;
+    stroke-width: 3.0px;
+}
+
+.activity-failed, .null-activity-failed, .choice-edge-failed, .parallel-edge-failed  {
+    fill: none;
+    stroke: red;
+    stroke-width: 3.0px;
+}
+
+
+.edge-vedge {
+    fill: none;
+    stroke: yellow;
+    stroke-width: 3.0px;
+}
+
+.virtual-normal {
+    fill: none;
+    stroke: #eee;
+    stroke-width: 3.0px;
+}
+
+.temporal-constraint-normal {
+    fill: none;
+    stroke-dasharray: 2 2;
+    stroke: rgba(100,100,100,0.5);
+    stroke-width: 3.0px;
+}
+
+.temporal-constraint-normal-long {
+    fill: none;
+    stroke-dasharray: 3 3;
+    stroke: rgba(150,150,150,0.5);
+    stroke-width: 3.0px;
+}
+
+.temporal-constraint-normal-very-long {
+    fill: none;
+    stroke-dasharray: 4 4;
+    stroke: rgba(200,200,200,0.5);
+    stroke-width: 1px;
+}
+
+.parallel-normal, .choice-normal, .state-normal {
+    /* fill: #0099cc; */
+    fill: white;
+    stroke: #006699;
+    stroke-width: 3px;
+}
+
+.parallel-best, .choice-best, .state-best {
+    fill: magenta;
+    stroke: #006699;
+    stroke-width: 3px;
+}
+
+.parallel-impossible, .choice-impossible, .state-impossible {
+    fill: silver;
+    stroke: #006699;
+    stroke-width: 3px;
+}
+
+.parallel-reached, .choice-reached, .state-reached {
+    fill: #00ff00;
+    stroke: #006699;
+    stroke-width: 3px;
+}
+
+.parallel-failed, .choice-failed, .state-failed {
+    fill: #ff0000;
+    stroke: #006699;
+    stroke-width: 3px;
+}
+
+/* typically :started is not used for TPN nodes */
+.parallel-started, .choice-started, .state-started {
+    fill: blue;
+    stroke: #006699;
+    stroke-width: 3px;
+}
+
+.hem-normal {
+    fill: white;
+    stroke: Chocolate;
+    stroke-width: 3.0px;
+}
+
+.hem-reached {
+    fill: #00ff00;
+    stroke: Chocolate;
+    stroke-width: 3.0px;
+}
+
+.hem-best {
+    fill: magenta;
+    stroke: Chocolate;
+    stroke-width: 3.0px;
+}
+
+.hem-impossible {
+    fill: silver;
+    stroke: Chocolate;
+    stroke-width: 3.0px;
+}
+
+.hem-reached {
+    fill: #00ff00;
+    stroke: Chocolate;
+    stroke-width: 3.0px;
+}
+
+.hem-failed {
+    fill: red;
+    stroke: Chocolate;
+    stroke-width: 3.0px;
+}
+
+.hem-started {
+    /* fill: #0099cc; */
+    fill: blue;
+    stroke: Chocolate;
+    stroke-width: 3.0px;
+}
+
+#tooltip1 {
+    fill: Cornsilk;
+    stroke: Chocolate;
+    stroke-width: 1.0px;
+}
+
+.active, .started {
+    fill: blue;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.best {
+    fill: magenta;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.negotiation, .start  {
+    fill: orange;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.impossible {
+    fill: grey;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.failed {
+    fill: red;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.state-virtual-normal {
+    fill: #eee;
+    stroke: lightgray;
+    stroke-width: 4px;
+}
+
+.normal-probability {
+    fill: #0099cc;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.active-probability, .started-probability {
+    fill: blue;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.reached-probability {
+    fill: #00ff00;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.best-probability {
+    fill: magenta;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.negotiation-probability, .start-probability  {
+    fill: orange;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.impossible-probability {
+    fill: grey;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.failed-probability {
+    fill: red;
+    stroke: #006699;
+    stroke-width: 4px;
+}
+
+.parallel {
+    stroke: black;
+    stroke-width: 3px;
+}
+
+.choice {
+    fill: none;
+    stroke: black;
+    /* stroke-width: 1.5px; */
+    stroke-width: 3px;
+}
+
+.unchoice {
+    fill: none;
+    stroke: #555;
+    stroke-width: 2.2px;
+}
+
+text {
+    font-size: 9px;
+    font-family: Roboto Condensed, Liberation Sans Narrow, Nimbus Sans Condensed,  Helvetica Narrow, Helvetica, Verdana, Arial, sans-serif;
+    pointer-events: none;
+    text-shadow: 0.16em 0.16em 0.10em white, -0.16em -0.16em 0.10em white, -0.16em 0.16em 0.10em white, 0.16em -0.16em 0.10em white;
+}
+
+text.node-label {
+    font-size: 7px;
+    fill: DarkSlateGrey;
+}
+
+.show, .node:hover .node-tooltip, .edge:hover .edge-tooltip {
+                                      fill-opacity: 1.0;
+                                      opacity: 1.0;
+                                  }
+
+.hide {
+    opacity: 0.0;
+    fill-opacity: 0.0;
+}
+
+.node {
+}
+
+.edge {
+}
+
+.node-tooltip, .edge-tooltip {
+    transition: opacity 0.5s ease;
+}
+.node-tooltip rect, .edge-tooltip rect {
+    fill: Cornsilk;
+    stroke: Chocolate;
+    stroke-width: 1.0px;
+}

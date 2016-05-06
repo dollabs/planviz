@@ -12,6 +12,8 @@ Changed
 - Fixed edge/plant-id to be edge/plantid
 - ui.cljs now calculates label width using the same algorithm as tplan.cljs
 - Added `/export` function to save a plan as an SVG file
+- Divided CSS files into those required for PLANVIZ (planviz.css)
+  and for exporting to SVG (tplan.css)
 
 ### [0.8.2] - 2016-04-27
 

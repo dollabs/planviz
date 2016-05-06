@@ -1080,7 +1080,7 @@
     (if (string? css)
       true
       (let [dcss (tasks/deferred)]
-        (xhr/send "/css/planviz.css"
+        (xhr/send "/css/tplan.css"
           (fn [e]
             (let [xhr (.-target e)]
               (if (.isSuccess xhr)

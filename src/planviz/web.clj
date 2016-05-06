@@ -13,8 +13,10 @@
 (def public "../../resources/public/")
 
 (def app-css-uri  "css/planviz.css")
+(def app-css2-uri  "css/tplan.css")
 
 (def app-css (str public app-css-uri))
+(def app-css2 (str public app-css-uri))
 
 (def app "js/app.js")
 
@@ -110,6 +112,7 @@
   (-> basic-html5
     (add-favicon)
     (add-css app-css-uri)
+    (add-css app-css2-uri)
     (add-js app)
     (add-div "app")
     (add-div "plans")
@@ -121,6 +124,7 @@
   (-> basic-html5
     (add-favicon)
     (add-css app-css-uri)
+    (add-css app-css2-uri)
     (add-js app)
     (add-div "app")
     (add-div "plans")
@@ -130,6 +134,7 @@
   (-> basic-html5
     ;; (add-favicon)
     (add-css app-css)
+    (add-css app-css2)
     (add-js app)
     (add-div "app")
     (add-textarea "out")
