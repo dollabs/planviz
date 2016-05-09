@@ -481,10 +481,11 @@
                                       edge/sequence-label
                                       edge/plant edge/plantid edge/command
                                       edge/cost edge/reward
-                                      edge/probability]} edge
+                                      edge/probability edge/guard]} edge
                               label (ui/construct-label name label sequence-label
                                       plant plantid command bounds)
-                              extra (ui/construct-extra cost reward probability)
+                              extra (ui/construct-extra
+                                      cost reward probability guard)
                               max-label (max (count label) (count extra))]
                           (if (or hidden (zero? weight))
                             0
@@ -1117,35 +1118,51 @@
             :node/node-by-plid-id node-by-plid-id
             :edge/edge-by-plid-id edge-by-plid-id))))))
 
-(defn initialize-htn [d]
+(defn initialize-htn []
+  (println "TPLAN initialize-htn")
+  (map-nodes
+    (fn [node]
+      (when (> (count (:node/outgoing node)) 1)
+        (let [{:keys [node/outgoing]} node
+              out-edges (map get-edge outgoing)
+              pio-fn #(vector (or (:edge/order %) 0)
+                        (:plan/plid %) (:edge/id %))
+              out-order (sort-by first (mapv pio-fn out-edges))
+              outgoing (mapv (fn [[o p i]] (composite-key p i))
+                         out-order)]
+          (update-node (assoc node :node/outgoing outgoing))))))
+  true)
+
+;; annotate c-begin nodes with the sum of probabilities (if apropos)
+(defn initialize-tpn []
+  (println "TPLAN initialize-tpn")
+  (map-nodes
+    (fn [node]
+      (if (keyword-identical? :c-begin (:node/type node))
+        (let [outgoing (:node/outgoing node)
+              sum-probability (fn [p edge-id]
+                                (+ p
+                                  (or (:edge/probability (get-edge edge-id)) 0)))
+              probability (reduce sum-probability 0 outgoing)]
+          (if (non-zero? probability)
+            (update-node (assoc node :node/probability probability)))))))
+  true)
+
+(defn initialize-plan [d]
   (let [{:keys [plid network-plid-id]} @graph-params
         {:keys [plan/by-plid network/network-by-plid-id]} @graph
-        plan0 (get by-plid plid)
-        {:keys [plan/type plan/name]} plan0
-        network (if (keyword-identical? type :htn-network)
-                  (get network-by-plid-id network-plid-id))
-        {:keys [network/begin]} network]
-    (println "TPLAN initialize-htn")
-    (when (keyword-identical? type :htn-network)
-      ;; put edges in order
-      (map-nodes
-        (fn [node]
-          (when (> (count (:node/outgoing node)) 1)
-            (let [{:keys [node/outgoing]} node
-                  out-edges (map get-edge outgoing)
-                  pio-fn #(vector (or (:edge/order %) 0)
-                            (:plan/plid %) (:edge/id %))
-                  out-order (sort-by first (mapv pio-fn out-edges))
-                  outgoing (mapv (fn [[o p i]] (composite-key p i))
-                             out-order)]
-              (update-node (assoc node :node/outgoing outgoing)))))))
+        {:keys [plan/type]} (get by-plid plid)]
+    (if (keyword-identical? type :htn-network)
+      (initialize-htn)
+      (initialize-tpn))
     true))
 
 (defn setup-graph [plan]
   (let [plid (first (keys (:plan/by-plid plan)))
         plan0 (get-in plan [:plan/by-plid plid])
         {:keys [plan/type plan/name plan/begin]} plan0
-        gp (if (keyword-identical? type :htn-network) graph-params-htn graph-params-tpn)]
+        gp (if (keyword-identical? type :htn-network)
+             graph-params-htn graph-params-tpn)]
     (reset! graph plan)
     (reset! graph-params
       (assoc gp
@@ -1169,7 +1186,7 @@
                  (sleep a-little)
                  (chain add-incoming-outgoing)
                  (sleep a-little)
-                 (chain initialize-htn)
+                 (chain initialize-plan)
                  (sleep a-little)
                  (chain rank)
                  (sleep a-little)

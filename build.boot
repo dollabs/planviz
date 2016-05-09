@@ -21,10 +21,10 @@
                     [dollabs/webkeys "0.2.0"]
                     [org.clojure/core.async "0.2.374"]
                     ;; server
-                    [org.clojure/tools.cli "0.3.3"]
+                    [org.clojure/tools.cli "0.3.5"]
                     [me.raynes/fs "1.4.6"]
                     [com.cognitect/transit-clj "0.8.285"]
-                    [environ "1.0.2"]
+                    [environ "1.0.3"]
                     [clj-time "0.11.0"]
                     [com.taoensso/timbre "4.4.0-alpha1"]
                     [com.novemberain/langohr "3.5.1"]
@@ -37,7 +37,7 @@
                     [amalloy/ring-gzip-middleware "0.1.3"]
                     [compojure "1.5.0"]
                     [enlive "1.1.6"]
-                    [aleph "0.4.2-alpha1"]
+                    [aleph "0.4.2-alpha3"]
                     ;; client
                     [com.cognitect/transit-cljs "0.8.237"]
                     [cljsjs/react-dom-server "0.14.3-0"] ;; for sablono
@@ -157,7 +157,7 @@
 (deftask cider-boot
   "Cider boot params task"
   []
-  (if false ;; CIDER works on the client (true) or server (false)
+  (if true ;; CIDER works on the client (true) or server (false)
     (cljs-dev)
     (comp
       (server-resources)

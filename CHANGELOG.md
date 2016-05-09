@@ -14,6 +14,10 @@ Changed
 - Added `/export` function to save a plan as an SVG file
 - Divided CSS files into those required for PLANVIZ (planviz.css)
   and for exporting to SVG (tplan.css)
+- Properly annoted uncontrolled choice nodes with sum of probabilities
+- Show choice cost, reward, probability and guard as tooltips
+- Change routing key for PLANVIZ to **pamela.viz**
+- Updated dependencies
 
 ### [0.8.2] - 2016-04-27
 

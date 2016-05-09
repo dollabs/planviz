@@ -139,8 +139,7 @@
                       "state")
               css (str xlink "-"
                     (if (= type :virtual) "virtual-")
-                    (name state)
-                    (if probability "-probability"))
+                    (name state))
               use [:use {:class css :x x :y y :xlinkHref (str "#" xlink)
                          ;; :on-click #(nodeclick id)
                          }]
@@ -228,8 +227,21 @@
 
 (def link-arc-memo (memoize link-arc))
 
+(defn construct-extra [cost reward probability guard]
+  (let [extra (str
+                (if (non-zero? cost) "cost: ")
+                (if (non-zero? cost) cost)
+                (if (non-zero? reward) " reward: ")
+                (if (non-zero? reward) reward)
+                (if (non-zero? probability) " probability: ")
+                (if (non-zero? probability) probability)
+                (if guard " guard: ")
+                guard)]
+    extra))
+
 (defn edge [{:keys[plans/ui-opts plan/plid edge/id
                    edge/type edge/state edge/from edge/to
+                   edge/cost edge/reward edge/probability edge/guard
                    edge/selected?]
              :as props}
             node-factory]
@@ -255,7 +267,8 @@
                       :marker-start marker-start)
               target-attrs (if (#{:activity :choice-edge :parallel-edge} type)
                              {:class (target-class selected?) :d d})
-              tip (str (name id) " " (name state))]
+              extra (construct-extra cost reward probability guard)
+              tip (if (empty? extra) (str (name id) " " (name state)) extra)]
           [:g.edge
              (if (and (= type :activity) (fn? graph-click))
                {:on-click (partial graph-click props)})
@@ -285,21 +298,12 @@
                 label)]
     label))
 
-(defn construct-extra [cost reward probability]
-  (let [extra (str
-                (if (non-zero? cost) "cost: ")
-                (if (non-zero? cost) cost)
-                (if (non-zero? reward) " reward: ")
-                (if (non-zero? reward) reward)
-                (if (non-zero? probability) " probability: ")
-                (if (non-zero? probability) probability))]
-    extra))
-
 (defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
                     edge/sequence-label
                     edge/plant edge/plantid edge/command
-                    edge/from edge/to edge/bounds edge/cost edge/reward
-                    edge/probability edge/order] :as props}]
+                    edge/from edge/to edge/bounds
+                    edge/cost edge/reward edge/probability edge/guard
+                    edge/order] :as props}]
   (let [{:keys [ui/show-virtual? ui/edge-ids?]} ui-opts
         virtual? (= type :virtual)
         label? (or show-virtual? (not virtual?))
@@ -312,7 +316,7 @@
                   order
                   (if order "}"))
                 label)
-        extra (construct-extra cost reward probability)
+        extra nil ;; (construct-extra cost reward probability guard)
         [x0 y0] [(:node/x from) (:node/y from)]
         [x1 y1] [(:node/x to) (:node/y to)]
         [x y d ratio] (if label?

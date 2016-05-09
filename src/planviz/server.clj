@@ -65,6 +65,7 @@
 (def rmq-default-exchange "tpn-updates")
 (def planviz-default-host "localhost")
 (def planviz-default-port 8080)
+(def pamela-visualization-key "pamela.viz")
 
 (def state-initial
   {:server nil ;; Aleph server
@@ -279,7 +280,7 @@
 (defn publish [msg]
   (log/debug "PUBLISH PLANVIZ" msg)
   (let [{:keys [channel exchange]} (get @state :rmq)
-        routing-key "planviz"
+        routing-key pamela-visualization-key
         app-id "planviz"
         msg-json (write-json-str msg)]
     (lb/publish channel exchange routing-key msg-json {:app-id "planviz"})))
@@ -820,14 +821,14 @@
                   ;; \newline (with-out-str (clojure.pprint/pprint json-str))
                   )]
     (log/info details)
-    (case routing-key
+    (condp = routing-key ;; case does not work with a symbol below
       "network.new" (new-rmq-tpn json-str)
       "network.reset" (network-reset) ;;(tpn-object-update json-str)
       "tpn.object.update" (tpn-object-update json-str)
       "tpn.activity.active" (tpn-object-update json-str)
       "tpn.activity.finished" (tpn-object-update json-str)
       "tpn.activity.negotiation" (tpn-object-update json-str)
-      "planviz" (planviz-update json-str)
+      pamela-visualization-key (planviz-update json-str)
       (unknown-update routing-key json-str))))
 
 ;; This is the message processing loop

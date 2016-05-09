@@ -180,39 +180,39 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 1px;
 }
 
-.parallel-normal, .choice-normal, .state-normal {
+.parallel-normal, .choice-normal, .unchoice-normal, .state-normal {
     /* fill: #0099cc; */
     fill: white;
     stroke: #006699;
     stroke-width: 3px;
 }
 
-.parallel-best, .choice-best, .state-best {
+.parallel-best, .choice-best, .unchoice-best, .state-best {
     fill: magenta;
     stroke: #006699;
     stroke-width: 3px;
 }
 
-.parallel-impossible, .choice-impossible, .state-impossible {
+.parallel-impossible, .choice-impossible, .unchoice-impossible, .state-impossible {
     fill: silver;
     stroke: #006699;
     stroke-width: 3px;
 }
 
-.parallel-reached, .choice-reached, .state-reached {
+.parallel-reached, .choice-reached, .unchoice-reached, .state-reached {
     fill: #00ff00;
     stroke: #006699;
     stroke-width: 3px;
 }
 
-.parallel-failed, .choice-failed, .state-failed {
+.parallel-failed, .choice-failed, .unchoice-failed, .state-failed {
     fill: #ff0000;
     stroke: #006699;
     stroke-width: 3px;
 }
 
 /* typically :started is not used for TPN nodes */
-.parallel-started, .choice-started, .state-started {
+.parallel-started, .choice-started, .unchoice-started, .state-started {
     fill: blue;
     stroke: #006699;
     stroke-width: 3px;
