@@ -14,7 +14,8 @@
               [plan-schema.core :as pschema :refer [composite-key]]
               ;; [planviz.components :as comp]
               [planviz.ui :as ui
-               :refer [node-key-fn edge-key-fn network-key-fn non-zero?]]))
+               :refer [node-key-fn edge-key-fn network-key-fn non-zero?
+                       constraint?]]))
 
 ;; helper function
 (defn reversev [s]
@@ -208,7 +209,7 @@
       (let [node (get-node node-id)]
         (map-incoming node
           (fn [edge]
-            (when-not (temporal-constraint? edge)
+            (when-not (constraint? edge)
               (let [old-rank (:node/rank node)
                     from (get-node (:edge/from edge))
                     rank (max old-rank (+ (:node/rank from) min-length))]
@@ -218,7 +219,7 @@
                   nil)))))
         (map-outgoing node
           (fn [edge]
-            (when-not (temporal-constraint? edge)
+            (when-not (constraint? edge)
               (let [rank (+ (:node/rank node) min-length)
                     to (get-node (:edge/to edge))
                     old-rank (:node/rank to)
@@ -276,18 +277,30 @@
     (let [visit (atom #{})
           _ (doseq [node-id node-ids]
               (swap! done conj node-id)
-              (let [node (get-node node-id)]
+              (let [node (get-node node-id)
+                    real-incoming (atom [])]
+                (map-incoming node
+                  (fn [edge]
+                    (when-not (constraint? edge)
+                      (let [from (:edge/from edge)]
+                        (if-not (keyword-identical?
+                                  (:edge/type edge) :null-activity)
+                          (swap! real-incoming conj from))
+                        (if-not (or (@visit from) (@done from))
+                          (swap! visit conj from))))))
                 (map-outgoing node
                   (fn [edge]
-                    (when-not (temporal-constraint? edge)
+                    (when-not (constraint? edge)
                       (let [{:keys [node/rank]} node
                             node-plid-id (node-key-fn node)
                             {:keys [edge/to edge/type]} edge
                             to (get-node to)
                             rightmost (- (:node/rank to) min-length)
-                            slack (- rightmost rank)
-                            balance-edge? (keyword-identical? type :null-activity)]
-                        (when (and balance-edge? (pos? slack))
+                            slack (- rightmost rank)]
+                        ;; move last state nodes -OR- state nodes in sequence
+                        (when (and (pos? slack)
+                                (or (keyword-identical? type :null-activity)
+                                  (= 1 (count @real-incoming))))
                           ;; move node rank to rightmost
                           (swap! graph-params
                             (fn [gp]
@@ -300,12 +313,7 @@
                                   (update-in [:ranking rightmost] conj
                                     node-plid-id)))))
                           (update-node (assoc node :node/rank rightmost)))))))
-                (map-incoming node
-                  (fn [edge]
-                    (when-not (temporal-constraint? edge)
-                      (let [from (:edge/from edge)]
-                        (if-not (or (@visit from) (@done from))
-                          (swap! visit conj from))))))))
+                ))
           start (tasks/deferred)
           finish (-> start
                    (sleep 5) ;; pace
@@ -477,13 +485,14 @@
         (let [nodes (get ranking r)
               edge-fn (fn [edge] ;; returns xrank
                         (let [{:keys [edge/hidden edge/weight
-                                      edge/name edge/label edge/bounds
+                                      edge/name edge/label
+                                      edge/type edge/value
                                       edge/sequence-label
                                       edge/plant edge/plantid edge/command
                                       edge/cost edge/reward
                                       edge/probability edge/guard]} edge
                               label (ui/construct-label name label sequence-label
-                                      plant plantid command bounds)
+                                      plant plantid command type value)
                               extra (ui/construct-extra
                                       cost reward probability guard)
                               max-label (max (count label) (count extra))]
@@ -542,7 +551,7 @@
                         edge/from edge/type]} left-edge
                 left-from (get-node from)
                 left-rank (:node/rank left-from)
-                left-tc? (keyword-identical? type :temporal-constraint)
+                left-tc? (constraint? type)
                 ignore? (or (> left-rank rank)
                           (and (not left-tc?)
                             (or hidden (zero? weight))))]
@@ -555,7 +564,7 @@
                                   edge/from edge/type]} right-edge
                           right-from (get-node from)
                           right-rank (:node/rank right-from)
-                          right-tc? (keyword-identical? type :temporal-constraint)
+                          right-tc? (constraint? type)
                           ignore? (or (> right-rank rank)
                                     (and (not right-tc?)
                                       (or hidden (zero? weight))))
@@ -1096,8 +1105,8 @@
   (assoc m k
     (assoc edge
       :edge/state :normal
-      :edge/hidden (temporal-constraint? edge)
-      :edge/weight (if (temporal-constraint? edge) 0 1)
+      :edge/hidden (constraint? edge)
+      :edge/weight (if (constraint? edge) 0 1)
       )))
 
 (defn initialize-graph []
@@ -1123,9 +1132,10 @@
   (map-nodes
     (fn [node]
       (when (> (count (:node/outgoing node)) 1)
-        (let [{:keys [node/outgoing]} node
+        (let [order (atom 0)
+              {:keys [node/outgoing]} node
               out-edges (map get-edge outgoing)
-              pio-fn #(vector (or (:edge/order %) 0)
+              pio-fn #(vector (or (:edge/order %) (swap! order inc))
                         (:plan/plid %) (:edge/id %))
               out-order (sort-by first (mapv pio-fn out-edges))
               outgoing (mapv (fn [[o p i]] (composite-key p i))
@@ -1138,14 +1148,22 @@
   (println "TPLAN initialize-tpn")
   (map-nodes
     (fn [node]
-      (if (keyword-identical? :c-begin (:node/type node))
-        (let [outgoing (:node/outgoing node)
-              sum-probability (fn [p edge-id]
-                                (+ p
-                                  (or (:edge/probability (get-edge edge-id)) 0)))
-              probability (reduce sum-probability 0 outgoing)]
-          (if (non-zero? probability)
-            (update-node (assoc node :node/probability probability)))))))
+      (let [outgoing (:node/outgoing node)
+            sum-probability (fn [p edge-id]
+                              (+ p
+                                (or (:edge/probability (get-edge edge-id)) 0)))
+            probability (if (keyword-identical? :c-begin (:node/type node))
+                          (reduce sum-probability 0 outgoing) 0)
+            probability (if (non-zero? probability) probability)
+            order (atom 0)
+            out-edges (map get-edge outgoing)
+            pio-fn #(vector (or (:edge/order %) (swap! order inc))
+                      (:plan/plid %) (:edge/id %))
+            out-order (sort-by first (mapv pio-fn out-edges))
+            outgoing (mapv (fn [[o p i]] (composite-key p i))
+                       out-order)]
+        (update-node (assoc-if (assoc node :node/outgoing outgoing)
+                       :node/probability probability)))))
   true)
 
 (defn initialize-plan [d]

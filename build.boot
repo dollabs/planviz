@@ -28,7 +28,7 @@
                     [clj-time "0.11.0"]
                     [com.taoensso/timbre "4.4.0-alpha1"]
                     [com.novemberain/langohr "3.5.1"]
-                    [dollabs/plan-schema "0.2.2"]
+                    [dollabs/plan-schema "0.2.3"]
                     ;; web server
                     [org.clojure/data.json "0.2.6"]
                     [ring/ring-core "1.4.0"]
@@ -37,11 +37,11 @@
                     [amalloy/ring-gzip-middleware "0.1.3"]
                     [compojure "1.5.0"]
                     [enlive "1.1.6"]
-                    [aleph "0.4.2-alpha3"]
+                    [aleph "0.4.2-alpha4"]
                     ;; client
                     [com.cognitect/transit-cljs "0.8.237"]
-                    [cljsjs/react-dom-server "0.14.3-0"] ;; for sablono
-                    [cljsjs/react-dom "0.14.3-1"] ;; for sablono
+                    [cljsjs/react-dom-server "15.0.2-0"]  ;; for sablono
+                    [cljsjs/react-dom "15.0.2-0"] ;; for sablono
                     [org.omcljs/om "1.0.0-alpha34"]
                     [sablono "0.7.1"]
                     ;; cljs-dev

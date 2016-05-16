@@ -185,6 +185,9 @@
       :node/label
       :node/sequence-label
       :node/sequence-end
+      ;; FOR c-begin p-begin state
+      :node/cost<=
+      :node/reward<=
       ;; FOR c-begin p-begin
       :node/end
       ;; FOR c-end p-end
@@ -250,7 +253,7 @@
       :edge/name
       :edge/state
       :edge/label
-      :edge/bounds
+      :edge/value ;; bounds for temporal constraint
       :edge/htn-node ; points to htn-primitive-task or HENT
       ;; FOR :temporal-constraint
       :edge/between
@@ -308,7 +311,7 @@
       ;; FOR ALL
       :edge/name
       :edge/state
-      :edge/bounds
+      :edge/value ;; bounds for temporal constraint
       :edge/htn-node ; points to htn-primitive-task or HENT
       ;; FOR :temporal-constraint
       :edge/label

@@ -595,10 +595,10 @@
   ;;   (log/debug "end-node reached:" uid "\n+++++++++++++++++++++++++++")))
 
 ;; returns the path of the planviz tmpdir or false if unable to create
-(defn planviz-tmpdir []
+(defn user-tmpdir [program]
   (let [tmp (:java-io-tmpdir env)
         user (:user env)
-        tmpdir (str tmp "/" user "/planviz")]
+        tmpdir (str tmp "/" user "/" program)]
     (if (fs/exists? tmpdir)
       tmpdir
       (do
@@ -727,8 +727,8 @@
 ;; WebSockets generally do not like messages bigger than 64k bytes
 ;; We'll define message-max to be 90% of that
 (defn new-rmq-tpn [json-str]
-  (if (planviz-tmpdir)
-    (let [rmq-tpn-json (str (planviz-tmpdir) "/rmq-tpn.json")
+  (if-let [tmpdir (user-tmpdir "planviz")]
+    (let [rmq-tpn-json (str tmpdir "/rmq-tpn.json")
           _ (spit rmq-tpn-json json-str)
           tpn (pschema/tpn-plan {:input [rmq-tpn-json]})
           error (:error tpn)]
@@ -816,7 +816,7 @@
 (defn incoming-msg [msg]
   (let [[metadata json-str] msg
         {:keys [exchange routing-key app-id]} metadata
-        details (str "from exchange: " exchange " routing-key: " routing-key
+        details (str "MSG from exchange: " exchange " routing-key: " routing-key
                   " app-id: " app-id
                   ;; \newline (with-out-str (clojure.pprint/pprint json-str))
                   )]

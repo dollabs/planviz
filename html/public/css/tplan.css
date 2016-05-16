@@ -180,6 +180,48 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 1px;
 }
 
+.costle-constraint-normal {
+    fill: none;
+    stroke-dasharray: 3 1;
+    stroke: rgba(200,50,50,0.5);
+    stroke-width: 2.0px;
+}
+
+.costle-constraint-normal-long {
+    fill: none;
+    stroke-dasharray: 4 1;
+    stroke: rgba(228,70,70,0.5);
+    stroke-width: 1.5px;
+}
+
+.costle-constraint-normal-very-long {
+    fill: none;
+    stroke-dasharray: 5 1;
+    stroke: rgba(255,120,120,0.5);
+    stroke-width: 1px;
+}
+
+.rewardge-constraint-normal {
+    fill: none;
+    stroke-dasharray: 4 2;
+    stroke: rgba(50,200,50,0.5);
+    stroke-width: 2.0px;
+}
+
+.rewardge-constraint-normal-long {
+    fill: none;
+    stroke-dasharray: 5 2;
+    stroke: rgba(70,228,70,0.5);
+    stroke-width: 1.5px;
+}
+
+.rewardge-constraint-normal-very-long {
+    fill: none;
+    stroke-dasharray: 6 2;
+    stroke: rgba(120,255,120,0.5);
+    stroke-width: 1px;
+}
+
 .parallel-normal, .choice-normal, .unchoice-normal, .state-normal {
     /* fill: #0099cc; */
     fill: white;

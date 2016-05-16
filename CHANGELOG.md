@@ -6,6 +6,9 @@ All notable changes to this project will be documented in this file. This change
 
 Added
 - *TBD*
+
+### [0.8.3] - 2016-05-16
+
 Changed
 - Show between labels on activities (in parens)
 - Show sequence-labels on nodes and activities (if present)
@@ -18,6 +21,11 @@ Changed
 - Show choice cost, reward, probability and guard as tooltips
 - Change routing key for PLANVIZ to **pamela.viz**
 - Updated dependencies
+- TPLAN: Move state nodes with slack to the right during rebalancing
+- Added support for new constraints: :cost<=-constraint, :reward>=-constraint
+  * Adapted link-arc to distinguish bounds, cost and reward constraints
+    between the same nodes
+  * new CSS constraint styles (red for costs, green for rewards)
 
 ### [0.8.2] - 2016-04-27
 
@@ -45,4 +53,5 @@ Added
 
 [0.8.1]: https://github.com/dollabs/planviz/compare/0.1.0...0.8.1
 [0.8.2]: https://github.com/dollabs/planviz/compare/0.8.1...0.8.2
-[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.2...HEAD
+[0.8.3]: https://github.com/dollabs/planviz/compare/0.8.2...0.8.3
+[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.3...HEAD

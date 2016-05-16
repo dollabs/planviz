@@ -1,4 +1,4 @@
-;; Copyright © 2016 Dynamic Object Language Labs Inc.
+-;; Copyright © 2016 Dynamic Object Language Labs Inc.
 ;;
 ;; This software is licensed under the terms of the
 ;; Apache License, Version 2.0 which can be found in
@@ -23,6 +23,17 @@
   (and x (not (zero? x))))
 
 (defonce SQRT3 (sqrt 3))
+
+;; for TPN graphs
+
+(def constraint-types #{:temporal-constraint
+                        :cost<=-constraint
+                        :reward>=-constraint})
+
+(defn constraint? [edge-or-type]
+  (constraint-types (if (map? edge-or-type)
+                      (:edge/type edge-or-type)
+                      edge-or-type)))
 
 ;; key-fn's
 
@@ -188,14 +199,22 @@
 (defn link-arc [type x0 y0 x1 y1]
   (let [x (/ (+ x0 x1) 2)
         y (/ (+ y0 y1) 2)]
-    (case type
-      :temporal-constraint
+    (if (constraint? type)
       (let [dx (- x1 x0)
             dy (- y1 y0)
             dh (sqrt (+ (* dx dx) (* dy dy)))
             ranksep 70 ;; grab from state?
             ratio (/ dh ranksep)
-            a (+ 0.75 (* 0.85 (max (- (min (/ dh ranksep) 16) 2) 0)))
+            ;; a (+ 0.75 (* 0.85 (max (- (min (/ dh ranksep) 16) 2) 0)))
+            offset (case type ;; FIXME differentiate constraints
+                     :reward>=-constraint 0.58
+                     :cost<=-constraint 0.65
+                     0.80)
+            factor (case type ;; FIXME differentiate constraints
+                     :reward>=-constraint 0.55
+                     :cost<=-constraint 0.70
+                     0.85)
+            a (+ offset (* factor (max (- (min (/ dh ranksep) 16) 2) 0)))
             r (* a dh)
             z (- r (/ (sqrt (- (* 4 r r) (* dh dh))) 2))
             [x y] (if (zero? dy)
@@ -239,6 +258,12 @@
                 guard)]
     extra))
 
+(defn safe-type-name [type]
+  (case type
+    :cost<=-constraint "costle-constraint"
+    :reward>=-constraint "rewardge-constraint"
+    (name type)))
+
 (defn edge [{:keys[plans/ui-opts plan/plid edge/id
                    edge/type edge/state edge/from edge/to
                    edge/cost edge/reward edge/probability edge/guard
@@ -253,16 +278,16 @@
               [x1 y1] [(:node/x to) (:node/y to)]
               [x y d ratio] (link-arc-memo type x0 y0 x1 y1)
               virtual? (= type :virtual)
-              constraint? (= type :temporal-constraint)
-              length-class (if (and constraint? (> ratio 3))
+              cnstr? (constraint? type)
+              length-class (if (and cnstr? (> ratio 3))
                              (if (< ratio 10) "-long" "-very-long"))
-              marker-end (if constraint? (str "url(#arrow" length-class ")")
+              marker-end (if cnstr? (str "url(#arrow" length-class ")")
                              (if virtual? "url(#arrowlight)"
                                  (if (= network-type :hem-network)
                                    "url(#arrowhem)"
                                    "url(#arrowhead)")))
               marker-start nil ;; (if (= type :choice-edge) "url(#choicehem)")
-              class (str (name type) "-" (name state) length-class)
+              class (str (safe-type-name type) "-" (name state) length-class)
               attrs (assoc-if {:class class :marker-end marker-end :d d}
                       :marker-start marker-start)
               target-attrs (if (#{:activity :choice-edge :parallel-edge} type)
@@ -280,7 +305,8 @@
 
 (def edge-memo (memoize edge))
 
-(defn construct-label [name label sequence-label plant plantid command bounds]
+(defn construct-label [name label sequence-label plant plantid command
+                       type value]
   (let [full (str plant
                (if-not (empty? plantid) ".")
                plantid
@@ -293,22 +319,27 @@
                 (if sequence-label " ▹ ")
                 sequence-label
                 (if label ")"))
-        label (if (vector? bounds)
-                (str label (if label " ") bounds)
+        label (if value
+                (str label
+                  (case type
+                    :cost<=-constraint "cost<= "
+                    :reward>=-constraint "reward>= "
+                    " ")
+                  value)
                 label)]
     label))
 
 (defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
                     edge/sequence-label
                     edge/plant edge/plantid edge/command
-                    edge/from edge/to edge/bounds
+                    edge/from edge/to edge/value
                     edge/cost edge/reward edge/probability edge/guard
                     edge/order] :as props}]
   (let [{:keys [ui/show-virtual? ui/edge-ids?]} ui-opts
         virtual? (= type :virtual)
         label? (or show-virtual? (not virtual?))
         label (if label? (construct-label name label sequence-label
-                           plant plantid command bounds))
+                           plant plantid command type value))
         label (if edge-ids?
                 (str label " = "
                   (clojure.core/name id)
@@ -322,6 +353,10 @@
         [x y d ratio] (if label?
                         (link-arc-memo type x0 y0 x1 y1)
                         [x0 y0 0 0])
+        y (case type
+            :cost<=-constraint (- y ychar) ;; FIXME
+            :reward>=-constraint (- y 18)
+            y)
         order (if edge-ids? order)
         above [:text {:textAnchor "middle"
                       :x (- x 5) :y (+ y -3 (if order (* 7 order) 0))} label]
