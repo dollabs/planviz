@@ -441,3 +441,30 @@ text.node-label {
     stroke: Chocolate;
     stroke-width: 1.0px;
 }
+
+.menu-box {
+    fill: PowderBlue;
+    stroke: MediumBlue;
+    stroke-width: 1.0px;
+}
+
+.menu-stop1 {
+    stop-color: #888;
+}
+
+.menu-stop2 {
+    stop-color: white;
+}
+
+.menu-stop3 {
+    stop-color: #888;
+}
+
+.menu-option {
+    fill: white;
+    stroke: none;
+}
+
+.menu-option:hover {
+    fill: url(#menu-gradient);
+}

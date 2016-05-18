@@ -118,7 +118,7 @@
       :ui/edge-ids? ;; false ;; show edge -ids
       :ui/tooltips? ;; show tooltips
       :ui/graph-click ;; fn when a graph item is clicked
-      :ui/css ;; source for css
+      :ui/menu ;; popup menu
       ])
   Object
   (render [this]
@@ -421,7 +421,7 @@
   static om/IQueryParams
   (params [_]
     {:pan-zoom pan-zoom-query
-     :ui-opts [:ui/show-plan :ui/graph-click]
+     :ui-opts [:ui/show-plan :ui/graph-click :ui/menu]
      :plans plan-query})
   static om/IQuery
   (query [_]
@@ -459,6 +459,7 @@
       :app/loading ;; set to deferred when loading
       :app/defer ;; network updates to defer until after loading
       :app/plans
+      :app/css ;; source for css
       {:app/message-box ?message-box}
       {:app/input-box ?input-box}
       {:app/pan-zoom ?pan-zoom}])

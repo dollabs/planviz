@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Added
-- *TBD*
+- Right click actions (work in progress)
+- Updated dependencies
 
 ### [0.8.3] - 2016-05-16
 

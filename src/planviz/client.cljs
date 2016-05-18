@@ -12,38 +12,9 @@
             [webtasks.tasks :as tasks :refer [on-realized]]
             [webtasks.ws :as ws]
             [plan-schema.core :as pschema :refer [composite-key-fn]]
-            [planviz.actions :as actions]))
+            [planviz.actions :as actions :refer [make-url]]))
 
 (enable-console-print!)
-
-;; web url ----------------------------------------------------
-
-(def secure-protocols {"https" true
-                       "wss" true})
-
-(defn protocol-secure [protocol secure]
-  (if secure
-    (if (get secure-protocols protocol false)
-      protocol ;; already secure
-      (str protocol "s")) ;; add the "s"
-    (if (get secure-protocols protocol false)
-      (subs protocol 0 (dec (count protocol))) ;; remove the "s"
-      protocol)))
-
-(defn make-url [& opts]
-  (let [opts (if opts (apply hash-map opts))
-        {:keys [protocol hostname port uri secure]} opts
-        location (.-location js/document)
-        p (let [p (.-protocol location)] (subs p 0 (dec (count p)))) ;; no ":"
-        secure (or secure (get secure-protocols p false))
-        protocol (or protocol p)
-        protocol (protocol-secure protocol secure)
-        hostname (or hostname (.-hostname location))
-        port (str (or port (.-port location)))
-        server (str hostname (if-not (empty? port) (str ":" port)))
-        uri (or uri "/")
-        url (str protocol "://" server uri)]
-    url))
 
 ;; server functions --------------------------------------
 

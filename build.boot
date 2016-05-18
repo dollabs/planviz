@@ -5,7 +5,7 @@
 ;; the file LICENSE at the root of this distribution.
 
 (def project 'dollabs/planviz)
-(def version "0.8.3")
+(def version "0.8.4")
 (def description "Planning Network Visualization")
 (def project-url "https://github.com/dollabs/planviz")
 (def main 'planviz.cli)
@@ -42,7 +42,7 @@
                     [com.cognitect/transit-cljs "0.8.237"]
                     [cljsjs/react-dom-server "15.0.2-0"]  ;; for sablono
                     [cljsjs/react-dom "15.0.2-0"] ;; for sablono
-                    [org.omcljs/om "1.0.0-alpha34"]
+                    [org.omcljs/om "1.0.0-alpha35"]
                     [sablono "0.7.1"]
                     ;; cljs-dev
                     [com.cemerick/piggieback "0.2.1"     :scope "test"]

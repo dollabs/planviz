@@ -23,6 +23,35 @@
             [goog.crypt.base64 :as base64]
             [goog.net.XhrIo :as xhr]))
 
+;; web url ----------------------------------------------------
+
+(def secure-protocols {"https" true
+                       "wss" true})
+
+(defn protocol-secure [protocol secure]
+  (if secure
+    (if (get secure-protocols protocol false)
+      protocol ;; already secure
+      (str protocol "s")) ;; add the "s"
+    (if (get secure-protocols protocol false)
+      (subs protocol 0 (dec (count protocol))) ;; remove the "s"
+      protocol)))
+
+(defn make-url [& opts]
+  (let [opts (if opts (apply hash-map opts))
+        {:keys [protocol hostname port uri secure]} opts
+        location (.-location js/document)
+        p (let [p (.-protocol location)] (subs p 0 (dec (count p)))) ;; no ":"
+        secure (or secure (get secure-protocols p false))
+        protocol (or protocol p)
+        protocol (protocol-secure protocol secure)
+        hostname (or hostname (.-hostname location))
+        port (str (or port (.-port location)))
+        server (str hostname (if-not (empty? port) (str ":" port)))
+        uri (or uri "/")
+        url (str protocol "://" server uri)]
+    url))
+
 (def edge-states [:normal
                   :impossible ;; grey
                   :start ;; orange  (previously negotiation)
@@ -1076,7 +1105,7 @@
                               (mod (swap! i inc) edge-states-n))))))))))
 
 (defn get-css [d]
-  (let [{:keys [ui/css]} (st/get-ui-opts)]
+  (let [css (st/app-get :app/css)]
     (if (string? css)
       true
       (let [dcss (tasks/deferred)]
@@ -1085,7 +1114,7 @@
             (let [xhr (.-target e)]
               (if (.isSuccess xhr)
                 (do
-                  (st/merge-ui-opts {:ui/css (.getResponseText xhr)})
+                  (st/app-set :app/css (.getResponseText xhr))
                   (success! dcss true))
                 (error! dcss false)))))
         dcss))))
@@ -1099,7 +1128,8 @@
     (str "data:" mime-type ";base64," data-base64)))
 
 (defn export-plan [d]
-  (let [{:keys [ui/show-plan ui/css]} (st/get-ui-opts)
+  (let [css (st/app-get :app/css)
+        {:keys [ui/show-plan]} (st/get-ui-opts)
         filename (str (name show-plan) ".svg")
         application (gdom/getElement "application")
         plans (gdom/getElement "plans")
@@ -1348,16 +1378,142 @@
   (status-msg "hiding tooltips")
   (st/tooltips false))
 
-(defn graph-click [x e]
+(defn menu-click-handled [e]
+  (st/merge-ui-opts {:ui/menu nil})
   (.preventDefault e)
   (.stopPropagation e)
+  ;; (my-user-action action)
+  false)
+
+(defn dummy-menu-fn [node edge option e]
+  (let [opt (dissoc option :fn)]
+    (cond
+      node
+      (status-msg "NODE" (:node/id node) "OPTION" opt)
+      edge
+      (status-msg "EDGE" (:edge/id edge) "OPTION" opt)
+      :else
+      (status-msg "MENU OPTION" opt)))
+  (menu-click-handled e))
+
+(defn info-menu-fn [node edge option e]
   (cond
-    (:edge/type x)
-    (edgeclick x)
-    (:node/type x)
-    (nodeclick x)
+    node
+    (let [{:keys [tag]} option
+          {:keys [plan/plid node/id node/type node/state]} node
+          msg (str "node " id ", type " type ", state " state)]
+      (status-msg msg)
+      (my-user-action {:type :menu :tag tag :plid plid :node id :msg msg}))
+    edge
+    (let [{:keys [tag]} option
+          {:keys [plan/plid edge/id edge/type edge/state]} edge
+          msg (str "edge " id ", type " type ", state " state)]
+      (status-msg msg)
+      (my-user-action {:type :menu :tag tag :plid plid :edge id :msg msg}))
     :else
-    (clear-selection (:ui/show-plan (st/get-ui-opts)))))
+    (let [{:keys [tag]} option
+          msg "no node or edge selected"]
+      (status-msg msg)
+      (my-user-action {:type :menu :tag tag :msg msg})))
+  (menu-click-handled e))
+
+;; https://developer.mozilla.org/en-US/docs/Web/API/Window/open#Position_and_size_features
+(defn url-menu-fn [node edge option e]
+  (let [{:keys [tag url tab]} option
+        ;; features "location=0,toolbar=0,menubar=0,personalbar=0,titlebar=0,scrollbars=0,status=0"
+        features "location=1,toolbar=1,menubar=1,personalbar=1,titlebar=1,scrollbars=1,status=1"]
+    (status-msg "opening" url "in tab" tab)
+    (.open js/window url tab features)
+    (cond
+      node
+      (let [{:keys [plan/plid node/id node/type node/state]} node]
+        (my-user-action {:type :menu :tag tag :plid plid :node id
+                         :url url :tab tab}))
+      edge
+      (let [{:keys [plan/plid edge/id edge/type edge/state]} edge]
+        (my-user-action {:type :menu :tag tag :plid plid :edge id
+                         :url url :tab tab}))
+      :else
+      (my-user-action {:type :menu :tag tag :url url :tab tab}))
+    (menu-click-handled e)))
+
+(defn node-right-click [node]
+  (let [{:keys [plan/plid node/id node/type node/x node/y]} node
+        ;; new-menu (if menu nil {:node node :x x :y y})
+        options [{:text "⚀ HTN Focus here" :fn dummy-menu-fn}
+                 {:text "⌲ TPN Hide" :fn dummy-menu-fn}
+                 {:tag :url :text "⇨ Open planviz" :url (make-url)
+                  :tab "planviz" :fn url-menu-fn}
+                 {:tag :url :text "⇨ Open dollabs" :url "http://dollabs.com"
+                  :tab "planviz" :fn url-menu-fn}
+                 {:tag :info :text (str "✋ node information for " id) :fn info-menu-fn}]
+        menu {:node node :x x :y y :options options}]
+    (println "ACTION NODE-RIGHT-CLICK" plid id "type" type "x" x "y" y)
+    (st/merge-ui-opts {:ui/menu menu})
+    ))
+
+(defn edge-right-click [edge]
+  (let [{:keys [plan/plid edge/id edge/type edge/from edge/to]} edge
+        ;; new-menu (if menu nil {:node node :x x :y y})
+        ;; menu {:node node :x x :y y}
+        [x0 y0] [(:node/x from) (:node/y from)]
+        [x1 y1] [(:node/x to) (:node/y to)]
+        x (/ (+ x0 x1) 2)
+        y (/ (+ y0 y1) 2)
+        options [{:text "⚀ HTN Focus here" :fn dummy-menu-fn}
+                 {:text "⌲ TPN Hide" :fn dummy-menu-fn}
+                 {:tag :url :text "⇨ Open planviz" :url (make-url)
+                  :tab "planviz" :fn url-menu-fn}
+                 {:tag :url :text "⇨ Open dollabs" :url "http://dollabs.com"
+                  :tab "planviz" :fn url-menu-fn}
+                 {:tag :info :text (str "✋ edge information for " id) :fn info-menu-fn}]
+        menu {:edge edge :x x :y y :options options}]
+    (println "ACTION EDGE-RIGHT-CLICK" plid id "type" type)
+      ;; "x0" x0 "y0" y0 "x1" x1 "y1" y1)
+    (st/merge-ui-opts {:ui/menu menu})
+    ))
+
+(defn graph-click [x e]
+  (let [button (.-button e)
+        browser-contextmenu? false
+        menu (:ui/menu (st/get-ui-opts))
+        target (.-target e)
+        ]
+    (println "CLICK" button "@" (.-clientX e) "," (.-clientY e)
+      "b?" browser-contextmenu?)
+    ;; (reset! debug-target target)
+    ;; (println "bubbles" (.-bubbles e)
+    ;;   "cancelable" (.-cancelable e))
+    ;; (if menu ;; any click will remove menu
+    ;;   (st/merge-ui-opts {:ui/menu nil}))
+    (if menu
+      (do
+        (st/merge-ui-opts {:ui/menu nil})
+        true) ;; allow real right click
+      (do
+        (case button
+          0 (do
+              (.preventDefault e)
+              (.stopPropagation e)
+              (cond
+                (:edge/type x)
+                (edgeclick x)
+                (:node/type x)
+                (nodeclick x)
+                :else
+                (clear-selection (:ui/show-plan (st/get-ui-opts)))))
+          1 (println "middle button not used")
+          2 (do
+              (.preventDefault e)
+              (.stopPropagation e)
+              (cond
+                (:edge/type x)
+                (edge-right-click x)
+                (:node/type x)
+                (node-right-click x)
+                :else
+                (println "right click background")))
+          true))))) ;; odd button case, let through
 
 (defn app-key-fn [key]
   ;; (println "app-key-fn" key)

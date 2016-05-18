@@ -65,6 +65,7 @@
 
 (def xchar 4)
 (def ychar 10)
+(def ydesc 3) ;; descender
 
 (defn translate [x y]
   (str "translate(" x "," y ")"))
@@ -174,7 +175,9 @@
           (concatv
             [:g.node
              (if (fn? graph-click)
-               {:on-click (partial graph-click props)})
+               {:on-click (partial graph-click props)
+                :on-context-menu (partial graph-click props)
+                })
              ]
             [(if (= type :htn-expanded-method)
                (let [r 12
@@ -296,7 +299,9 @@
               tip (if (empty? extra) (str (name id) " " (name state)) extra)]
           [:g.edge
              (if (and (= type :activity) (fn? graph-click))
-               {:on-click (partial graph-click props)})
+               {:on-click (partial graph-click props)
+                :on-context-menu (partial graph-click props)
+                })
            (if target-attrs
              [:path target-attrs])
            [:path attrs]
@@ -448,14 +453,39 @@
               :x (* 2 hem-offset) :y hem-offset
               :rx 3 :ry 3
               :width (* 2 hem-size) :height hem-size}]]
-     [:g#markers {:dangerouslySetInnerHTML {:__html markers}}]]))
+     [:g#markers {:dangerouslySetInnerHTML {:__html markers}}]
+     [:linearGradient#menu-gradient {:x1 "0%" :y1 "0%" :x2 "0%" :y2 "100%"}
+      [:stop.menu-stop1 {:offset "0%"}]
+      [:stop.menu-stop2 {:offset "50%"}]
+      [:stop.menu-stop3 {:offset "100%"}]]
+     ]))
+
+(defn show-menu [menu]
+  (let [{:keys [node edge x y options]} menu
+        n (count options)
+        max-text (reduce #(max %1 (count (:text %2))) 0 options)
+        w (* (+ max-text 2) xchar)
+        xo (+ x 2)
+        yo (+ y 2)
+        wo (- w 4)
+        ho (inc ychar)
+        yt (+ y ychar)
+        h (+ (* n ho) 4)]
+     (apply concatv
+       [:g.menu
+        [:rect.menu-box {:x x :y y :width w :height h}]]
+       (for [i (range n) :let [option (get options i)]]
+         [[:rect.menu-option {:x xo :y (+ yo (* i ho))
+                              :width wo :height ho
+                              :on-click (partial (:fn option) node edge option)}]
+          [:text {:x (+ x xchar) :y (+ yt (* i ho))} (:text option)]]))))
 
 (defn plans [{:keys [plans/pan-zoom plans/ui-opts plans/plans] :as props}
              plan-factory]
   (let [{:keys [pan-zoom/width pan-zoom/height
                 pan-zoom/vp-width pan-zoom/vp-height
                 pan-zoom/pan pan-zoom/zoom]} pan-zoom
-        {:keys [ui/show-plan ui/graph-click]} ui-opts
+        {:keys [ui/show-plan ui/graph-click ui/menu]} ui-opts
         plans-to-show (if (or (nil? show-plan) (= :all show-plan))
                         plans
                         (filter #(= (:plan/plid %) show-plan) plans))
@@ -488,7 +518,9 @@
             ;; [:rect.plans {:x 0 :y 0
             ;;               :width (- width 2) :height (- height 2)}]
             ]
-           (map plan-factory plans-to-show))]))))
+           (map plan-factory plans-to-show)
+           (if menu [(show-menu menu)])
+           )]))))
 
 (defn message-box [{:keys [message-box/id message-box/value] :as props}]
   (let [id (or id :mb-wat)
