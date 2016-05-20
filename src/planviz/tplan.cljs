@@ -15,7 +15,7 @@
               ;; [planviz.components :as comp]
               [planviz.ui :as ui
                :refer [node-key-fn edge-key-fn network-key-fn non-zero?
-                       constraint?]]))
+                       constraint? activity? begin?]]))
 
 ;; helper function
 (defn reversev [s]
@@ -209,17 +209,20 @@
       (let [node (get-node node-id)]
         (map-incoming node
           (fn [edge]
-            (when-not (constraint? edge)
+            (when (#{:activity :null-activity :parallel-edge :choice-edge :virtual}
+                    (:edge/type edge))
               (let [old-rank (:node/rank node)
                     from (get-node (:edge/from edge))
                     rank (max old-rank (+ (:node/rank from) min-length))]
+                (println "DEBUG rank-sweep EDGE rank" rank)
                 (when (not= rank old-rank)
                   (update-node (assoc node :node/rank rank))
                   (swap! moves conj (node-key-fn node))
                   nil)))))
         (map-outgoing node
           (fn [edge]
-            (when-not (constraint? edge)
+            (when (#{:activity :null-activity :parallel-edge :choice-edge :virtual}
+                    (:edge/type edge))
               (let [rank (+ (:node/rank node) min-length)
                     to (get-node (:edge/to edge))
                     old-rank (:node/rank to)
@@ -290,7 +293,7 @@
                           (swap! visit conj from))))))
                 (map-outgoing node
                   (fn [edge]
-                    (when-not (constraint? edge)
+                    (when (activity? edge)
                       (let [{:keys [node/rank]} node
                             node-plid-id (node-key-fn node)
                             {:keys [edge/to edge/type]} edge
@@ -496,6 +499,10 @@
                               extra (ui/construct-extra
                                       cost reward probability guard)
                               max-label (max (count label) (count extra))]
+                          ;; unhide non-aggregation edges
+                          (if (and (keyword-identical? plan-type :tpn-network)
+                                hidden (not (keyword-identical? type :aggregation)))
+                            (update-edge (assoc edge :edge/hidden false)))
                           (if (or hidden (zero? weight))
                             0
                             (calc-label-width label-char max-label))))
@@ -933,7 +940,7 @@
       ;; (println "this node-id is a new option for end-id")
       (swap! options assoc-in
         [end-id :opts option-id node-id] begin-mn))
-    (if (#{:p-begin :c-begin} type)
+    (if (begin? type)
       (do ;; create blank data for this end
         (swap! options assoc end
           {:begin node-id :opt-order nexts
@@ -1001,7 +1008,7 @@
                             (let [{:keys [edge/type edge/hidden edge/weight]}
                                   (get-edge edge-id)]
                               (+ sum
-                                (if (and (#{:activity :null-activity} type)
+                                (if (and (activity? type)
                                       (not (or hidden (zero? weight))))
                                   1 0))))
                   n-outgoing (reduce edge-fn 0 outgoing)
@@ -1027,7 +1034,7 @@
                             (let [{:keys [edge/type edge/hidden edge/weight]}
                                   (get-edge edge-id)]
                               (+ sum
-                                (if (and (#{:activity :null-activity} type)
+                                (if (and (activity? type)
                                       (not (or hidden (zero? weight))))
                                   1 0))))
                   n-incoming (reduce edge-fn 0 incoming)
@@ -1148,11 +1155,11 @@
   (println "TPLAN initialize-tpn")
   (map-nodes
     (fn [node]
-      (let [outgoing (:node/outgoing node)
+      (let [{:keys [node/type node/outgoing node/end]} node
             sum-probability (fn [p edge-id]
                               (+ p
                                 (or (:edge/probability (get-edge edge-id)) 0)))
-            probability (if (keyword-identical? :c-begin (:node/type node))
+            probability (if (keyword-identical? :c-begin type)
                           (reduce sum-probability 0 outgoing) 0)
             probability (if (non-zero? probability) probability)
             order (atom 0)
@@ -1163,7 +1170,13 @@
             outgoing (mapv (fn [[o p i]] (composite-key p i))
                        out-order)]
         (update-node (assoc-if (assoc node :node/outgoing outgoing)
-                       :node/probability probability)))))
+                       :node/probability probability))
+        (if (begin? type) ;; create aggregation edge
+          (update-edge (assoc (create-vedge (node-key-fn node) end)
+                         :edge/type :aggregation
+                         :edge/hidden true
+                         :edge/weight 0)))
+        )))
   true)
 
 (defn initialize-plan [d]

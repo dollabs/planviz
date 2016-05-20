@@ -381,7 +381,6 @@
       {:app/title "planviz"
        :app/initialized 0
        :app/vp-timer nil
-       :app/selection {}
        :app/mode :manual
        :app/plans {}
        :app/message-box
@@ -528,6 +527,20 @@
     (app-query `[(app/input-box {:input-box ~ib})])
     nil))
 
+(defn app-get-plan [plid]
+  (get (app-get :app/plans) plid))
+
+(defn app-set-plan [plid plan-data]
+  (app-set :app/plans (assoc (app-get :app/plans) plid plan-data)))
+
+(defn app-get-plan-value [plid k]
+  (get-in (app-get :app/plans) [plid k]))
+
+(defn app-set-plan-value [plid k v]
+  (let [plans (app-get :app/plans)
+        plan-data (get plans plid)]
+    (app-set :app/plans (assoc plans plid (assoc plan-data k v)))))
+
 (defn get-bigplan []
   (let [bigplan (gdom/getElement "bigplan")]
     (if bigplan
@@ -598,6 +611,16 @@
         begin (get-in (plans-query q) [ref k])
         nref [:network/network-by-plid-id begin]
         nk :network/end
+        nq [{nref [nk]}]]
+    (get-in (plans-query nq) [nref nk])))
+
+(defn get-network-begin [plid]
+  (let [ref [:plan/by-plid plid]
+        k :plan/begin
+        q [{ref [k]}]
+        begin (get-in (plans-query q) [ref k])
+        nref [:network/network-by-plid-id begin]
+        nk :network/begin
         nq [{nref [nk]}]]
     (get-in (plans-query nq) [nref nk])))
 

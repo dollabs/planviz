@@ -305,21 +305,23 @@
   (try
     (let [{:keys [host port]} @state
           server (str host ":" port)
-          {:keys [planviz remote nick type plid selection pan zoom chat]} action
+          {:keys [planviz remote nick type plid selection pan zoom chat
+                  tag node edge url tab info network-flows]} action
           planviz (or planviz server)
           remote (or remote server)
           type (if type (keyword type))
           plid (if plid (keyword plid))
+          tag (if tag (keyword tag))
+          node (if node (keyword node))
+          edge (if edge (keyword edge))
           selection (if selection
                       (doall (mapv #(vector (keyword (first %)) (keyword (second %)))
                                selection)))
           action (assoc-if action
-                   :planviz planviz
-                   :remote remote
-                   :nick nick
-                   :type type
-                   :plid plid
-                   :selection selection)]
+                   :planviz planviz :remote remote :nick nick
+                   :type type :plid plid
+                   :selection selection
+                   :tag tag :node node :edge edge)]
       (broadcast-clients nil {:rmethod :user-action
                               :args [action]}))
     (catch Exception e
@@ -785,7 +787,8 @@
         _ (log/info "PLANVIZ" (with-out-str (pprint action)))
         {:keys [host port]} @state
         server (str host ":" port)
-        {:keys [planviz remote nick type plid selection pan zoom chat]} action
+        {:keys [planviz remote nick type plid selection pan zoom chat
+                tag node edge url tab info network-flows]} action
         planviz (or planviz server)
         remote (or remote server)
         type (if type (keyword type))
@@ -794,16 +797,16 @@
                     (doall (mapv #(vector (keyword (first %))
                                     (keyword (second %)))
                              selection)))
+        tag (if tag (keyword tag))
+        node (if node (keyword node))
+        edge (if edge (keyword edge))
         action (assoc-if action
-                 :planviz planviz
-                 :remote remote
-                 :nick nick
-                 :type type
-                 :plid plid
-                 :selection selection)
+                 :planviz planviz :remote remote :nick nick
+                 :type type :plid plid
+                 :selection selection
+                 :tag tag :node node :edge edge)
         msg {:rmethod :user-action :args [action]}
-        remotes (get-client-keys)
-        ]
+        remotes (get-client-keys)]
     (loop [msg-json nil r (first remotes) more (rest remotes)]
       (let [mj (if (wants-updates-from r remote)
                  (xmit-to-client r msg msg-json))]

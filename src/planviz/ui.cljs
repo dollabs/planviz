@@ -35,6 +35,20 @@
                       (:edge/type edge-or-type)
                       edge-or-type)))
 
+(def activity-types #{:activity :null-activity})
+
+(defn activity? [edge-or-type]
+  (activity-types (if (map? edge-or-type)
+                      (:edge/type edge-or-type)
+                      edge-or-type)))
+
+(def begin-types #{:c-begin :p-begin})
+
+(defn begin? [node-or-type]
+  (begin-types (if (map? node-or-type)
+                 (:node/type node-or-type)
+                 node-or-type)))
+
 ;; key-fn's
 
 (defn message-box-key-fn [props]
@@ -105,14 +119,14 @@
         node? (keyword? id)
         edge-state (if-not state (:edge/state sel))]
     (cond
-      (or (and (not node?) (= edge-state :finished))
-        (and node? (= state :reached)))
+      (or (and (not node?) (keyword-identical? edge-state :finished))
+        (and node? (keyword-identical? state :reached)))
       1
       (or
         (and (not node?)
-          (or (nil? edge-state) (= edge-state :normal)))
+          (or (nil? edge-state) (keyword-identical? edge-state :normal)))
         (and node?
-          (or (nil? begin-state) (= begin-state :normal))))
+          (or (nil? begin-state) (keyword-identical? begin-state :normal))))
       0
       :else
       0.5)))
@@ -129,7 +143,7 @@
         :started))))
 
 (defn node [{:keys[plans/ui-opts plan/plid node/id
-                   node/type node/state node/x node/y
+                   node/type node/state node/x node/y node/hidden
                    node/label node/sequence-label
                    node/probability node/selected?
                    node/tpn-selection] :as props}]
@@ -145,13 +159,13 @@
                       "parallel"
                       (#{:c-begin :c-end} type)
                       (if probability "unchoice" "choice")
-                      (= :htn-expanded-method type)
+                      (keyword-identical? :htn-expanded-method type)
                       "hem"
                       :else
                       "state")
               css (str xlink "-"
-                    (if (= type :virtual) "virtual-")
-                    (name state))
+                    (if (keyword-identical? type :virtual) "virtual-")
+                    (if hidden "hidden" (name state)))
               use [:use {:class css :x x :y y :xlinkHref (str "#" xlink)
                          ;; :on-click #(nodeclick id)
                          }]
@@ -162,15 +176,13 @@
                       (str label "\n▹ " sequence-label)
                       label)
               lines (if label (string/split label #"\n"))
-              labels (if lines
+              labels (if (and lines (not hidden))
                        (for [i (range (count lines))
                              :let [lab (get lines i)]]
                          [:text {:class "node-label"
                                  :textAnchor "middle"
-                                 :x x :y (+ top (* i ychar))} lab]
-                         )
-                       )
-              y-node-id (+ y (if (= network-type :hem-network) 30 20))
+                                 :x x :y (+ top (* i ychar))} lab]))
+              y-node-id (+ y (if (keyword-identical? network-type :hem-network) 30 20))
               tip (str (name id) " " (name state))]
           (concatv
             [:g.node
@@ -179,7 +191,7 @@
                 :on-context-menu (partial graph-click props)
                 })
              ]
-            [(if (= type :htn-expanded-method)
+            [(if (keyword-identical? type :htn-expanded-method)
                (let [r 12
                      hem-size (* 4 r)
                      hem-offset (- (/ hem-size 2))]
@@ -270,7 +282,7 @@
 (defn edge [{:keys[plans/ui-opts plan/plid edge/id
                    edge/type edge/state edge/from edge/to
                    edge/cost edge/reward edge/probability edge/guard
-                   edge/selected?]
+                   edge/selected? edge/hidden]
              :as props}
             node-factory]
   (let [{:keys [ui/network-type ui/tooltips?
@@ -280,33 +292,41 @@
         (let [[x0 y0] [(:node/x from) (:node/y from)]
               [x1 y1] [(:node/x to) (:node/y to)]
               [x y d ratio] (link-arc-memo type x0 y0 x1 y1)
-              virtual? (= type :virtual)
+              virtual? (keyword-identical? type :virtual)
               cnstr? (constraint? type)
               length-class (if (and cnstr? (> ratio 3))
                              (if (< ratio 10) "-long" "-very-long"))
-              marker-end (if cnstr? (str "url(#arrow" length-class ")")
-                             (if virtual? "url(#arrowlight)"
-                                 (if (= network-type :hem-network)
-                                   "url(#arrowhem)"
-                                   "url(#arrowhead)")))
-              marker-start nil ;; (if (= type :choice-edge) "url(#choicehem)")
-              class (str (safe-type-name type) "-" (name state) length-class)
-              attrs (assoc-if {:class class :marker-end marker-end :d d}
-                      :marker-start marker-start)
+              marker-end (if cnstr?
+                           (if hidden
+                             nil
+                             (str "url(#arrow" length-class ")"))
+                           (if virtual? "url(#arrowlight)"
+                               (if (keyword-identical? network-type :hem-network)
+                                 "url(#arrowhem)"
+                                 (if hidden
+                                   nil ;; "url(#arrowlight)"
+                                   "url(#arrowhead)"))))
+              marker-start nil ;; (if (keyword-identical? type :choice-edge) "url(#choicehem)")
+              class (str (safe-type-name type) "-"
+                      (if hidden "hidden" (name state)) length-class)
+              attrs (assoc-if {:class class :d d}
+                      :marker-start marker-start
+                      :marker-end marker-end)
               target-attrs (if (#{:activity :choice-edge :parallel-edge} type)
                              {:class (target-class selected?) :d d})
               extra (construct-extra cost reward probability guard)
               tip (if (empty? extra) (str (name id) " " (name state)) extra)]
-          [:g.edge
-             (if (and (= type :activity) (fn? graph-click))
+          (if (and hidden (keyword-identical? type :aggregation))
+            [:desc "hidden"]
+            [:g.edge
+             (if (and (#{:activity :parallel-edge :choice-edge} type) (fn? graph-click))
                {:on-click (partial graph-click props)
-                :on-context-menu (partial graph-click props)
-                })
-           (if target-attrs
-             [:path target-attrs])
-           [:path attrs]
-           (if tooltips?
-             [(tooltip :g.edge-tooltip.hide x y tip type)])]))))
+                :on-context-menu (partial graph-click props)})
+             (if target-attrs
+               [:path target-attrs])
+             [:path attrs]
+             (if tooltips?
+               [(tooltip :g.edge-tooltip.hide x y tip type)])])))))
 
 (def edge-memo (memoize edge))
 
@@ -335,13 +355,13 @@
     label))
 
 (defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
-                    edge/sequence-label
+                    edge/sequence-label edge/hidden
                     edge/plant edge/plantid edge/command
                     edge/from edge/to edge/value
                     edge/cost edge/reward edge/probability edge/guard
                     edge/order] :as props}]
   (let [{:keys [ui/show-virtual? ui/edge-ids?]} ui-opts
-        virtual? (= type :virtual)
+        virtual? (keyword-identical? type :virtual)
         label? (or show-virtual? (not virtual?))
         label (if label? (construct-label name label sequence-label
                            plant plantid command type value))
@@ -368,9 +388,11 @@
         below (if (not (empty? extra))
                 [:text {:textAnchor "middle" :x x :y (+ y 12)} extra])]
     (html
-      (if below
-        [:g above below]
-        above))))
+      (if hidden
+        [:desc "hidden"]
+        (if below
+          [:g above below]
+          above)))))
 
 (def label-memo (memoize label))
 
@@ -380,15 +402,15 @@
                node-factory edge-factory label-factory]
   (let [{:keys [ui/show-virtual?]} ui-opts
         edges-to-show (if show-virtual? edges
-                          (remove #(= :virtual (:edge/type %)) edges))
+                          (remove #(keyword-identical? :virtual (:edge/type %)) edges))
         edges? (pos? (count edges-to-show))
         nodes-to-show (if show-virtual? nodes
-                          (remove #(= :virtual (:node/type %)) nodes))
+                          (remove #(keyword-identical? :virtual (:node/type %)) nodes))
         nodes? (pos? (count nodes-to-show))]
     (html
       (concatv
         [:g]
-        ;; (if (= rendering :graphic)
+        ;; (if (keyword-identical? rendering :graphic)
           (concatv
             (if edges? (map edge-factory edges-to-show))
             (if nodes? (map node-factory nodes-to-show))
@@ -398,9 +420,9 @@
              :as props}
             network-factory]
   (let [{:keys [ui/show-network]} ui-opts
-        networks-to-show (if (or (nil? show-network) (= :all show-network))
+        networks-to-show (if (or (nil? show-network) (keyword-identical? :all show-network))
                            networks
-                           (filter #(= (network-key-fn %) show-network) networks))
+                           (filter #(keyword-identical? (network-key-fn %) show-network) networks))
         networks? (pos? (count networks-to-show))]
     (html
       (concatv
@@ -486,9 +508,9 @@
                 pan-zoom/vp-width pan-zoom/vp-height
                 pan-zoom/pan pan-zoom/zoom]} pan-zoom
         {:keys [ui/show-plan ui/graph-click ui/menu]} ui-opts
-        plans-to-show (if (or (nil? show-plan) (= :all show-plan))
+        plans-to-show (if (or (nil? show-plan) (keyword-identical? :all show-plan))
                         plans
-                        (filter #(= (:plan/plid %) show-plan) plans))
+                        (filter #(keyword-identical? (:plan/plid %) show-plan) plans))
         plans? (pos? (count plans-to-show))
         ;; rendering (or rendering :graphic)
         loading? (not (and width height))

@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file. This change
 Added
 - Right click actions (work in progress)
 - Updated dependencies
+- Updated right-click menu handling functions (and corresponding user actions)
+- TPN Hide/Show implemented
+- HTN Focus/Blur implemented
+- Coalesced plan related meta data in app/plans (removed app/selection)
+- Updated CSS for "hidden" portions of the graph
 
 ### [0.8.3] - 2016-05-16
 

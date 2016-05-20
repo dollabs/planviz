@@ -218,6 +218,7 @@
       :node/down-priority
       ;; for display
       :node/selected?
+      :node/aggregated?
       ])
   Object
   (render [this]
@@ -452,7 +453,6 @@
     '[:app/title ;; "planviz"
       :app/initialized ;; 0
       :app/vp-timer ;; nil
-      :app/selection
       ;; :app/following
       :app/client
       :app/mode

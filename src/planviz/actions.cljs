@@ -9,15 +9,16 @@
   (:require [clojure.string :as string]
             [clojure.set :as set]
             [cljs.pprint :refer [pprint]]
-            [avenir.utils :as au :refer [concatv as-boolean as-int
+            [avenir.utils :as au :refer [assoc-if concatv as-boolean as-int
                                          as-float remove-fn vec-index-of]]
             [webtasks.tasks :as tasks
              :refer [on-realized chain sleep success! error!]]
             [webtasks.ws :as ws]
             [webkeys.keys :as keys]
-            [planviz.ui :as ui :refer [node-key-fn edge-key-fn network-key-fn]]
+            [planviz.ui :as ui :refer [node-key-fn edge-key-fn network-key-fn
+                                       activity? begin?]]
             [planviz.state :as st]
-            [planviz.tplan :as tplan]
+            [planviz.tplan :as tplan :refer [min-max-fn]]
             [plan-schema.core :as pschema :refer [composite-key]]
             [goog.dom :as gdom]
             [goog.crypt.base64 :as base64]
@@ -158,13 +159,11 @@
       :user-action action)))
 
 (defn update-tpn-end [plid]
-  (let [plans (st/app-get :app/plans)
-        plan-data (get plans plid)
-        plan-type (:type plan-data)
-        end (if (= plan-type :tpn-network) (st/get-network-end plid))]
+  (let [end (if (= (st/app-get-plan-value plid :type) :tpn-network)
+              (st/get-network-end plid))]
     (when end
       ;; (println "TPN-END" plid end)
-      (st/app-set :app/plans (assoc-in plans [plid :tpn-end] end)))
+      (st/app-set-plan-value plid :tpn-end end))
     true)) ;; for deferred
 
 (defn new-plan [plan]
@@ -179,9 +178,7 @@
 
 (defn network-reset [plid]
   (println "NETWORK-RESET" plid)
-  (let [plans (or (st/app-get :app/plans) {})
-        plan-data (get plans plid)
-        {:keys [loaded? corresponding]} plan-data]
+  (let [{:keys [loaded? corresponding]} (st/app-get-plan plid)]
     (if-not loaded?
       (if (st/app-get :app/loading)
         (tasks/timeout #(network-reset plid) 500) ;; try again
@@ -196,9 +193,7 @@
     (if d
       (st/app-set :app/defer (conj defer update))
       (let [{:keys [plid update-uid state]} update
-            plans (or (st/app-get :app/plans) {})
-            plan-data (get plans plid)
-            {:keys [loaded? tpn-end corresponding]} plan-data]
+            {:keys [loaded? tpn-end corresponding]} (st/app-get-plan plid)]
         (if-not loaded?
           (println "ERROR network-update for not loaded plan:" plid)
           (do ;; if it has node in the uid then it's node, else edge
@@ -568,11 +563,9 @@
                     (reset! within true)
                     nil)
                   (let [{:keys [edge/type edge/to
-                                edge/weight edge/hidden]} edge
-                        follow? (#{:activity :null-activity} type)
-                        to-id (node-key-fn to)]
-                    (if follow?
-                      to-id)))))))))
+                                edge/weight edge/hidden]} edge]
+                    (if (activity? type)
+                      (node-key-fn to))))))))))
     @within))
 
 ;; return the parts of sub in selection
@@ -620,7 +613,7 @@
                                  (dissoc node :plans/ui-opts
                                    :node/tpn-selection)
                                  :node/selected? new-selected?))
-          (when (#{:c-begin :p-begin} type)
+          (when (begin? type)
             (st/plans-merge-node (assoc
                                    (dissoc (st/plans-get-node end)
                                      :plans/ui-opts)
@@ -633,9 +626,8 @@
                 (map-outgoing node
                   (fn [edge]
                     (let [{:keys [edge/type edge/to
-                                  edge/weight edge/hidden]} edge
-                          follow? (#{:activity :null-activity} type)]
-                      (when follow?
+                                  edge/weight edge/hidden]} edge]
+                      (when (activity? type)
                         (st/plans-merge-edge (assoc
                                                (dissoc edge
                                                  :plans/ui-opts
@@ -645,32 +637,31 @@
       (println "Don't know how to select a" type))))
 
 (defn plan-selection [plid s &[opts]]
-  (let [old-selection (st/app-get :app/selection)
-        selection (assoc-in old-selection [plid] s)
+  (let [old-selection (st/app-get-plan-value plid :selection)
         from-auto? (:auto opts)]
-    (when (not= selection old-selection)
-      (st/app-set :app/selection selection))
+    (when (not= s old-selection)
+      (st/app-set-plan-value plid :selection s))
     (if-not from-auto?
       (my-user-action {:type :selection
                        :plid plid
                        :selection s}))))
 
 (defn clear-selection [plid & [opts]]
-  (let [selection (get (st/app-get :app/selection) plid)]
+  (let [selection (st/app-get-plan-value plid :selection)]
     (when (and (vector? selection) (pos? (count selection)))
       (doseq [sel selection]
         (set-selected? false plid sel opts)))
     (plan-selection plid [])))
 
 (defn add-to-selection [plid sel & [opts]]
-  (let [selection (get (st/app-get :app/selection) plid)]
+  (let [selection (st/app-get-plan-value plid :selection)]
     (when-not (some #(= % sel) selection)
       (set-selected? true plid sel opts)
       (plan-selection plid (conj selection sel)))))
 
 ;; sel MAY be multiple
 (defn remove-from-selection [plid sel & [opts]]
-  (let [selection (get (st/app-get :app/selection) plid)
+  (let [selection (st/app-get-plan-value plid :selection)
         multiple? (vector? (first sel))
         remove (if (or multiple? (empty? sel)) sel [sel])]
     (loop [selection selection r (first remove) more (rest remove)]
@@ -694,7 +685,7 @@
 ;; sel MIGHT be a vector
 (defn set-selection [plid sel & [opts]]
   (when (and plid sel)
-    (let [selection (get (st/app-get :app/selection) plid)
+    (let [selection (st/app-get-plan-value plid :selection)
           multiple? (vector? (first sel))
           new-selection (if (or multiple? (empty? sel)) sel [sel])]
       (when (not= new-selection selection)
@@ -823,11 +814,8 @@
 ;; the tpn has a selection... make the highlight now!
 (defn highlight-relevant [&[remote]]
   (let [{:keys [ui/show-plan ui/show-network ui/network-type]} (st/get-ui-opts)
-        plans (or (st/app-get :app/plans) {})
-        plan-data (get plans show-plan)
-        {:keys [corresponding]} plan-data
-        selection (st/app-get :app/selection)
-        csel (if corresponding (get selection corresponding))]
+        {:keys [corresponding selection]} (st/app-get-plan show-plan)
+        csel (if corresponding (st/app-get-plan-value corresponding :selection))]
     (println "HIGHLIGHT-RELEVANT" show-plan show-network network-type)
     (case network-type
       :hem-network
@@ -861,13 +849,11 @@
   (let [plan-id (if (string? plan-id)
                   (keyword (string/replace-first plan-id  #"^:" ""))
                     plan-id)
-        plans (or (st/app-get :app/plans) {})
-        plan-data (get plans plan-id)
-        {:keys [loaded? type corresponding n-keys]} plan-data
+        {:keys [loaded? type corresponding n-keys]} (st/app-get-plan plan-id)
         load-tpn? (and (keyword-identical? type :htn-network) corresponding
-                    (not (:loaded? (get plans corresponding))))
+                    (not (st/app-get-plan-value corresponding :loaded?)))
         tooltips? (< n-keys 256)]
-    (if (:loaded? plan-data)
+    (if loaded?
       (do
         (status-msg "display-plan" plan-id)
         (st/app-set :app/title (name plan-id))
@@ -897,14 +883,12 @@
 (defn load-plan [plan-id &[opts]]
   (let [d (tasks/deferred)
         dtimeout (tasks/timeout! d 60000 :timed-out)
-        plans (or (st/app-get :app/plans) {})
-        plan-data (get plans plan-id)
-        {:keys [loaded? n-keys parts n-parts]} plan-data
+        {:keys [loaded? n-keys parts n-parts]} (st/app-get-plan plan-id)
         have-parts (if parts (count parts) 0)
         reload? (:reload? opts)]
     ;; (println "LOAD-PLAN" plan-id "OPTS" opts)
     (cond
-      (not plan-data)
+      (not n-keys)
       (do
         (println "cannot load unknown plan" plan-id)
         (error! d (str "cannot load unknown plan " plan-id)))
@@ -981,24 +965,24 @@
 
 (defn user-action [action]
   (let [client (st/app-get :app/client)
-        {:keys [planviz remote nick type plid selection pan zoom chat]} action
-        plans (or (st/app-get :app/plans) {})
-        plan-data (get plans plid)
-        loaded? (:loaded? plan-data)
+        {:keys [planviz remote nick type plid selection pan zoom chat
+                tag node edge url tab info network-flows]} action
+        {:keys [loaded?]} (st/app-get-plan plid)
         showing (:ui/show-plan (st/get-ui-opts))
         ready? (or (not (auto?)) (not plid) loaded?)
-        to-show (if (no-plan? showing) plid showing)]
+        to-show (if (no-plan? showing) plid showing)
+        auto-on? (auto?)]
     (if ready?
       (do
         (case type
           :selection
-          (when (and (not= remote client) (auto?))
+          (when (and (not= remote client) auto-on?)
             (println "REMOTE SET-SELECTION" action)
             (set-selection plid selection {:auto true})
             (when (not= showing plid)
               (highlight-relevant (or nick remote))))
           :pan-zoom
-          (when (and (not= remote client) (auto?) (= plid showing))
+          (when (and (not= remote client) auto-on? (= plid showing))
             ;; (println "REMOTE PAN-ZOOM" pan zoom)
             (if pan (pan! pan))
             (if zoom (zoom! zoom))
@@ -1006,6 +990,29 @@
             )
           :chat
           (status-msg (str "<" (or nick remote) "> " chat))
+          :menu
+          (when (and (not= remote client) auto-on?)
+            (cond
+              (keyword-identical? tag :info)
+              (println "USER-ACTION type" type "TAG" tag
+                "NODE" node "EDGE" edge "INFO" info)
+              (keyword-identical? tag :url)
+              (println "USER-ACTION type" type "TAG" tag
+                "URL" url "TAB" tab)
+              (#{:htn-focus :htn-blur} tag)
+              (do
+                (println "USER-ACTION type" type "TAG" tag
+                  "NODE" node)
+                (st/app-set-plan-value plid :focus
+                  (if (keyword-identical? tag :htn-focus) node)))
+              (#{:tpn-show :tpn-hide} tag)
+              (println "USER-ACTION type" type "TAG" tag
+                "NODE" node)
+              (keyword-identical? tag :tpn-network-flows)
+              (println "USER-ACTION type" type "TAG" tag
+                "NODE" node "NETWORK-FLOWS" network-flows)
+              :else
+              (println "USER-ACTION type" type "TAG" tag "not supported")))
           (println "USER-ACTION type" type "not supported"))
         true) ;; for deferred
       (-> (load-plan plid) ;; loading on demand
@@ -1014,13 +1021,11 @@
 
 (defn add-plan [plid plan-details]
   (let [{:keys [ui/show-plan ui/show-network ui/network-type]} (st/get-ui-opts)
-        plans (or (st/app-get :app/plans) {})
-        plan-data (get plans plid)
-        {:keys [loaded? corresponding]} plan-data]
+        {:keys [n-keys loaded? corresponding]} (st/app-get-plan plid)]
     ;; (println "ADD-PLAN" plid "DETAILS" plan-details
     ;;   "loaded?" loaded? "show-plan" show-plan)
-    (if-not plan-data
-      (st/app-set :app/plans (assoc plans plid plan-details)))
+    (if-not n-keys
+      (st/app-set-plan plid plan-details))
     (status-msg "executing" plid)
     (if loaded?
       ;; only switch if not currently showing this plan or the corresponding one
@@ -1034,9 +1039,7 @@
 ;; selected and corresponding plan(s)
 (defn all-normal []
   (let [{:keys [ui/show-plan ui/show-network ui/network-type]} (st/get-ui-opts)
-        plans (or (st/app-get :app/plans) {})
-        plan-data (get plans show-plan)
-        loaded? (:loaded? plan-data)]
+        {:keys [loaded?]} (st/app-get-plan show-plan)]
     ;; (println "ALL NORMAL show-plan" show-plan "loaded?" loaded?)
     (if (and (not (#{:none :loading} show-plan)) loaded?)
       (st/all-normal show-plan))))
@@ -1053,10 +1056,6 @@
     (if next-id
       (display-plan next-id)
       (println "NO NEXT-PLAN"))))
-
-
-
-
 
 (defn next-plan []
   (another-plan inc))
@@ -1079,7 +1078,7 @@
           (st/plans-merge-node
             (assoc node :node/state :normal)))
         (doseq [edge edges]
-          (if (= (:edge/type edge) :activity)
+          (if (keyword-identical? (:edge/type edge) :activity)
             (st/plans-merge-edge
               (assoc (dissoc edge :edge/from :edge/to)
                 :edge/state :normal))))))))
@@ -1098,7 +1097,7 @@
             (assoc node :node/state
               (get node-states (mod (swap! i inc) node-states-n)))))
         (doseq [edge edges]
-          (if (= (:edge/type edge) :activity)
+          (if (keyword-identical? (:edge/type edge) :activity)
             (st/plans-merge-edge
               (assoc (dissoc edge :edge/from :edge/to)
                 :edge/state (get edge-states
@@ -1314,12 +1313,11 @@
       (if selected?
         (if (not (empty? (selection-subset [sel]
                            (vec (filter #(not= % sel)
-                                  (get (st/app-get :app/selection) plid))))))
+                                  (st/app-get-plan-value plid :selection))))))
           ;; (println "NOT REMOVING" sel "is a subset of the current selection")
           (remove-from-selection plid sel {:edge edge}))
         (add-to-selection plid sel {:edge edge}))
-      (set-selection plid sel {:edge edge}))
-    ))
+      (set-selection plid sel {:edge edge}))))
 
 (defn nodeclick [node]
   (let [{:keys [plan/plid node/id node/type
@@ -1331,7 +1329,7 @@
       (= type :state)
       (doseq [edge-id outgoing]
         (let [edge (st/plans-get-edge edge-id)]
-          (if (= (:edge/type edge) :activity)
+          (if (keyword-identical? (:edge/type edge) :activity)
             (edgeclick edge))))
       (= type :htn-expanded-method)
       (do
@@ -1342,9 +1340,9 @@
             (add-to-selection plid sel {:node node}))
           (set-selection plid sel {:node node}))
         )
-      (#{:c-begin :p-begin} type)
+      (begin? type)
       (if (keys/shift?)
-        (let [selection (get (st/app-get :app/selection) plid)
+        (let [selection (st/app-get-plan-value plid :selection)
               node-subset (selection-subset [sel]
                             (vec (filter #(not= % sel) selection)))
               subset-node (selection-subset selection [sel])]
@@ -1385,15 +1383,28 @@
   ;; (my-user-action action)
   false)
 
-(defn dummy-menu-fn [node edge option e]
-  (let [opt (dissoc option :fn)]
-    (cond
-      node
-      (status-msg "NODE" (:node/id node) "OPTION" opt)
-      edge
-      (status-msg "EDGE" (:edge/id edge) "OPTION" opt)
-      :else
-      (status-msg "MENU OPTION" opt)))
+(defn default-menu-fn [node edge option e]
+  (cond
+    node
+    (let [{:keys [tag]} option
+          {:keys [plan/plid node/id node/type node/state]} node
+          info (str tag ", node " id ", type " type ", state " state)]
+      (status-msg info)
+      (my-user-action {:type :menu :tag tag :plid plid :node id :info info}))
+    edge
+    (let [{:keys [tag]} option
+          {:keys [plan/plid edge/id edge/type edge/state edge/network-flows]} edge
+          network-flows (if (keyword-identical? tag :tpn-network-flows) network-flows)
+          info (str tag ", edge " id ", type " type ", state " state)]
+      (status-msg info)
+      (my-user-action (assoc-if {:type :menu :tag tag :plid plid :edge id}
+                        :info (if-not network-flows info)
+                        :network-flows network-flows)))
+    :else
+    (let [{:keys [tag]} option
+          info (str tag ", no node or edge selected")]
+      (status-msg info)
+      (my-user-action {:type :menu :tag tag :info info})))
   (menu-click-handled e))
 
 (defn info-menu-fn [node edge option e]
@@ -1401,20 +1412,20 @@
     node
     (let [{:keys [tag]} option
           {:keys [plan/plid node/id node/type node/state]} node
-          msg (str "node " id ", type " type ", state " state)]
-      (status-msg msg)
-      (my-user-action {:type :menu :tag tag :plid plid :node id :msg msg}))
+          info (str "node " id ", type " type ", state " state)]
+      (status-msg info)
+      (my-user-action {:type :menu :tag tag :plid plid :node id :info info}))
     edge
     (let [{:keys [tag]} option
           {:keys [plan/plid edge/id edge/type edge/state]} edge
-          msg (str "edge " id ", type " type ", state " state)]
-      (status-msg msg)
-      (my-user-action {:type :menu :tag tag :plid plid :edge id :msg msg}))
+          info (str "edge " id ", type " type ", state " state)]
+      (status-msg info)
+      (my-user-action {:type :menu :tag tag :plid plid :edge id :info info}))
     :else
     (let [{:keys [tag]} option
-          msg "no node or edge selected"]
-      (status-msg msg)
-      (my-user-action {:type :menu :tag tag :msg msg})))
+          info "no node or edge selected"]
+      (status-msg info)
+      (my-user-action {:type :menu :tag tag :info info})))
   (menu-click-handled e))
 
 ;; https://developer.mozilla.org/en-US/docs/Web/API/Window/open#Position_and_size_features
@@ -1437,36 +1448,177 @@
       (my-user-action {:type :menu :tag tag :url url :tab tab}))
     (menu-click-handled e)))
 
+(defn set-aggregated? [begin end aggregated]
+  ;; (println "DEBUG set-aggregated?" begin end aggregated)
+  (visit-nodes begin #{end}
+    (fn [node]
+      ;; (println "DEBUG set-aggregated? NODE" (:node/id node))
+      (st/plans-merge-node
+        ;; (if (and (begin? node) (not (keyword-identical? (node-key-fn node) begin)))
+        (if (begin? node)
+          (assoc node :node/hidden aggregated :node/aggregated? false)
+          (assoc node :node/hidden aggregated)))
+      (map-outgoing node
+        (fn [edge]
+          ;; (println "DEBUG set-aggregated? EDGE" (:edge/id edge))
+          (let [{:keys [edge/type edge/to]} edge
+                hidden (if (keyword-identical? :aggregation type)
+                         true
+                         aggregated)]
+            (st/plans-merge-edge (assoc
+                                   (dissoc edge
+                                     :plans/ui-opts
+                                     :edge/from :edge/to)
+                                   :edge/hidden hidden))
+            (when (activity? type)
+              (node-key-fn to))))))))
+
+(defn aggregation-menu-fn [node _ option e]
+  (when node
+    (let [{:keys [tag]} option
+          {:keys [plan/plid node/id node/end]} node
+          aggregated (keyword-identical? tag :tpn-hide)
+          node (assoc node :node/aggregated? aggregated :node/hidden false)]
+      (status-msg tag id)
+      ;; set the interior
+      (set-aggregated? (node-key-fn node) end aggregated)
+      ;; set the begin node
+      (st/plans-merge-node node)
+      ;; set the aggregation edge
+      (map-outgoing node
+        (fn [edge]
+          (let [{:keys [edge/type edge/hidden]} edge]
+            (if (and (keyword-identical? type :aggregation)
+                  (= hidden aggregated))
+              (st/plans-merge-edge (assoc edge :edge/hidden (not aggregated)))))))
+      (my-user-action {:type :menu :tag tag :plid plid :node id})
+      (menu-click-handled e))))
+
+(defn focus-menu-fn [node _ option e]
+  (when node
+    (let [{:keys [tag]} option
+          {:keys [plan/plid node/id node/x node/y]} node
+          node-id (composite-key plid id)
+          focus? (keyword-identical? tag :htn-focus)
+          visited (if focus? #{node-id} #{})
+          begin (st/get-network-begin plid)
+          bounds (atom {:xbounds [x x] :ybounds [y y]})]
+      (status-msg tag id)
+      ;; hide parents and siblings (or show all)
+      (visit-nodes begin visited
+        (fn [node]
+          (st/plans-merge-node (assoc
+                                 (dissoc node :plans/ui-opts)
+                                 :node/hidden focus?
+                                 :node/aggregated? false))
+          (map-outgoing node
+            (fn [edge]
+              (let [{:keys [edge/type edge/to edge/hidden]} edge]
+                (when (#{:parallel-edge :choice-edge} type)
+                  (if (not= focus? hidden)
+                    (st/plans-merge-edge (assoc
+                                           (dissoc edge
+                                             :plans/ui-opts
+                                             :edge/from :edge/to)
+                                           :edge/hidden focus?)))
+                  (node-key-fn to)))))))
+      ;; signal my action (before pan/zoom)
+      (my-user-action {:type :menu :tag tag :plid plid :node id})
+      ;; focus OUR sub network
+      (when focus?
+        (visit-nodes node-id #{}
+          (fn [node]
+            (st/plans-merge-node (assoc
+                                   (dissoc node :plans/ui-opts)
+                                   :node/hidden false
+                                   :node/aggregated?
+                                   (keyword-identical? id (:node/id node))))
+            (swap! bounds (fn [{:keys [xbounds ybounds]}]
+                            (let [{:keys [node/x node/y]} node]
+                              {:xbounds (min-max-fn xbounds [x x])
+                               :ybounds (min-max-fn ybounds [y y])})))
+            (map-outgoing node
+              (fn [edge]
+                (let [{:keys [edge/type edge/to edge/hidden]} edge]
+                  (when (#{:parallel-edge :choice-edge} type)
+                    (if hidden
+                      (st/plans-merge-edge (assoc
+                                             (dissoc edge
+                                               :plans/ui-opts
+                                               :edge/from :edge/to)
+                                             :edge/hidden false)))
+                    (node-key-fn to)))))))
+        (let [{:keys [xbounds ybounds]} @bounds
+              [xmin xmax] xbounds
+              [ymin ymax] ybounds
+              nodesep 50
+              xmin (- xmin nodesep)
+              xmax (+ xmax nodesep)
+              ymin (- ymin nodesep)
+              ymax (+ ymax (* 2 nodesep))
+              {:keys [pan-zoom/width pan-zoom/height
+                      pan-zoom/vp-width pan-zoom/vp-height]} (st/app-get :app/pan-zoom)
+              vp-ratio (/ vp-height vp-width)
+              focus-width (- xmax xmin)
+              focus-height (- ymax ymin)
+              ratio (/ focus-height focus-width)
+              vertical? (> ratio vp-ratio) ;; constraint
+              zoom-x (/ (if vertical? (/ height ratio) width) focus-width)
+              zoom-y (/ (if vertical? height (* width ratio)) focus-height)
+              zoom (min zoom-x zoom-y)
+              pan [(/ xmin width) (/ ymin height)]]
+          (zoom! zoom)
+          (pan! pan)
+          (my-user-action {:type :pan-zoom :pan pan :zoom zoom})))
+      (if-not focus?
+        (reset)) ;; zoom out
+      (st/app-set-plan-value plid :focus (if focus? node-id))
+      (menu-click-handled e))))
+
 (defn node-right-click [node]
-  (let [{:keys [plan/plid node/id node/type node/x node/y]} node
+  (let [{:keys [plan/plid node/id node/type node/aggregated? node/x node/y]} node
         ;; new-menu (if menu nil {:node node :x x :y y})
-        options [{:text "⚀ HTN Focus here" :fn dummy-menu-fn}
-                 {:text "⌲ TPN Hide" :fn dummy-menu-fn}
-                 {:tag :url :text "⇨ Open planviz" :url (make-url)
-                  :tab "planviz" :fn url-menu-fn}
-                 {:tag :url :text "⇨ Open dollabs" :url "http://dollabs.com"
-                  :tab "planviz" :fn url-menu-fn}
-                 {:tag :info :text (str "✋ node information for " id) :fn info-menu-fn}]
+        options (cond
+                  (begin? type)
+                  (if aggregated?
+                    [{:tag :tpn-show :text "⌬ TPN Show" :fn aggregation-menu-fn}]
+                    [{:tag :tpn-hide :text "⌲ TPN Hide" :fn aggregation-menu-fn}])
+                  (keyword-identical? type :htn-expanded-method)
+                  (if aggregated?
+                    [{:tag :htn-blur :text "⚄ HTN Show all" :fn focus-menu-fn}]
+                    [{:tag :htn-focus :text "⚀ HTN Focus here" :fn focus-menu-fn}])
+                  :else
+                  [])
+        options (concatv options
+                  [{:tag :url :text "⇨ Open planviz" :url (make-url)
+                    :tab "planviz" :fn url-menu-fn}
+                   {:tag :url :text "⇨ Open dollabs" :url "http://dollabs.com"
+                    :tab "planviz" :fn url-menu-fn}
+                   {:tag :info :text (str "✋ node information for " id)
+                    :fn info-menu-fn}])
         menu {:node node :x x :y y :options options}]
     (println "ACTION NODE-RIGHT-CLICK" plid id "type" type "x" x "y" y)
-    (st/merge-ui-opts {:ui/menu menu})
-    ))
+    (st/merge-ui-opts {:ui/menu menu})))
 
 (defn edge-right-click [edge]
-  (let [{:keys [plan/plid edge/id edge/type edge/from edge/to]} edge
+  (let [{:keys [plan/plid edge/id edge/type edge/from edge/to edge/network-flows]} edge
         ;; new-menu (if menu nil {:node node :x x :y y})
         ;; menu {:node node :x x :y y}
         [x0 y0] [(:node/x from) (:node/y from)]
         [x1 y1] [(:node/x to) (:node/y to)]
         x (/ (+ x0 x1) 2)
         y (/ (+ y0 y1) 2)
-        options [{:text "⚀ HTN Focus here" :fn dummy-menu-fn}
-                 {:text "⌲ TPN Hide" :fn dummy-menu-fn}
-                 {:tag :url :text "⇨ Open planviz" :url (make-url)
-                  :tab "planviz" :fn url-menu-fn}
-                 {:tag :url :text "⇨ Open dollabs" :url "http://dollabs.com"
-                  :tab "planviz" :fn url-menu-fn}
-                 {:tag :info :text (str "✋ edge information for " id) :fn info-menu-fn}]
+        options (if network-flows
+                  [{:tag :tpn-network-flows
+                    :text "⅏ Show activity on network" :fn default-menu-fn}]
+                  [])
+        options (concatv options
+                  [{:tag :url :text "⇨ Open planviz" :url (make-url)
+                    :tab "planviz" :fn url-menu-fn}
+                   {:tag :url :text "⇨ Open dollabs" :url "http://dollabs.com"
+                    :tab "planviz" :fn url-menu-fn}
+                   {:tag :info :text (str "✋ edge information for " id)
+                    :fn info-menu-fn}])
         menu {:edge edge :x x :y y :options options}]
     (println "ACTION EDGE-RIGHT-CLICK" plid id "type" type)
       ;; "x0" x0 "y0" y0 "x1" x1 "y1" y1)

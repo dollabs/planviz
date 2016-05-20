@@ -60,6 +60,18 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3.0px;
 }
 
+.aggregation-normal {
+    fill: none;
+    stroke: #111;
+    stroke-width: 3.0px;
+}
+
+.activity-hidden, .null-activity-hidden, .aggregation-hidden, .parallel-edge-hidden, .choice-edge-hidden {
+    fill: none;
+    stroke: rgba(0,0,0,0.05);
+    stroke-width: 3.0px;
+}
+
 .choice-edge-normal {
     fill: none;
     stroke: #888;
@@ -166,6 +178,13 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3.0px;
 }
 
+.temporal-constraint-hidden {
+    fill: none;
+    stroke-dasharray: 2 2;
+    stroke: rgba(100,100,100,0.1);
+    stroke-width: 3.0px;
+}
+
 .temporal-constraint-normal-long {
     fill: none;
     stroke-dasharray: 3 3;
@@ -173,10 +192,24 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3.0px;
 }
 
+.temporal-constraint-hidden-long {
+    fill: none;
+    stroke-dasharray: 3 3;
+    stroke: rgba(150,150,150,0.1);
+    stroke-width: 3.0px;
+}
+
 .temporal-constraint-normal-very-long {
     fill: none;
     stroke-dasharray: 4 4;
     stroke: rgba(200,200,200,0.5);
+    stroke-width: 1px;
+}
+
+.temporal-constraint-hidden-very-long {
+    fill: none;
+    stroke-dasharray: 4 4;
+    stroke: rgba(200,200,200,0.1);
     stroke-width: 1px;
 }
 
@@ -229,6 +262,12 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3px;
 }
 
+.parallel-hidden, .choice-hidden, .unchoice-hidden, .state-hidden {
+    fill: white;
+    stroke: rgba(0,102,153,0.11);
+    stroke-width: 3px;
+}
+
 .parallel-best, .choice-best, .unchoice-best, .state-best {
     fill: magenta;
     stroke: #006699;
@@ -263,6 +302,12 @@ svg, g, rect, circle, text, symbol, use {
 .hem-normal {
     fill: white;
     stroke: Chocolate;
+    stroke-width: 3.0px;
+}
+
+.hem-hidden {
+    fill: white;
+    stroke: rgba(0,0,0,0.1);
     stroke-width: 3.0px;
 }
 
@@ -392,6 +437,11 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3px;
 }
 
+.parallel-hidden .parallel {
+    stroke: rgba(0,0,0,0.1);
+    stroke-width: 3px;
+}
+
 .choice {
     fill: none;
     stroke: black;
@@ -399,9 +449,21 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3px;
 }
 
+.choice-hidden .choice {
+    fill: none;
+    stroke: rgba(0,0,0,0.1);
+    stroke-width: 3px;
+}
+
 .unchoice {
     fill: none;
     stroke: #555;
+    stroke-width: 2.2px;
+}
+
+.unchoice-hidden .unchoice {
+    fill: none;
+    stroke: rgba(0,0,0,0.1);
     stroke-width: 2.2px;
 }
 
