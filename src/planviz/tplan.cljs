@@ -1171,6 +1171,9 @@
                        out-order)]
         (update-node (assoc-if (assoc node :node/outgoing outgoing)
                        :node/probability probability))
+        ;; if an unchoice node, indicate that on the c-end as well
+        (when probability
+          (update-node (assoc (get-node end) :node/probability probability)))
         (if (begin? type) ;; create aggregation edge
           (update-edge (assoc (create-vedge (node-key-fn node) end)
                          :edge/type :aggregation

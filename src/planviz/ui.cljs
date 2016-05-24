@@ -154,7 +154,8 @@
                 state)]
     (html
       ;; (if (= rendering :graphic)
-        (let [xlink (cond
+      (let [xlink (str
+                    (cond
                       (#{:p-begin :p-end} type)
                       "parallel"
                       (#{:c-begin :c-end} type)
@@ -163,9 +164,10 @@
                       "hem"
                       :else
                       "state")
+                    (if hidden "-hidden"))
               css (str xlink "-"
                     (if (keyword-identical? type :virtual) "virtual-")
-                    (if hidden "hidden" (name state)))
+                    (name state))
               use [:use {:class css :x x :y y :xlinkHref (str "#" xlink)
                          ;; :on-click #(nodeclick id)
                          }]
@@ -445,33 +447,50 @@
         hem-size (* 4 r)
         hem-offset (- (/ hem-size 2))
         h (/ r 3.67) ;; half radius of hexagon circle
-        dh (* SQRT3 h)] ;; shortest radius
+        dh (* SQRT3 h)
+        r_2 (/ r 2)
+        dx r_2
+        dy (- r 3)
+        parallel-path (str "M" (- dx) " " (- dy) "L" (- dx) " " dy
+                        "M" dx " " dy "L" dx " " (- dy))
+        unchoice-path (str "M" (- dh) " " (+ h)
+                        "L" (- dh) " " (- h)
+                        "L" 0 " " (- (* 2 h))
+                        "L" (+ dh) " " (- h)
+                        "L" (+ dh) " " (+ h)
+                        "L" 0 " " (+ (* 2 h))
+                        "Z") ;; "L" (- dh) " " (+ h)
+        ] ;; shortest radius
     [:defs
      [:g#state
       [:circle {:class "node" :r r}]]
+     [:g#state-hidden
+      [:circle {:class "node" :r r}]]
      [:g#parallel
       [:circle {:class "node" :r r}]
-      [:path {:class "parallel"
-              :d (let [dx (/ r 2)
-                       dy (- r 3)]
-                   (str "M" (- dx) " " (- dy) "L" (- dx) " " dy
-                     "M" dx " " dy "L" dx " " (- dy)))}]]
+      [:path {:class "parallel-path" :d parallel-path}]]
+     [:g#parallel-hidden
+      [:circle {:class "node" :r r}]
+      [:path {:class "parallel-path-hidden" :d parallel-path}]]
      [:g#choice
       [:circle {:class "node" :r r}]
-      [:circle {:class "choice" :r (/ r 2)}]]
+      [:circle {:class "choice-circle" :r r_2}]]
+     [:g#choice-hidden
+      [:circle {:class "node" :r r}]
+      [:circle {:class "choice-circle-hidden" :r r_2}]]
      [:g#unchoice ;; uncontrolled choice
       [:circle {:class "node" :r r}]
-      [:path {:class "unchoice"
-              :d (str "M" (- dh) " " (+ h)
-                   "L" (- dh) " " (- h)
-                   "L" 0 " " (- (* 2 h))
-                   "L" (+ dh) " " (- h)
-                   "L" (+ dh) " " (+ h)
-                   "L" 0 " " (+ (* 2 h))
-                   "Z" ;; "L" (- dh) " " (+ h)
-                   )}]]
+      [:path {:class "unchoice-path" :d unchoice-path}]]
+     [:g#unchoice-hidden ;; uncontrolled choice
+      [:circle {:class "node" :r r}]
+      [:path {:class "unchoice-path-hidden" :d unchoice-path}]]
      [:g#hem
       [:rect {:class "hem"
+              :x (* 2 hem-offset) :y hem-offset
+              :rx 3 :ry 3
+              :width (* 2 hem-size) :height hem-size}]]
+     [:g#hem-hidden
+      [:rect {:class "hem-hidden"
               :x (* 2 hem-offset) :y hem-offset
               :rx 3 :ry 3
               :width (* 2 hem-size) :height hem-size}]]

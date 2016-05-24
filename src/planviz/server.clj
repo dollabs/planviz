@@ -40,7 +40,7 @@
             [langohr.basic :as lb]
             [plan-schema.core :as pschema
              :refer [composite-key read-json-str write-json-str]]
-            [avenir.utils :as au :refer [assoc-if keywordize]]
+            [avenir.utils :as au :refer [assoc-if keywordize concatv]]
             [me.raynes.fs :as fs]))
 
 (defn sleep
@@ -78,6 +78,7 @@
          :channel nil
          :connection nil}
    :plans {}
+   :url-config []
    }
   )
 
@@ -170,6 +171,10 @@
   (log/debug "(list-plans)")
   (mapv #(vector (first %)
            (dissoc (second %) :plan :parts)) (seq (:plans @state))))
+
+(defn get-url-config []
+  (log/debug "(get-url-config)")
+  (:url-config @state))
 
 (defn get-client [remote]
   (get-in @state [:clients remote]))
@@ -355,7 +360,7 @@
                :msg msg
                :user-action user-action
                :login login
-               })
+               :get-url-config get-url-config})
 
 ;; server functions -------------------------------------------
 
@@ -1016,6 +1021,46 @@
         (println "PLANVIZ cannot connect to RabbitMQ at" host ":" port)
         (log/error "PLANVIZ cannot connect to RabbitMQ at" host ":" port)))))
 
+(defn- compare-url-config [a b]
+  (let [{:keys [plan node edge]} a
+        a-plan (or plan :*)
+        a-node (or node :*)
+        a-edge (or edge :*)
+        {:keys [plan node edge]} b
+        b-plan (or plan :*)
+        b-node (or node :*)
+        b-edge (or edge :*)
+        c-plans (compare a-plan b-plan)
+        c-nodes (compare a-node b-node)
+        c-edges (compare a-edge b-edge)]
+    (if (zero? c-plans)
+      (if (zero? c-edges)
+        c-nodes
+        c-edges)
+      c-plans)))
+
+;; take in a raw vector url-config and return an unique, sorted vector
+(defn sort-url-config [url-config]
+  (vec (sort compare-url-config (set url-config))))
+
+;; given a vector of filenames return a vector of URL maps
+(defn setup-url-config [cwd url-config]
+  (doseq [url-filename url-config]
+    (let [url-filename (if (fs/exists? url-filename)
+                         url-filename
+                         (if (fs/exists? (str cwd "/" url-filename))
+                           (str cwd "/" url-filename)
+                           {:error (str "url-config file does not exist: "
+                                     url-filename)}))]
+      (if (map? url-filename)
+        (log/error (:error url-filename))
+        (let [urls (load-file url-filename)]
+          (when (vector? urls)
+            ;; (println "DEBUG url-filename" url-filename "urls")
+            ;; (pprint urls)
+            (swap! state update-in [:url-config] concatv urls))))))
+  (swap! state update-in [:url-config] sort-url-config))
+
 (def dev-handler
   (fn [req]
     (start-msgs)
@@ -1029,12 +1074,13 @@
   {:added "0.8.0"}
   [options]
   (let [{:keys [cwd verbose exchange rmq-host rmq-port
-                host port input]} options
+                host port input url-config]} options
         exchange (or exchange rmq-default-exchange)
         rmq-host (or rmq-host rmq-default-host)
         rmq-port (or rmq-port rmq-default-port)
         host (or host planviz-default-host)
         port (or port planviz-default-port)]
+    (setup-url-config cwd url-config)
     (swap! state update-in [:rmq]
       assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
     (startup host port input))) ;; lazily does start-msgs

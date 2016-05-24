@@ -1,0 +1,23 @@
+;; Copyright © 2016 Dynamic Object Language Labs Inc.
+;;
+;; This software is licensed under the terms of the
+;; Apache License, Version 2.0 which can be found in
+;; the file LICENSE at the root of this distribution.
+
+;; planviz.urls.edn -- default URL's for the "right click" menus
+
+;; This is a vector of menu entries which match according the following scheme
+;; :plan -- matches the given plan (or all plans if set to :| )
+;; :node -- matches the given node in plan (or all nodes if set to :| )
+;; :edge -- matches the given edge in plan (or all edges if set to :| )
+;; :link -- The link text to be used in the menu (defaults to :url if not present)
+;; :url -- the href invoked when this menu selection is chosen, NOTE: the following
+;;         strings will be replaced:
+;;           %plan => plan
+;;           %node => node (or nil if clicking an edge)
+;;           %edge => edge (or nil if clicking a node)
+;;           %planviz => URL base for this PLANVIZ instance
+;; :tab -- the target window for the new URL (defaults to "planviz")
+
+[{:plan :| :node :| :edge :| :link "PLANVIZ" :url "%planviz"}
+ {:plan :| :node :| :edge :| :link "PLANVIZ on github" :url "https://github.com/dollabs/planviz"}]

@@ -78,7 +78,10 @@
    ["-n" "--host HOST" "PLANVIZ server hostname"
     :default (hostname)]
    ["-p" "--port PORT" "PLANVIZ server port"
-    :default 8080 :parse-fn #(Integer/parseInt %)]])
+    :default 8080 :parse-fn #(Integer/parseInt %)]
+   ["-u" "--url-config URLCONFIG" "URL Configuration file(s)"
+    :default []
+    :assoc-fn (fn [m k v] (assoc m k (conj (get m k []) v)))]])
 
 (defn usage
   "Print planviz command line help."
@@ -110,8 +113,11 @@
 
 (defn config-parse-opts [cwd args cli-options]
   (let [config-file (if (= 1 (count args))
-                      (str cwd "/config/" (first args) ".edn"))]
-    (if (and config-file (fs/exists? config-file))
+                      (if (fs/exists? (first args))
+                        (first args)
+                        (if (fs/exists? (str cwd "/config/" (first args) ".edn"))
+                          (str cwd "/config/" (first args) ".edn"))))]
+    (if config-file
       (let [options (load-file config-file)
             arguments (:arguments options)
             rv {:options (dissoc options :arguments)
@@ -130,7 +136,7 @@
         {:keys [options arguments errors summary]}
         (config-parse-opts cwd args cli-options)
         {:keys [help version verbose exchange input
-                rmq-host rmq-port host port]} options
+                rmq-host rmq-port host port url-config]} options
         options (assoc options :cwd cwd :arguments arguments)
         cmd (or (last arguments) default-action)
         action (get actions cmd)
@@ -160,6 +166,7 @@
       (println "host:" host)
       (println "port:" port)
       (println "input:" input)
+      (println "url-config:" url-config)
       (println "cmd:" cmd (if action "(valid)" "(invalid)")))
     (if-not action
       (if-not exit?

@@ -262,7 +262,7 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3px;
 }
 
-.parallel-hidden, .choice-hidden, .unchoice-hidden, .state-hidden {
+.parallel-hidden-normal, .choice-hidden-normal, .unchoice-hidden-normal, .state-hidden-normal, .parallel-hidden-best, .choice-hidden-best, .unchoice-hidden-best, .state-hidden-best, .parallel-hidden-impossible, .choice-hidden-impossible, .unchoice-hidden-impossible, .state-hidden-impossible, .parallel-hidden-reached, .choice-hidden-reached, .unchoice-hidden-reached, .state-hidden-reached, .parallel-hidden-failed, .choice-hidden-failed, .unchoice-hidden-failed, .state-hidden-failed, .parallel-hidden-started, .choice-hidden-started, .unchoice-hidden-started, .state-hidden-started {
     fill: white;
     stroke: rgba(0,102,153,0.11);
     stroke-width: 3px;
@@ -432,36 +432,39 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 4px;
 }
 
-.parallel {
+.parallel-path {
     stroke: black;
     stroke-width: 3px;
 }
 
-.parallel-hidden .parallel {
+/* .parallel-normal parallel { */
+/* } */
+
+.parallel-path-hidden {
     stroke: rgba(0,0,0,0.1);
     stroke-width: 3px;
 }
 
-.choice {
+.choice-circle {
     fill: none;
     stroke: black;
     /* stroke-width: 1.5px; */
     stroke-width: 3px;
 }
 
-.choice-hidden .choice {
+.choice-circle-hidden {
     fill: none;
     stroke: rgba(0,0,0,0.1);
     stroke-width: 3px;
 }
 
-.unchoice {
+.unchoice-path {
     fill: none;
     stroke: #555;
     stroke-width: 2.2px;
 }
 
-.unchoice-hidden .unchoice {
+.unchoice-path-hidden {
     fill: none;
     stroke: rgba(0,0,0,0.1);
     stroke-width: 2.2px;

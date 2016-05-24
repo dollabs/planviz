@@ -243,7 +243,9 @@
               node-normal-fn (fn [m k v]
                                (assoc m k
                                  (if (= (:plan/plid v) plid)
-                                   (assoc v :node/state :normal) v)))
+                                   (dissoc (assoc v :node/state :normal)
+                                     :node/begin-state)
+                                     v)))
               node-by-plid-id (reduce-kv node-normal-fn {} node-by-plid-id)
               edge-normal-fn (fn [m k v]
                                (assoc m k

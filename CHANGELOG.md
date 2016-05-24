@@ -5,13 +5,19 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Added
-- Right click actions (work in progress)
+- *TBD*
+
+### [0.8.4] - 2016-05-24
+
+Added
+- Right click actions
 - Updated dependencies
 - Updated right-click menu handling functions (and corresponding user actions)
-- TPN Hide/Show implemented
-- HTN Focus/Blur implemented
+- Added facility to load general (or plan specific) URL's to open (on right click)
+- TPN Hide/Show implemented (including auto mode)
+- HTN Focus/Blur implemented (including auto mode)
 - Coalesced plan related meta data in app/plans (removed app/selection)
-- Updated CSS for "hidden" portions of the graph
+- CSS: Redesigned TPN choice/parallel nodes for "hidden" style in chrome
 
 ### [0.8.3] - 2016-05-16
 
@@ -60,4 +66,5 @@ Added
 [0.8.1]: https://github.com/dollabs/planviz/compare/0.1.0...0.8.1
 [0.8.2]: https://github.com/dollabs/planviz/compare/0.8.1...0.8.2
 [0.8.3]: https://github.com/dollabs/planviz/compare/0.8.2...0.8.3
-[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.3...HEAD
+[0.8.4]: https://github.com/dollabs/planviz/compare/0.8.3...0.8.4
+[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.4...HEAD
