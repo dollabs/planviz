@@ -268,6 +268,7 @@
       :edge/command
       :edge/cost
       :edge/reward
+      :edge/controllable
       :edge/network-flows
       :edge/non-primitive ;; false or TPN network id of sub network
       ;; FOR :null-activity
@@ -327,6 +328,7 @@
       :edge/command
       :edge/cost
       :edge/reward
+      :edge/controllable
       :edge/network-flows
       :edge/non-primitive ;; false or TPN network id of sub network
       ;; FOR :null-activity
