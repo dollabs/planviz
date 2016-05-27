@@ -1039,30 +1039,6 @@
   (.stopPropagation e)
   false)
 
-(defn default-menu-fn [node edge option e]
-  (cond
-    node
-    (let [{:keys [tag]} option
-          {:keys [plan/plid node/id node/type node/state]} node
-          info (str tag ", node " id ", type " type ", state " state)]
-      (status-msg info)
-      (my-user-action {:type :menu :tag tag :plid plid :node id :info info}))
-    edge
-    (let [{:keys [tag]} option
-          {:keys [plan/plid edge/id edge/type edge/state edge/network-flows]} edge
-          network-flows (if (keyword-identical? tag :tpn-network-flows) network-flows)
-          info (str tag ", edge " id ", type " type ", state " state)]
-      (status-msg info)
-      (my-user-action (assoc-if {:type :menu :tag tag :plid plid :edge id}
-                        :info (if-not network-flows info)
-                        :network-flows network-flows)))
-    :else
-    (let [{:keys [tag]} option
-          info (str tag ", no node or edge selected")]
-      (status-msg info)
-      (my-user-action {:type :menu :tag tag :info info})))
-  (menu-click-handled e))
-
 (defn info-menu-fn [node edge option e]
   (cond
     node
@@ -1072,11 +1048,18 @@
       (status-msg info)
       (my-user-action {:type :menu :tag tag :plid plid :node id :info info}))
     edge
-    (let [{:keys [tag]} option
-          {:keys [plan/plid edge/id edge/type edge/state]} edge
-          info (str "edge " id ", type " type ", state " state)]
+    (let [_ (println "EDGE props:" (remove-fn edge))
+          {:keys [tag]} option
+          {:keys [plan/plid edge/id edge/type edge/state edge/network-flows
+                  edge/controllable]} edge
+          ;; controllable (or controllable false)
+          network-flows (if (keyword-identical? tag :tpn-network-flows) network-flows)
+          info (str tag ", edge " id ", type " type ", state " state
+                 ", controllable " controllable)]
       (status-msg info)
-      (my-user-action {:type :menu :tag tag :plid plid :edge id :info info}))
+      (my-user-action (assoc-if {:type :menu :tag tag :plid plid :edge id}
+                        :info (if-not network-flows info)
+                        :network-flows network-flows)))
     :else
     (let [{:keys [tag]} option
           info "no node or edge selected"]
@@ -1720,7 +1703,7 @@
         y (/ (+ y0 y1) 2)
         options (if (and network-flows (pos? (count network-flows)))
                   [{:tag :tpn-network-flows
-                    :text "⅏ Show activity on network" :fn default-menu-fn}]
+                    :text "⅏ Show activity on network" :fn info-menu-fn}]
                   [])
         menu {:edge edge :x x :y y
               :options (add-url-options options plid nil id)}]

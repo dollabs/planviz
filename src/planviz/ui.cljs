@@ -283,7 +283,8 @@
 
 (defn edge [{:keys[plans/ui-opts plan/plid edge/id
                    edge/type edge/state edge/from edge/to
-                   edge/cost edge/reward edge/probability edge/guard
+                   edge/cost edge/reward edge/controllable
+                   edge/probability edge/guard
                    edge/selected? edge/hidden]
              :as props}
             node-factory]
@@ -337,7 +338,7 @@
   (let [full (str plant
                (if-not (empty? plantid) ".")
                plantid
-               (if-not (empty? command) "$")
+               (if (and (not (empty? command)) (not= command "delay")) "$")
                command)
         label (str
                 (if-not (empty? full) full name)

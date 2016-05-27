@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Added
-- *TBD*
+- Show new activity attribute :controllable in the right click "edge information" menu.
 
 ### [0.8.4] - 2016-05-24
 

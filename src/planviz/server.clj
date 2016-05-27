@@ -621,6 +621,10 @@
       (remove nil?
         (filter #(= begin (second %)) plan-begins)))))
 
+(defn remove-plan [plan-id]
+  (swap! state update-in [:plans] dissoc plan-id)
+  true) ;; don't return the current value of @state
+
 (defn rename-key [plan-id plid-thing]
   (let [thing (keyword (second (string/split (name plid-thing) #":")))]
     (composite-key plan-id thing)))
