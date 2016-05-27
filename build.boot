@@ -40,15 +40,15 @@
                     [aleph "0.4.2-alpha4"]
                     ;; client
                     [com.cognitect/transit-cljs "0.8.237"]
-                    [cljsjs/react-dom-server "15.0.2-0"]  ;; for sablono
-                    [cljsjs/react-dom "15.0.2-0"] ;; for sablono
-                    [org.omcljs/om "1.0.0-alpha35"]
+                    [cljsjs/react-dom-server "15.1.0-0"]  ;; for sablono
+                    [cljsjs/react-dom "15.1.0-0"] ;; for sablono
+                    [org.omcljs/om "1.0.0-alpha36"]
                     [sablono "0.7.1"]
                     ;; cljs-dev
                     [com.cemerick/piggieback "0.2.1"     :scope "test"]
                     [weasel                 "0.7.0"      :scope "test"]
                     [org.clojure/tools.nrepl "0.2.12"    :scope "test"]
-                    [adzerk/boot-reload     "0.4.7"      :scope "test"]
+                    [adzerk/boot-reload     "0.4.8"      :scope "test"]
                     [pandeiro/boot-http "0.7.3" :scope "test"]
                     [adzerk/boot-cljs       "1.7.228-1"  :scope "test"]
                     [adzerk/boot-cljs-repl  "0.3.0"      :scope "test"]
