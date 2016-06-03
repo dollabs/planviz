@@ -175,11 +175,12 @@
         (usage summary))
       (try
         (action options)
-        (catch Throwable e ;; note AssertionError not derived from Exception
-          ;; FIXME: use proper logging
-          (binding [*out* *err*]
-            (println "ERROR caught exception:" (.getMessage e)))
-          (exit 1))))
+        ;; (catch Throwable e ;; note AssertionError not derived from Exception
+        ;;   ;; FIXME: use proper logging
+        ;;   (binding [*out* *err*]
+        ;;     (println "ERROR caught exception:" (.getMessage e)))
+        ;;   (exit 1))
+        ))
     (exit 0)))
 
 (defn -main

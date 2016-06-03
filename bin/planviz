@@ -43,12 +43,18 @@ err() {
 }
 
 # main program -----------------------------------------------
+case "$1" in
+    (-v|-vv|-vvv|-vvvv|--verbose)
+        verbose=$(( $verbose + 1 ))
+        ;;
+esac
 
-# vlog "-- starting $program at $(date) --"
-
+vlog "-- starting $program at $(date) --"
 if [ -e "$jar" ]; then
+    vlog java -jar "$jar" $@
     java -jar "$jar" $@
 else
     args="$@"
+    vlog boot run -a "\"$args\""
     boot run -a "$args"
 fi

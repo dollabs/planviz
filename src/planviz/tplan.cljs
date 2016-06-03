@@ -480,11 +480,14 @@
           ;; normal
           ;; (set-width-height (+ ymax y0) x)
           ;; extra margin on the bottom
-          (set-width-height (+ ymax y0) (+ x ranksep))
+          ;; (set-width-height (+ ymax y0) (+ x ranksep))
+          (set-width-height (+ ymax nodesep) x)
           ;; normal
           ;; (set-width-height (+ x x0) (+ ymax y0)))
           ;; extra margin on the bottom
-          (set-width-height (+ x x0) (+ ymax y0 y0)))
+          ;; (set-width-height (+ x x0) (+ ymax y0 y0))
+          (set-width-height x (+ ymax y0))
+          )
         (let [nodes (get ranking r)
               edge-fn (fn [edge] ;; returns xrank
                         (let [{:keys [edge/hidden edge/weight

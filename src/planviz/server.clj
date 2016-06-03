@@ -40,7 +40,7 @@
             [langohr.basic :as lb]
             [plan-schema.core :as pschema
              :refer [composite-key read-json-str write-json-str]]
-            [avenir.utils :as au :refer [assoc-if keywordize concatv]]
+            [avenir.utils :as au :refer [assoc-if keywordize concatv and-fn]]
             [me.raynes.fs :as fs]))
 
 (defn sleep
@@ -932,52 +932,71 @@
            :type type
            :corresponding corresponding})))))
 
+;; returns true on success
 (defn load-input [filename]
-  (if (not= filename "-")
-    (if (string/index-of filename "=")
-      (let [[htn-name tpn-name] (string/split filename #"=")
-            htn-filename (if (and htn-name (pschema/htn-filename? htn-name))
-                           htn-name
-                           (if (and tpn-name (pschema/htn-filename? tpn-name))
-                             tpn-name))
-            tpn-filename (if (and tpn-name (pschema/tpn-filename? tpn-name))
-                           tpn-name
-                           (if (and htn-name (pschema/tpn-filename? htn-name))
-                             htn-name))
-            plans (pschema/merge-networks
-                    {:input [htn-filename tpn-filename]})]
-        (cond
-          (and (map? plans) (:error plans))
-          (do
-            (log/error "error parsing plans:" htn-filename " = " tpn-filename)
-            (log/error (:error plans)))
-          (and (vector? plans) (= 2 (count plans)))
-          (do
-            (log/info "plans parsed correctly for:" htn-filename
-              " = " tpn-filename)
-            (doall (map load-plan plans)))
-          :else
-          (do
-            (log/error "ERROR parsing:" htn-filename " = " tpn-filename)
-            (log/error "PLANS" plans))
-          ))
-      (if (pschema/htn-filename? filename)
-        (let [plan (pschema/htn-plan {:input [filename]})]
-          (if (and (map? plan) (:error plan))
-            (do
-              (log/error "error parsing HTN plan:" filename)
-              (log/error (:error plan)))
-            (do
-              (log/info "HTN plan parsed correctly:" filename)
-              (load-plan plan))))
-        (let [plan (pschema/tpn-plan {:input [filename]})]
-          (if (and (map? plan) (:error plan))
-            (do
-              (log/error "error parsing TPN plan:" filename)
-              (log/error (:error plan)))
-            (do
-              (log/info "TPN plan parsed correctly:" filename)
-              (load-plan plan))))))))
+  (cond
+    (= filename "-") ;; ignore
+    true
+    (string/index-of filename "=")
+    (let [[htn-name tpn-name] (string/split filename #"=")
+          htn-filename (if (and htn-name (pschema/htn-filename? htn-name))
+                         htn-name
+                         (if (and tpn-name (pschema/htn-filename? tpn-name))
+                           tpn-name))
+          tpn-filename (if (and tpn-name (pschema/tpn-filename? tpn-name))
+                         tpn-name
+                         (if (and htn-name (pschema/tpn-filename? htn-name))
+                           htn-name))
+          plans (pschema/merge-networks
+                  {:input [htn-filename tpn-filename]})]
+      (cond
+        (and (map? plans) (:error plans))
+        (let [msg (str "error parsing plans: " htn-filename " = " tpn-filename)]
+          (log/error msg)
+          (log/error (:error plans))
+          (println msg)
+          false)
+        (and (vector? plans) (= 2 (count plans)))
+        (do
+          (log/info "plans parsed correctly for:" htn-filename
+            " = " tpn-filename)
+          (doall (map load-plan plans))
+          true)
+        :else
+        (let [msg (str "ERROR parsing: " htn-filename " = " tpn-filename)]
+          (log/error msg)
+          (log/error "PLANS" plans)
+          (println msg)
+          false)))
+    (pschema/htn-filename? filename)
+    (let [plan (pschema/htn-plan {:input [filename]})]
+      (if (and (map? plan) (:error plan))
+        (let [msg (str "error parsing HTN plan: " filename)]
+          (log/error msg)
+          (log/error (:error plan))
+          (println msg)
+          false)
+        (do
+          (log/info "HTN plan parsed correctly:" filename)
+          (load-plan plan)
+          true)))
+    (pschema/tpn-filename? filename)
+    (let [plan (pschema/tpn-plan {:input [filename]})]
+      (if (and (map? plan) (:error plan))
+        (let [msg (str "error parsing TPN plan: " filename)]
+          (log/error msg)
+          (log/error (:error plan))
+          (println msg)
+          false)
+        (do
+          (log/info "TPN plan parsed correctly:" filename)
+          (load-plan plan)
+          true)))
+    :else
+    (let [msg (str "Invalid filename, does not contain tpn nor htn: " filename)]
+      (log/error msg)
+      (println msg)
+      false)))
 
 (defn connect-to-rmq [host port]
   (try
@@ -994,7 +1013,10 @@
     (shutdown))
   (let [{:keys [rmq-host rmq-port exchange]} (:rmq @state)
         connection (connect-to-rmq rmq-host rmq-port)]
-    (if connection
+    (if-not connection
+      (do
+        (println "PLANVIZ cannot connect to RabbitMQ at" host ":" port)
+        (log/error "PLANVIZ cannot connect to RabbitMQ at" host ":" port))
       (let [channel (lch/open connection)
             _ (le/declare channel exchange "topic")
             queue (lq/declare channel)
@@ -1012,18 +1034,18 @@
         (heartbeat-start)
         (swap! state assoc :server server
           :host host :port port :rmethods rmethods)
-        (doseq [i input]
-          (load-input i))
-        (println "PLANVIZ server ready")
-        (log/info "PLANVIZ server ready")
-        (when-not (repl?)
-          (while true
-            ;; (print ".")
-            ;; (flush)
-            (sleep 10))))
-      (do
-        (println "PLANVIZ cannot connect to RabbitMQ at" host ":" port)
-        (log/error "PLANVIZ cannot connect to RabbitMQ at" host ":" port)))))
+        (if-not (reduce and-fn true (for [i input] (load-input i)))
+          (do
+            (println "PLANVIZ not starting due to errors!")
+            (log/info "PLANVIZ not starting due to errors!"))
+          (do
+            (println "PLANVIZ server ready")
+            (log/info "PLANVIZ server ready")
+            (when (and (not (repl?)) (get-in @state [:rmq :connection]))
+              (while true
+                (print ".")
+                (flush)
+                (sleep 10)))))))))
 
 (defn- compare-url-config [a b]
   (let [{:keys [plan node edge]} a
