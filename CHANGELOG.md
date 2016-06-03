@@ -5,7 +5,16 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Added
+- *TBD*
+
+### [0.8.5] - 2016-06-03
+
+Added
 - Show new activity attribute :controllable in the right click "edge information" menu.
+- Add delay-activty edge type (updated plan-schema to 0.2.5)
+- Updated CLJS dependency
+- File pathname improvements (cwd now forwarded in options)
+- Tune link-arc factors to differentiate constraint arcs
 
 ### [0.8.4] - 2016-05-24
 
@@ -67,4 +76,5 @@ Added
 [0.8.2]: https://github.com/dollabs/planviz/compare/0.8.1...0.8.2
 [0.8.3]: https://github.com/dollabs/planviz/compare/0.8.2...0.8.3
 [0.8.4]: https://github.com/dollabs/planviz/compare/0.8.3...0.8.4
-[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.4...HEAD
+[0.8.4]: https://github.com/dollabs/planviz/compare/0.8.4...0.8.5
+[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.5...HEAD

@@ -54,7 +54,7 @@ svg, g, rect, circle, text, symbol, use {
 }
 
 
-.activity-normal, .null-activity-normal, .parallel-edge-normal {
+.activity-normal, .null-activity-normal, .delay-activity-normal, .parallel-edge-normal {
     fill: none;
     stroke: #444;
     stroke-width: 3.0px;
@@ -66,7 +66,7 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3.0px;
 }
 
-.activity-hidden, .null-activity-hidden, .aggregation-hidden, .parallel-edge-hidden, .choice-edge-hidden {
+.activity-hidden, .null-activity-hidden, .delay-activity-hidden, .aggregation-hidden, .parallel-edge-hidden, .choice-edge-hidden {
     fill: none;
     stroke: none;
     stroke-width: 3.0px;
@@ -122,37 +122,37 @@ svg, g, rect, circle, text, symbol, use {
                                   stroke-width: 8px;
                               }
 
-.activity-active, .null-activity-active, .activity-started, .null-activity-started, .choice-edge-active, .parallel-edge-active, .choice-edge-started, .parallel-edge-started {
+.activity-active, .null-activity-active, .delay-activity-active, .activity-started, .null-activity-started, .delay-activity-started, .choice-edge-active, .parallel-edge-active, .choice-edge-started, .parallel-edge-started {
     fill: none;
     stroke: blue;
     stroke-width: 3.0px;
 }
 
-.activity-finished, .null-activity-finished, .choice-edge-finished, .parallel-edge-finished {
+.activity-finished, .null-activity-finished, .delay-activity-finished, .choice-edge-finished, .parallel-edge-finished {
     fill: none;
     stroke: #00ff00;
     stroke-width: 3.0px;
 }
 
-.activity-negotiation, .null-activity-negotiation, .activity-start, .null-activity-start, .choice-edge-negotiation, .parallel-edge-negotiation  {
+.activity-negotiation, .null-activity-negotiation, .delay-activity-negotiation, .activity-start, .null-activity-start, .delay-activity-start, .choice-edge-negotiation, .parallel-edge-negotiation  {
     fill: none;
     stroke: orange;
     stroke-width: 3.0px;
 }
 
-.activity-best, .null-activity-best, .choice-edge-best, .parallel-edge-best {
+.activity-best, .null-activity-best, .delay-activity-best, .choice-edge-best, .parallel-edge-best {
     fill: none;
     stroke: magenta;
     stroke-width: 3.0px;
 }
 
-.activity-impossible, .null-activity-impossible, .choice-edge-impossible, .parallel-edge-impossible  {
+.activity-impossible, .null-activity-impossible, .delay-activity-impossible, .choice-edge-impossible, .parallel-edge-impossible  {
     fill: none;
     stroke: grey;
     stroke-width: 3.0px;
 }
 
-.activity-failed, .null-activity-failed, .choice-edge-failed, .parallel-edge-failed  {
+.activity-failed, .null-activity-failed, .delay-activity-failed, .choice-edge-failed, .parallel-edge-failed  {
     fill: none;
     stroke: red;
     stroke-width: 3.0px;

@@ -35,7 +35,7 @@
                       (:edge/type edge-or-type)
                       edge-or-type)))
 
-(def activity-types #{:activity :null-activity})
+(def activity-types #{:activity :null-activity :delay-activity})
 
 (defn activity? [edge-or-type]
   (activity-types (if (map? edge-or-type)
@@ -101,6 +101,8 @@
         x-tip (- x (/ width 2))
         y-tip (case type
                 :activity
+                (+ y ychar -3)
+                :delay-activity
                 (+ y ychar -3)
                 :htn-expanded-method
                 (- y (* 4 ychar))
@@ -227,10 +229,12 @@
                      :reward>=-constraint 0.58
                      :cost<=-constraint 0.65
                      0.80)
+            ;; offset (- offset 0.06)
             factor (case type ;; FIXME differentiate constraints
                      :reward>=-constraint 0.55
                      :cost<=-constraint 0.70
                      0.85)
+            factor (- factor 0.50)
             a (+ offset (* factor (max (- (min (/ dh ranksep) 16) 2) 0)))
             r (* a dh)
             z (- r (/ (sqrt (- (* 4 r r) (* dh dh))) 2))
@@ -315,14 +319,16 @@
               attrs (assoc-if {:class class :d d}
                       :marker-start marker-start
                       :marker-end marker-end)
-              target-attrs (if (#{:activity :choice-edge :parallel-edge} type)
+              target-attrs (if (#{:activity :delay-activity
+                                  :choice-edge :parallel-edge} type)
                              {:class (target-class selected?) :d d})
               extra (construct-extra cost reward probability guard)
               tip (if (empty? extra) (str (name id) " " (name state)) extra)]
           (if (and hidden (keyword-identical? type :aggregation))
             [:desc "hidden"]
             [:g.edge
-             (if (and (#{:activity :parallel-edge :choice-edge} type) (fn? graph-click))
+             (if (and (#{:activity :delay-activity
+                         :parallel-edge :choice-edge} type) (fn? graph-click))
                {:on-click (partial graph-click props)
                 :on-context-menu (partial graph-click props)})
              (if target-attrs
