@@ -79,8 +79,8 @@
 (def rendering-initial :graphic)
 
 (def ui-opts-initial
-  {:ui/show-plan :all
-   :ui/show-network :all
+  {:ui/show-plan :none
+   :ui/show-network :none
    :ui/network-type :none
    :ui/rendering rendering-initial
    :ui/show-virtual? false;; nodes and edges

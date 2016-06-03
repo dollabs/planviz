@@ -982,75 +982,83 @@
         (zoom-to-bounds @bounds false)
         ))))
 
+(defn no-plan? [showing]
+  (or (not showing) (#{:all :none :loading} showing)))
+
 (defn display-plan [plan-id &[opts]]
   (let [plan-id (if (string? plan-id)
                   (keyword (string/replace-first plan-id  #"^:" ""))
-                    plan-id)
-        {:keys [loaded? type corresponding n-keys]} (st/app-get-plan plan-id)
-        showing-loaded? loaded?
-        {:keys [loaded? focus]} (if corresponding (st/app-get-plan corresponding))
-        load-tpn? (and (keyword-identical? type :htn-network) corresponding
-                    (not loaded?))
-        tooltips? (< n-keys 256)]
-    (println "ACTIONS/DISPLAY-PLAN" plan-id "TYPE" type "OPTS" opts)
-    (if showing-loaded?
-      (do
-        (status-msg "display-plan" plan-id)
-        (st/app-set :app/title (name plan-id))
-        (st/tooltips tooltips?)
-        (st/show-plan plan-id)
-        (reset opts)
-        (highlight-relevant)
-        (if (keyword-identical? type :tpn-network)
-          (htn-focus-tpn plan-id (:ui/show-network (st/get-ui-opts))
-            corresponding focus (as-boolean focus))))
-      (if load-tpn?
-        (-> (load-plan corresponding) ;; LOAD TPN first!
-          (sleep 5) ;; pace the browser
-          (chain #(load-plan plan-id opts))
-          (sleep 5) ;; pace the browser
-          (chain #(display-plan plan-id opts))
-          (tasks/catch #(do
-                          (status-msg "unable to show" plan-id)
-                          (st/loading false)
-                          (st/app-set :app/loading nil))))
-        (-> (load-plan plan-id opts)
-          (sleep 5) ;; pace the browser
-          (chain #(display-plan plan-id opts))
-          (tasks/catch #(do
-                          (status-msg "unable to show" plan-id)
-                          (st/loading false)
-                          (st/app-set :app/loading nil))))))
-    true)) ;; for deferreds
+                  plan-id)]
+    (when-not (no-plan? plan-id)
+      (let [{:keys [loaded? type corresponding n-keys]} (st/app-get-plan plan-id)
+            showing-loaded? loaded?
+            {:keys [loaded? focus]} (if corresponding (st/app-get-plan corresponding))
+            load-tpn? (and (keyword-identical? type :htn-network) corresponding
+                        (not loaded?))
+            tooltips? (< n-keys 256)]
+        (println "ACTIONS/DISPLAY-PLAN" plan-id "TYPE" type "OPTS" opts)
+        (if showing-loaded?
+          (do
+            (status-msg "display-plan" plan-id)
+            (st/app-set :app/title (name plan-id))
+            (st/tooltips tooltips?)
+            (st/show-plan plan-id)
+            (reset opts)
+            (highlight-relevant)
+            (if (keyword-identical? type :tpn-network)
+              (htn-focus-tpn plan-id (:ui/show-network (st/get-ui-opts))
+                corresponding focus (as-boolean focus))))
+          (if load-tpn?
+            (-> (load-plan corresponding) ;; LOAD TPN first!
+              (sleep 5) ;; pace the browser
+              (chain #(load-plan plan-id opts))
+              (sleep 5) ;; pace the browser
+              (chain #(display-plan plan-id opts))
+              (tasks/catch #(do
+                              (status-msg "unable to show" plan-id)
+                              (st/loading false)
+                              (st/app-set :app/loading nil))))
+            (-> (load-plan plan-id opts)
+              (sleep 5) ;; pace the browser
+              (chain #(display-plan plan-id opts))
+              (tasks/catch #(do
+                              (status-msg "unable to show" plan-id)
+                              (st/loading false)
+                              (st/app-set :app/loading nil))))))
+        true)))) ;; for deferreds
 
 (defn load-plan [plan-id &[opts]]
-  (let [d (tasks/deferred)
-        dtimeout (tasks/timeout! d 60000 :timed-out)
-        {:keys [loaded? n-keys parts n-parts]} (st/app-get-plan plan-id)
-        have-parts (if parts (count parts) 0)
-        reload? (:reload? opts)]
-    ;; (println "LOAD-PLAN" plan-id "OPTS" opts)
-    (cond
-      (not n-keys)
-      (do
-        (println "cannot load unknown plan" plan-id)
-        (error! d (str "cannot load unknown plan " plan-id)))
-      (and loaded? (not reload?))
-      (do
-        (success! d (str "already loaded plan " plan-id)))
-      (st/app-get :app/loading)
-      (do
-        (println "cannot load " plan-id
-          " because a load is already in progress...")
-        (error! d (str "cannot load " plan-id
-                    " because a load is already in progress...")))
-      :else
-      (do
-        (status-msg "loading" plan-id)
-        (st/loading true)
-        (st/app-set :app/loading d)
-        (request-plan-part plan-id have-parts)))
-    dtimeout))
+  (let [plan-id (if (string? plan-id)
+                  (keyword (string/replace-first plan-id  #"^:" ""))
+                  plan-id)]
+    (when-not (no-plan? plan-id)
+      (let [d (tasks/deferred)
+            dtimeout (tasks/timeout! d 60000 :timed-out)
+            {:keys [loaded? n-keys parts n-parts]} (st/app-get-plan plan-id)
+            have-parts (if parts (count parts) 0)
+            reload? (:reload? opts)]
+        ;; (println "LOAD-PLAN" plan-id "OPTS" opts)
+        (cond
+          (not n-keys)
+          (do
+            (println "cannot load unknown plan" plan-id)
+            (error! d (str "cannot load unknown plan " plan-id)))
+          (and loaded? (not reload?))
+          (do
+            (success! d (str "already loaded plan " plan-id)))
+          (st/app-get :app/loading)
+          (do
+            (println "cannot load " plan-id
+              " because a load is already in progress...")
+            (error! d (str "cannot load " plan-id
+                        " because a load is already in progress...")))
+          :else
+          (do
+            (status-msg "loading" plan-id)
+            (st/loading true)
+            (st/app-set :app/loading d)
+            (request-plan-part plan-id have-parts)))
+        dtimeout))))
 
 (defn reload-plan [plan-id]
   (-> (load-plan plan-id {:reload? true})
@@ -1103,9 +1111,6 @@
       (rmethod {;; :return d-recv-msg
                 :success-fn recv-msg :error-fn generic-reply}
         :msg user comment))))
-
-(defn no-plan? [showing]
-  (or (not showing) (#{:all :none :loading} showing)))
 
 (defn menu-click-handled [e]
   (st/merge-ui-opts {:ui/menu nil})

@@ -933,7 +933,7 @@
            :corresponding corresponding})))))
 
 ;; returns true on success
-(defn load-input [filename]
+(defn load-input [filename cwd]
   (cond
     (= filename "-") ;; ignore
     true
@@ -948,7 +948,7 @@
                          (if (and htn-name (pschema/tpn-filename? htn-name))
                            htn-name))
           plans (pschema/merge-networks
-                  {:input [htn-filename tpn-filename]})]
+                  {:input [htn-filename tpn-filename] :cwd cwd})]
       (cond
         (and (map? plans) (:error plans))
         (let [msg (str "error parsing plans: " htn-filename " = " tpn-filename)]
@@ -969,7 +969,7 @@
           (println msg)
           false)))
     (pschema/htn-filename? filename)
-    (let [plan (pschema/htn-plan {:input [filename]})]
+    (let [plan (pschema/htn-plan {:input [filename] :cwd cwd})]
       (if (and (map? plan) (:error plan))
         (let [msg (str "error parsing HTN plan: " filename)]
           (log/error msg)
@@ -981,7 +981,7 @@
           (load-plan plan)
           true)))
     (pschema/tpn-filename? filename)
-    (let [plan (pschema/tpn-plan {:input [filename]})]
+    (let [plan (pschema/tpn-plan {:input [filename] :cwd cwd})]
       (if (and (map? plan) (:error plan))
         (let [msg (str "error parsing TPN plan: " filename)]
           (log/error msg)
@@ -1006,7 +1006,7 @@
 
 ;; input is a vector of files to read
 ;; {TPN|HTN|HTN=TPN}
-(defn startup [host port input]
+(defn startup [host port input cwd]
   (if-not (get-msgs)
     (start-msgs)) ;; lazily does log-initialize
   (if (get-in @state [:rmq :connection])
@@ -1034,7 +1034,7 @@
         (heartbeat-start)
         (swap! state assoc :server server
           :host host :port port :rmethods rmethods)
-        (if-not (reduce and-fn true (for [i input] (load-input i)))
+        (if-not (reduce and-fn true (for [i input] (load-input i cwd)))
           (do
             (println "PLANVIZ not starting due to errors!")
             (log/info "PLANVIZ not starting due to errors!"))
@@ -1072,12 +1072,7 @@
 ;; given a vector of filenames return a vector of URL maps
 (defn setup-url-config [cwd url-config]
   (doseq [url-filename url-config]
-    (let [url-filename (if (fs/exists? url-filename)
-                         url-filename
-                         (if (fs/exists? (str cwd "/" url-filename))
-                           (str cwd "/" url-filename)
-                           {:error (str "url-config file does not exist: "
-                                     url-filename)}))]
+    (let [url-filename (pschema/validate-input url-filename cwd)]
       (if (map? url-filename)
         (log/error (:error url-filename))
         (let [urls (load-file url-filename)]
@@ -1109,4 +1104,4 @@
     (setup-url-config cwd url-config)
     (swap! state update-in [:rmq]
       assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
-    (startup host port input))) ;; lazily does start-msgs
+    (startup host port input cwd))) ;; lazily does start-msgs

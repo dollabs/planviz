@@ -209,7 +209,8 @@
       (let [node (get-node node-id)]
         (map-incoming node
           (fn [edge]
-            (when (#{:activity :null-activity :parallel-edge :choice-edge :virtual}
+            (when (#{:activity :null-activity :delay-activity
+                     :parallel-edge :choice-edge :virtual}
                     (:edge/type edge))
               (let [old-rank (:node/rank node)
                     from (get-node (:edge/from edge))
@@ -221,7 +222,8 @@
                   nil)))))
         (map-outgoing node
           (fn [edge]
-            (when (#{:activity :null-activity :parallel-edge :choice-edge :virtual}
+            (when (#{:activity :null-activity :delay-activity
+                     :parallel-edge :choice-edge :virtual}
                     (:edge/type edge))
               (let [rank (+ (:node/rank node) min-length)
                     to (get-node (:edge/to edge))
