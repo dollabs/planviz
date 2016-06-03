@@ -43,7 +43,7 @@
                     [cljsjs/react-dom-server "15.1.0-0"]  ;; for sablono
                     [cljsjs/react-dom "15.1.0-0"] ;; for sablono
                     [org.omcljs/om "1.0.0-alpha36"]
-                    [sablono "0.7.1"]
+                    [sablono "0.7.2"]
                     ;; cljs-dev
                     [com.cemerick/piggieback "0.2.1"     :scope "test"]
                     [weasel                 "0.7.0"      :scope "test"]
@@ -185,13 +185,12 @@
   (let [argv (if (pos? (count args))
                (clojure.string/split (first args) #" ")
                '())]
-    (future (apply (resolve 'app/-main) argv))
-    identity))
+    (with-post-wrap [_]
+      (apply (resolve 'app/-main) argv))))
 
 (deftask run
   "Run the project."
   [a args ARG [str] "the arguments for the application."]
   (comp
     (build-cljs)
-    (cli :args args)
-    (wait)))
+    (cli :args args)))

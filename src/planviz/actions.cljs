@@ -533,11 +533,16 @@
     (pan! pan)
     (my-user-action {:type :pan-zoom :pan pan})))
 
+(defn pan-zoom! [pan zoom]
+  (st/app-merge-pan-zoom {:pan-zoom/pan pan :pan-zoom/zoom zoom})
+  nil)
+
 (defn reset [&[opts]]
   ;; (println "DEBUG reset")
   (let [from-auto? (:auto opts)]
-    (pan! [0.0 0.0])
-    (zoom! 1.0)
+    ;; (pan! [0.0 0.0])
+    ;; (zoom! 1.0)
+    (pan-zoom! [0.0 0.0] 1.0)
     (if-not from-auto?
       (my-user-action {:type :pan-zoom
                        :pan [0.0 0.0] :zoom 1.0}))
@@ -857,6 +862,51 @@
 
 (declare load-plan)
 
+(defn zoom-to-bounds [bounds not-auto?]
+  ;; (println "ZOOM-TO-BOUNDS" bounds "not-auto?" (not not-auto?))
+  (let [{:keys [xbounds ybounds]} bounds
+        [xmin xmax] xbounds
+        [ymin ymax] ybounds
+        nodesep 50
+        xmin (max (- xmin nodesep) 0)
+        xmax (+ xmax nodesep)
+        ymin (max (- ymin nodesep) 0)
+        ymax (+ ymax nodesep nodesep) ;; extra padding at the bottom
+        focus-width (- xmax xmin)
+        focus-height (- ymax ymin)
+        focus-ratio (/ focus-height focus-width)
+        {:keys [pan-zoom/width pan-zoom/height
+                pan-zoom/vp-width pan-zoom/vp-height]} (st/app-get :app/pan-zoom)
+        vp-ratio (/ vp-height vp-width)
+        ratio (/ height width)
+        ;; _ (println "width" width "height" height "ratio" ratio)
+        vertical? (> ratio vp-ratio) ;; constrained vertically?
+        ;; _ (println "vp-width" vp-width "vp-height" vp-height "vp-ratio" vp-ratio
+        ;;     "vertical?" vertical?)
+        focus-vertical? (> focus-ratio vp-ratio)
+        ;; _ (println "xmin" xmin "xmax" xmax "ymin" ymin "ymax" ymax
+        ;;     "focus-width" focus-width "focus-height" focus-height
+        ;;     "focus-ratio" focus-ratio "focus-vertical?" focus-vertical?)
+        zoom (if focus-vertical?
+               (/ height focus-height)
+               (/ width focus-width))
+        offset-x (if focus-vertical?
+                   (* (- (/ focus-height vp-ratio) focus-width) 0.5)
+                   0)
+        ;; NOTE: don't push too far to to the right (as HTN's tend to have
+        ;; extra left padding)
+        offset-y (if focus-vertical?
+                   0
+                   (* (- (* focus-width vp-ratio) focus-height) 0.7))
+        pan [(/ (- xmin offset-x) width) (/ (- ymin offset-y) height)]
+        pz {:pan-zoom/pan pan :pan-zoom/zoom zoom}]
+    (println "Z" zoom "P" pan)
+    ;; we know that when this is called the plans have been mutated...
+    (st/plans-merge-pan-zoom pz)
+    (st/app-merge-pan-zoom pz true)
+    (when not-auto?
+      (my-user-action {:type :pan-zoom :pan pan :zoom zoom}))))
+
 (defn htn-focus-tpn [tpn-id show-network htn-id node-id focus?]
   ;; (println "DEBUG htn-focus-tpn" tpn-id htn-id node-id focus?)
   (let [{:keys [node/tpn-selection]} (if node-id (st/plans-get-node node-id))
@@ -870,43 +920,67 @@
       (let [{:keys [edge/type edge/hidden]} edge]
         (if (and (not (keyword-identical? type :aggregation))
               (not= hidden focus?))
-            (st/plans-merge-edge
-              (assoc (dissoc edge :edge/from :edge/to :edge/ui-opts)
-                :edge/hidden focus?)))))
-    (if focus?
-      (doseq [s tpn-selection]
-        (if (:node/id s)
-          (let [node-id (composite-key tpn-id (:node/id s))
-                node (st/plans-get-node node-id)
-                {:keys [node/begin node/type node/hidden]} node]
-            (st/plans-merge-node
-              (assoc (dissoc node :node/ui-opts :node/tpn-selection)
-                :node/hidden false))
-            (visit-nodes begin #{node-id}
-              (fn [node]
-                (if (:node/hidden node)
-                  (st/plans-merge-node (assoc
-                                         (dissoc node :plans/ui-opts :node/tpn-selection)
-                                         :node/hidden false)))
-                (map-outgoing node
-                  (fn [edge]
-                    (let [{:keys [edge/type edge/to edge/hidden]} edge]
-                      (when (activity? type)
-                        (if hidden
-                          (st/plans-merge-edge (assoc
-                                                 (dissoc edge
-                                                   :plans/ui-opts
-                                                   :edge/from :edge/to)
-                                                 :edge/hidden false)))
-                        (node-key-fn to))))))))
-          (let [edge (st/plans-get-edge (composite-key tpn-id (:edge/id s)))
-                {:keys [edge/hidden edge/from edge/to]} edge]
-            (if hidden
-              (st/plans-merge-edge
-                (assoc (dissoc edge :edge/from :edge/to :edge/ui-opts)
-                  :edge/hidden false)))
-            (st/plans-merge-node (assoc from :node/hidden false))
-            (st/plans-merge-node (assoc to :node/hidden false))))))))
+          (st/plans-merge-edge
+            (assoc (dissoc edge :edge/from :edge/to :edge/ui-opts)
+              :edge/hidden focus?)))))
+    (if-not focus?
+      (reset {:auto true})
+      (let [bounds (atom {:xbounds [nil nil] :ybounds [nil nil]})]
+        (doseq [s tpn-selection];
+          (if (:node/id s)
+            (let [node-id (composite-key tpn-id (:node/id s))
+                  node (st/plans-get-node node-id)
+                  {:keys [node/begin node/x node/y]} node]
+              (println "NODE BOUND" x y)
+              (swap! bounds (fn [{:keys [xbounds ybounds]}]
+                              {:xbounds (min-max-fn xbounds [x x])
+                               :ybounds (min-max-fn ybounds [y y])}))
+              (st/plans-merge-node
+                (assoc (dissoc node :node/ui-opts :node/tpn-selection)
+                  :node/hidden false))
+              (visit-nodes begin #{node-id}
+                (fn [node]
+                  (let [{:keys [node/hidden node/x node/y]} node]
+                    (println "NODE BOUND" x y)
+                    (swap! bounds (fn [{:keys [xbounds ybounds]}]
+                                    {:xbounds (min-max-fn xbounds [x x])
+                                     :ybounds (min-max-fn ybounds [y y])}))
+                    (if hidden
+                      (st/plans-merge-node (assoc
+                                             (dissoc node :plans/ui-opts
+                                               :node/tpn-selection)
+                                             :node/hidden false)))
+                    (map-outgoing node
+                      (fn [edge]
+                        (let [{:keys [edge/type edge/to edge/hidden]} edge]
+                          (when (activity? type)
+                            (if hidden
+                              (st/plans-merge-edge (assoc
+                                                     (dissoc edge
+                                                       :plans/ui-opts
+                                                       :edge/from :edge/to)
+                                                     :edge/hidden false)))
+                            (node-key-fn to)))))))))
+            (let [edge (st/plans-get-edge (composite-key tpn-id (:edge/id s)))
+                  {:keys [edge/hidden edge/from edge/to]} edge
+                  from-x (:node/x from)
+                  from-y (:node/y from)
+                  to-x (:node/x to)
+                  to-y (:node/y to)]
+              (println "EDGE BOUND FROM" from-x from-y "TO" to-x to-y)
+              (swap! bounds (fn [{:keys [xbounds ybounds]}]
+                              {:xbounds (min-max-fn xbounds
+                                          [(min from-x to-x) (max from-x to-x)])
+                               :ybounds (min-max-fn ybounds
+                                          [(min from-y to-y) (max from-y to-y)])}))
+              (if hidden
+                (st/plans-merge-edge
+                  (assoc (dissoc edge :edge/from :edge/to :edge/ui-opts)
+                    :edge/hidden false)))
+              (st/plans-merge-node (assoc from :node/hidden false))
+              (st/plans-merge-node (assoc to :node/hidden false)))))
+        (zoom-to-bounds @bounds false)
+        ))))
 
 (defn display-plan [plan-id &[opts]]
   (let [plan-id (if (string? plan-id)
@@ -1138,6 +1212,17 @@
         (my-user-action {:type :menu :tag tag :plid plid :node id})
         (menu-click-handled e)))))
 
+;; un hide all TPN nodes
+(defn unhide-all []
+  (let [{:keys [ui/show-plan ui/network-type]} (st/get-ui-opts)
+        network (if (keyword-identical? network-type :tpn-network)
+                  (st/get-network-basics show-plan))
+        {:keys [network/begin network/end]} network]
+    (when (and begin end)
+      (println "UNHIDE-ALL" show-plan  "BEGIN" begin "END" end)
+      (set-aggregated? begin end false)
+      (my-user-action {:type :menu :tag :tpn-show :plid show-plan :node begin}))))
+
 ;; e nil if set via user-action
 (defn focus-menu-fn [node _ option e]
   (when node
@@ -1193,29 +1278,7 @@
                                                :edge/from :edge/to)
                                              :edge/hidden false)))
                     (node-key-fn to)))))))
-        (let [{:keys [xbounds ybounds]} @bounds
-              [xmin xmax] xbounds
-              [ymin ymax] ybounds
-              nodesep 50
-              xmin (- xmin nodesep)
-              xmax (+ xmax nodesep)
-              ymin (- ymin nodesep)
-              ymax (+ ymax (* 2 nodesep))
-              {:keys [pan-zoom/width pan-zoom/height
-                      pan-zoom/vp-width pan-zoom/vp-height]} (st/app-get :app/pan-zoom)
-              vp-ratio (/ vp-height vp-width)
-              focus-width (- xmax xmin)
-              focus-height (- ymax ymin)
-              ratio (/ focus-height focus-width)
-              vertical? (> ratio vp-ratio) ;; constraint
-              zoom-x (/ (if vertical? (/ height ratio) width) focus-width)
-              zoom-y (/ (if vertical? height (* width ratio)) focus-height)
-              zoom (min zoom-x zoom-y)
-              pan [(/ xmin width) (/ ymin height)]]
-          (when e
-            (zoom! zoom)
-            (pan! pan)
-            (my-user-action {:type :pan-zoom :pan pan :zoom zoom}))))
+        (zoom-to-bounds @bounds e))
       (if-not focus?
         (reset)) ;; zoom out
       (st/app-set-plan-value plid :focus (if focus? node-id))
@@ -1261,20 +1324,21 @@
               (#{:htn-focus :htn-blur} tag)
               (let [focus? (keyword-identical? tag :htn-focus)
                     node-id (composite-key plid node)]
-                (println "USER-ACTION type" type "TAG" tag
-                  "NODE" node)
+                (println "USER-ACTION type" type "TAG" tag "NODE" node)
                 (if (keyword-identical? plid showing)
                   (focus-menu-fn (st/plans-get-node node-id) nil {:tag tag} nil)
                   (st/app-set-plan-value plid :focus (if focus? node-id)))
                 (if (keyword-identical? corresponding showing)
                   (htn-focus-tpn showing show-network plid node-id focus?)))
               (#{:tpn-show :tpn-hide} tag)
-              (do
-                (println "USER-ACTION type" type "TAG" tag
-                  "NODE" node)
-                (if (keyword-identical? plid showing)
-                  (aggregation-menu-fn (st/plans-get-node (composite-key plid node))
-                    nil {:tag tag} nil)))
+              (let [{:keys [network/begin network/end]} (st/get-network-basics plid)]
+                (println "USER-ACTION type" type "TAG" tag "NODE" node)
+                (when (keyword-identical? plid showing)
+                  (if (and (keyword-identical? tag :tpn-show)
+                        (keyword-identical? node begin))
+                    (set-aggregated? begin end false) ;; unhide-all
+                    (aggregation-menu-fn (st/plans-get-node (composite-key plid node))
+                      nil {:tag tag} nil))))
               (keyword-identical? tag :tpn-network-flows)
               (println "USER-ACTION type" type "TAG" tag
                 "NODE" node "NETWORK-FLOWS" network-flows)
@@ -1435,6 +1499,13 @@
         (success! start true)
         finish))))
 
+(defn help-menu []
+  ;; (let [options [{:tag :help-menu :text "Help Menu" :fn info-menu-fn}]
+  ;;       menu {:x 50 :y 50 :options options}]
+  ;;   (reset)
+  ;;   (st/merge-ui-opts {:ui/menu menu}))
+  (status-msg "future detailed help menu coming soon!"))
+
 (declare help)
 
 (def execute-methods
@@ -1452,7 +1523,7 @@
    "all-normal" #'all-normal
    "normal" #'color-normal
    "color" #'color-test
-   "help" #'help
+   "help" #'help-menu
    "export" #'export
    "?" #'help})
 
@@ -1465,17 +1536,19 @@
     (let [args (string/split (subs cmd 1) #"\s")
           method-name (first args)
           args (rest args)
+          n (count args)
           method (get execute-methods method-name)
           method-fn (if method (deref method))
           arity (if method (first (:arglists (meta method))))
           arity (if arity
                   (if-let [a (vec-index-of arity '&)]
                     (if (zero? a) :var a)
-                    (count arity)))]
-      (if-not method
+                    (count arity))
+                  0)]
+         (if-not method
         (status-msg "Command \"" method-name "\" not found (try /?)")
-        (if (and (not= :var arity) (not= (count args) arity))
-          (status-msg "Command \"" method-name "\" expects" arity "arguments")
+        (if (and (not= :var arity) (not= n arity))
+          (status-msg (str "Command \"" method-name "\" expects " arity " argument" (if (not= arity 1) "s")))
           (do
             ;; (println "EXECUTE" method-name "[" arity "]" args)
             (apply method-fn args)))))
@@ -1523,6 +1596,9 @@
     nil))
 
 (defn show-extra-keys []
+  ;; disable the META_KEY (problematic on Mac OS X)
+  (if (get @keys/extra-keys keys/META_KEY)
+    (swap! keys/extra-keys assoc keys/META_KEY false))
   (let [ektxt (keys/extra-keys-text)
         placeholder (str st/input-box-placeholder
                       (if (pos? (count ektxt)) "⎇ ")
@@ -1537,11 +1613,11 @@
   (st/show-network network)
   (reset))
 
-(defn show-all []
-  (st/show-network :all)
-  (st/show-plan :all)
-  (status-msg "show-plan" :all)
-  (reset))
+;; (defn show-all []
+;;   (st/show-network :all)
+;;   (st/show-plan :all)
+;;   (status-msg "show-plan" :all)
+;;   (reset))
 
 (defn render-plans [rendering]
   (st/render-plans rendering)
@@ -1768,7 +1844,7 @@
     "C-ArrowLeft" (prev-plan) ;; 37
     "-" (zoom-out) ;; 173
     "=" (zoom-in) ;; 61
-    "a" (show-all)
+    "a" (unhide-all)
     "g" (clear-plans)
     "p" (list-plans) ;; 82
     "y" (render-plans :graphic)

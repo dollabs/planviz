@@ -68,7 +68,7 @@ svg, g, rect, circle, text, symbol, use {
 
 .activity-hidden, .null-activity-hidden, .aggregation-hidden, .parallel-edge-hidden, .choice-edge-hidden {
     fill: none;
-    stroke: rgba(0,0,0,0.05);
+    stroke: none;
     stroke-width: 3.0px;
 }
 
@@ -180,9 +180,12 @@ svg, g, rect, circle, text, symbol, use {
 
 .temporal-constraint-hidden {
     fill: none;
+    stroke: none;
+    /*
     stroke-dasharray: 2 2;
     stroke: rgba(100,100,100,0.1);
     stroke-width: 3.0px;
+    */
 }
 
 .temporal-constraint-normal-long {
@@ -194,9 +197,12 @@ svg, g, rect, circle, text, symbol, use {
 
 .temporal-constraint-hidden-long {
     fill: none;
+    /*
     stroke-dasharray: 3 3;
     stroke: rgba(150,150,150,0.1);
     stroke-width: 3.0px;
+    */
+    stroke: none;
 }
 
 .temporal-constraint-normal-very-long {
@@ -208,9 +214,12 @@ svg, g, rect, circle, text, symbol, use {
 
 .temporal-constraint-hidden-very-long {
     fill: none;
+    /*
     stroke-dasharray: 4 4;
     stroke: rgba(200,200,200,0.1);
     stroke-width: 1px;
+   */
+    stroke: none;
 }
 
 .costle-constraint-normal {
@@ -263,8 +272,10 @@ svg, g, rect, circle, text, symbol, use {
 }
 
 .parallel-hidden-normal, .choice-hidden-normal, .unchoice-hidden-normal, .state-hidden-normal, .parallel-hidden-best, .choice-hidden-best, .unchoice-hidden-best, .state-hidden-best, .parallel-hidden-impossible, .choice-hidden-impossible, .unchoice-hidden-impossible, .state-hidden-impossible, .parallel-hidden-reached, .choice-hidden-reached, .unchoice-hidden-reached, .state-hidden-reached, .parallel-hidden-failed, .choice-hidden-failed, .unchoice-hidden-failed, .state-hidden-failed, .parallel-hidden-started, .choice-hidden-started, .unchoice-hidden-started, .state-hidden-started {
-    fill: white;
-    stroke: rgba(0,102,153,0.11);
+    /* fill: white; */
+    fill: none;
+    /* stroke: rgba(0,102,153,0.11); */
+    stroke: none;
     stroke-width: 3px;
 }
 
@@ -441,7 +452,7 @@ svg, g, rect, circle, text, symbol, use {
 /* } */
 
 .parallel-path-hidden {
-    stroke: rgba(0,0,0,0.1);
+    stroke: none;
     stroke-width: 3px;
 }
 
@@ -454,7 +465,7 @@ svg, g, rect, circle, text, symbol, use {
 
 .choice-circle-hidden {
     fill: none;
-    stroke: rgba(0,0,0,0.1);
+    stroke: none;
     stroke-width: 3px;
 }
 

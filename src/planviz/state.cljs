@@ -18,7 +18,7 @@
               [planviz.components :as comp]
               [planviz.ui :as ui
                :refer [message-box-key-fn input-box-key-fn
-                       pan-zoom-key-fn
+                       pan-zoom-key-fn calc-bigplan
                        ui-opts-key-fn node-key-fn edge-key-fn
                        label-key-fn network-key-fn]]))
 
@@ -571,17 +571,10 @@
                     pan-zoom/pan pan-zoom/zoom]}
             (app-get :app/pan-zoom)]
         (if (and width height)
-          (let [vp-ratio (/ vp-height vp-width)
-                ratio (/ height width)
-                vertical? (> ratio vp-ratio) ;; constraint
-                [big-w big-h] (mapv #(* % zoom)
-                                (if vertical?
-                                  [(/ vp-height ratio) vp-height]
-                                  [vp-width (* vp-width ratio)]))
-                [pan-x pan-y] pan
-                [big-left big-top] [(- (* pan-x big-w)) (- (* pan-y big-h))]
-                bp (get-bigplan)
-                bp-new [big-left big-top big-w big-h]]
+          (let [bp (get-bigplan)
+                _ (println "app-merge-pan-zoom")
+                bp-new (calc-bigplan width height
+                         vp-width vp-height zoom pan)]
             (when (not= bp bp-new)
               ;; (println "FORCE" bp-new)
               (set-bigplan bp-new))))))))
@@ -632,7 +625,8 @@
         q [{ref [k]}]
         begin (get-in (plans-query q) [ref k])
         nref [:network/network-by-plid-id begin]
-        nks [:network/id :network/width :network/height :network/type]
+        nks [:network/id :network/width :network/height :network/type
+             :network/begin :network/end]
         nq [{nref nks}]]
     (get (plans-query nq) nref)))
 

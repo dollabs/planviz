@@ -522,6 +522,31 @@
                               :on-click (partial (:fn option) node edge option)}]
           [:text {:x (+ x xchar) :y (+ yt (* i ho))} (:text option)]]))))
 
+(defn calc-bigplan [width height vp-width vp-height zoom pan]
+  (let [vp-ratio (/ vp-height vp-width)
+        ratio (/ height width)
+        vertical? (> ratio vp-ratio) ;; constrained vertically?
+        ;; _ (println "CALC-BIGPLAN height" height "width" width "ratio" ratio)
+        ;; _ (println "vp-height" vp-height "vp-width" vp-width "vp-ratio" vp-ratio
+        ;;     "vertical?" vertical?)
+        [pan-x pan-y] pan
+        [big-w big-h] (mapv #(* % zoom)
+                        (if vertical?
+                          [(/ vp-height ratio) vp-height]
+                          [vp-width (* vp-width ratio)]))
+        [offset-x offset-y] (if vertical?
+                              [(if (zero? pan-x)
+                                 (/ (max (- vp-width big-w) 0) 2) 0) 0]
+                              [0 (if (zero? pan-y)
+                                   (/ (max (- vp-height big-h) 0) 2) 0)])
+        ;; [offset-x offset-y] [0 0]
+        _ (println "zoom" zoom "pan" pan "offset-x" offset-x "offset-y" offset-y)
+        [big-left big-top] [(- offset-x (* pan-x big-w))
+                            (- offset-y (* pan-y big-h))]
+        bp [big-left big-top big-w big-h]]
+    ;; (println "BP" bp)
+    bp))
+
 (defn plans [{:keys [plans/pan-zoom plans/ui-opts plans/plans] :as props}
              plan-factory]
   (let [{:keys [pan-zoom/width pan-zoom/height
@@ -536,15 +561,9 @@
         loading? (not (and width height))
         [width height] [(or width 800) (or height 800)]
         viewbox  (str "0 0 " width " " height)
-        vp-ratio (/ vp-height vp-width)
-        ratio (/ height width)
-        vertical? (> ratio vp-ratio) ;; constraint
-        [big-w big-h] (mapv #(* % zoom)
-                        (if vertical?
-                          [(/ vp-height ratio) vp-height]
-                          [vp-width (* vp-width ratio)]))
-        [pan-x pan-y] pan
-        [big-left big-top] [(- (* pan-x big-w)) (- (* pan-y big-h))]]
+        _ (println "UI plans" zoom)
+        [big-left big-top big-w big-h] (calc-bigplan width height
+                                         vp-width vp-height zoom pan)]
     (html
       (if loading?
         [:div#plans [:div.load-container.load5 [:div.loader "Loading..."]]]
