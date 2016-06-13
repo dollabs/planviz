@@ -191,7 +191,8 @@
 
 (defn login []
   (if *remote*
-    (let [login {:login/remote *remote*}]
+    (let [login {:login/remote *remote*
+                 :login/settings (:settings @state)}]
       (log/info "LOGIN" *remote*)
       login)
     false))
@@ -830,7 +831,7 @@
         {:keys [exchange routing-key app-id]} metadata
         details (str "MSG from exchange: " exchange " routing-key: " routing-key
                   " app-id: " app-id
-                  ;; \newline (with-out-str (clojure.pprint/pprint json-str))
+                  \newline (with-out-str (clojure.pprint/pprint json-str))
                   )]
     (log/info details)
     (condp = routing-key ;; case does not work with a symbol below
@@ -1043,8 +1044,8 @@
             (log/info "PLANVIZ server ready")
             (when (and (not (repl?)) (get-in @state [:rmq :connection]))
               (while true
-                (print ".")
-                (flush)
+                ;; (print ".")
+                ;; (flush)
                 (sleep 10)))))))))
 
 (defn- compare-url-config [a b]
@@ -1094,14 +1095,16 @@
   "Visualize HTN and TPN plans"
   {:added "0.8.0"}
   [options]
-  (let [{:keys [cwd verbose exchange rmq-host rmq-port
+  (let [{:keys [cwd verbose auto exchange rmq-host rmq-port
                 host port input url-config]} options
+        settings {:auto auto}
         exchange (or exchange rmq-default-exchange)
         rmq-host (or rmq-host rmq-default-host)
         rmq-port (or rmq-port rmq-default-port)
         host (or host planviz-default-host)
         port (or port planviz-default-port)]
     (setup-url-config cwd url-config)
+    (swap! state assoc :settings settings)
     (swap! state update-in [:rmq]
       assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
     (startup host port input cwd))) ;; lazily does start-msgs

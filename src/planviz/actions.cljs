@@ -1088,7 +1088,10 @@
                  (rmethod {} :login)
                  (tasks/deferred))
         finish (-> dlogin
-                 (chain #(if (:error %) false (:login/remote %)))
+                 (chain #(if (:error %) false
+                             (do
+                               (if (get-in % [:login/settings :auto]) (auto))
+                               (:login/remote %))))
                  (chain #(do (status-msg "logged in as" %)
                              (st/app-set :app/client %)
                              true))
