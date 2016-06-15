@@ -1463,10 +1463,21 @@
         dcss))))
 
 (defn string->octet-array [s]
-  (into-array (map #(.charCodeAt % 0) s)))
+  ;; (into-array (doall (map #(.charCodeAt % 0) s))))
+  (clj->js (mapv #(.charCodeAt % 0) s)))
+
+(defn safe-octet-array [s]
+  (loop [octets [] ch (first s) more (rest s)]
+    (if-not ch
+      (into-array octets)
+      (if (= ch "▹")
+        (recur (conj (conj octets 45) 62) (first more) (rest more)) ;; "->"
+        (let [ascii (.charCodeAt ch 0)
+              ascii (if (or (< ascii 0) (> ascii 255)) 32 ascii)] ;; wierd to space
+          (recur (conj octets ascii) (first more) (rest more)))))))
 
 (defn create-data-url [data-str mime-type]
-  (let [data (string->octet-array data-str)
+  (let [data (safe-octet-array data-str)
         data-base64 (base64/encodeByteArray data)]
     (str "data:" mime-type ";base64," data-base64)))
 
@@ -1477,23 +1488,24 @@
         application (gdom/getElement "application")
         plans (gdom/getElement "plans")
         svg (.-innerHTML plans)
-        lt (inc (string/index-of svg ">"))
+        gt (inc (string/index-of svg ">"))
         svg-header "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
         svg-begin "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n "
         css-begin "\n<style type=\"text/css\">\n<![CDATA[\n"
         css-end "\n]]>\n</style>\n"
-        svg (str svg-header svg-begin (subs svg 4 lt)
+        svg (str svg-header svg-begin (subs svg 4 gt)
               css-begin css css-end
-              (string/replace (subs svg lt) #">" ">\n"))
+              (string/replace (subs svg gt) #">" ">\n"))
         dataurl (create-data-url svg "image/svg+xml")
         a (.createElement js/document "a")]
     (println "exporting" show-plan "as" filename)
     (set! (.-id a) "download")
     (set! (.-download a) filename)
+    (set! (.-innerText a) filename)
     (set! (.-href a) dataurl)
     (.appendChild application a)
     (.click a)
-    (tasks/timeout #(.removeChild application a) 5)
+    (tasks/timeout #(.removeChild application a) 10)
     true))
 
 (defn export []
