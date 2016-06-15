@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Added
-- *TBD*
+- Added --auto command line argument to start in /auto mode
+- Now fully respect --port argument (and log to port specific log files)
 
 ### [0.8.5] - 2016-06-03
 
