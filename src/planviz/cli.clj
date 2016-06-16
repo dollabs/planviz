@@ -11,32 +11,18 @@
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.pprint :as pp :refer [pprint]]
             [environ.core :refer [env]]
-            [clojure.java.shell :refer [sh]]
             [me.raynes.fs :as fs]
+            [avenir.utils :as au :refer [as-boolean]]
             [planviz.server :as server])
   (:gen-class))
 
-(defn hostname []
-  (try
-    (let [{:keys [exit out err]} (sh "hostname")]
-      (if (zero? exit)
-        (string/replace out #"\s" "")
-        "localhost"))
-    (catch Exception e
-      (println "unable to run the hostname command:"
-        (.. e getCause getMessage))
-      "localhost"
-      )))
-
-
 (def default-action "visualize")
-
 
 (defn save-config
   "Save command line arguments to config/planviz.edn"
   {:added "0.8.0"}
   [options]
-  (let [{:keys [help version verbose exchange input
+  (let [{:keys [help version verbose auto exchange input
                 rmq-host rmq-port host port
                 cwd arguments]} options
         cmd (or (first arguments) default-action)
@@ -63,8 +49,9 @@
    ["-v" "--verbose" "Increase verbosity"
     :default 0
     :assoc-fn (fn [m k _] (update-in m [k] inc))]
+   ["-a" "--auto" "Start in /auto mode"]
    ["-e" "--exchange EXCHANGE" "RMQ Exchange Name"
-    :default "tpn-updates"]
+    :default server/rmq-default-exchange]
    ["-i" "--input INPUT" "Input file(s) {TPN|HTN|HTN=TPN}"
     :default []
     :assoc-fn (fn [m k v]
@@ -72,13 +59,15 @@
                       oldv (if (= oldv ["-"]) [] oldv)]
                   (assoc m k (conj oldv v))))]
    ["-q" "--rmq-host RMQHOST" "RMQ Host"
-    :default "localhost"]
+    :default server/rmq-default-host]
    ["-r" "--rmq-port RMQPORT" "RMQ Port"
-    :default 5672 :parse-fn #(Integer/parseInt %)]
+    :default server/rmq-default-port
+    :parse-fn #(Integer/parseInt %)]
    ["-n" "--host HOST" "PLANVIZ server hostname"
-    :default (hostname)]
+    :default server/planviz-default-host]
    ["-p" "--port PORT" "PLANVIZ server port"
-    :default 8080 :parse-fn #(Integer/parseInt %)]
+    :default server/planviz-default-port
+    :parse-fn #(Integer/parseInt %)]
    ["-u" "--url-config URLCONFIG" "URL Configuration file(s)"
     :default []
     :assoc-fn (fn [m k v] (assoc m k (conj (get m k []) v)))]])
@@ -135,9 +124,10 @@
   (let [cwd (or (:planviz-cwd env) (:user-dir env))
         {:keys [options arguments errors summary]}
         (config-parse-opts cwd args cli-options)
-        {:keys [help version verbose exchange input
+        {:keys [help version verbose auto exchange input
                 rmq-host rmq-port host port url-config]} options
-        options (assoc options :cwd cwd :arguments arguments)
+        auto (as-boolean auto)
+        options (assoc options :auto auto :cwd cwd :arguments arguments)
         cmd (or (last arguments) default-action)
         action (get actions cmd)
         verbose? (pos? (or verbose 0))
@@ -162,6 +152,7 @@
       (println "verbosity level:" verbose)
       (println "rmq-host:" rmq-host)
       (println "rmq-port:" rmq-port)
+      (println "auto:" auto)
       (println "exchange:" exchange)
       (println "host:" host)
       (println "port:" port)

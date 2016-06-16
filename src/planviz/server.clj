@@ -7,6 +7,7 @@
 (ns planviz.server
   (:gen-class) ;; for :uberjar
   (:require [clojure.java.io :as io]
+            [clojure.java.shell :refer [sh]]
             [clojure.pprint :as pp :refer [pprint]]
             [clojure.tools.cli :as cli]
             [clojure.string :as string]
@@ -60,10 +61,22 @@
 
 ;; ---------------------------------------
 
+(defn hostname []
+  (try
+    (let [{:keys [exit out err]} (sh "hostname")]
+      (if (zero? exit)
+        (string/replace out #"\s" "")
+        "localhost"))
+    (catch Exception e
+      (println "unable to run the hostname command:"
+        (.. e getCause getMessage))
+      "localhost"
+      )))
+
 (def rmq-default-host "localhost")
 (def rmq-default-port 5672)
 (def rmq-default-exchange "tpn-updates")
-(def planviz-default-host "localhost")
+(def planviz-default-host (hostname))
 (def planviz-default-port 8080)
 (def pamela-visualization-key "pamela.viz")
 
@@ -120,13 +133,17 @@
                       }
 
    :output-fn log/default-output-fn ; (fn [data]) -> string
-   :appenders
-   {:spit (log/spit-appender {:fname "./logs/planviz.log"})}})
+   ;; :appenders
+   ;; {:spit (log/spit-appender {:fname "./logs/planviz.log"})}
+   })
 
-(defn log-initialize []
-  (log/set-config! log-config)
-  (log/info "planviz logging initialized\n---------------------------------\n")
-  (swap! state assoc :logging true))
+(defn log-initialize [port]
+  (let [logfile (str "./logs/planviz-" port ".log")
+        appenders {:spit (log/spit-appender {:fname logfile})}
+        config (assoc log-config :appenders appenders)]
+    (log/set-config! config)
+    (log/info "planviz logging initialized\n---------------------------------\n")
+    (swap! state assoc :logging true)))
 
 (def non-websocket-request
   {:status 400
@@ -191,7 +208,8 @@
 
 (defn login []
   (if *remote*
-    (let [login {:login/remote *remote*}]
+    (let [login {:login/remote *remote*
+                 :login/settings (:settings @state)}]
       (log/info "LOGIN" *remote*)
       login)
     false))
@@ -830,7 +848,7 @@
         {:keys [exchange routing-key app-id]} metadata
         details (str "MSG from exchange: " exchange " routing-key: " routing-key
                   " app-id: " app-id
-                  ;; \newline (with-out-str (clojure.pprint/pprint json-str))
+                  \newline (with-out-str (clojure.pprint/pprint json-str))
                   )]
     (log/info details)
     (condp = routing-key ;; case does not work with a symbol below
@@ -844,13 +862,13 @@
       (unknown-update routing-key json-str))))
 
 ;; This is the message processing loop
-(defn start-msgs []
+(defn start-msgs [port]
   (if (get-msgs)
     (log/debug "msgs already running!")
     (let [msgs (chan 10)]
       (swap! state assoc :msgs msgs)
       (if-not (:logging @state)
-        (log-initialize))
+        (log-initialize port))
       (log/info "msgs started")
       (go-loop [msg (<! msgs)]
         (if-not msg
@@ -1008,15 +1026,15 @@
 ;; {TPN|HTN|HTN=TPN}
 (defn startup [host port input cwd]
   (if-not (get-msgs)
-    (start-msgs)) ;; lazily does log-initialize
+    (start-msgs port)) ;; lazily does log-initialize
   (if (get-in @state [:rmq :connection])
     (shutdown))
   (let [{:keys [rmq-host rmq-port exchange]} (:rmq @state)
         connection (connect-to-rmq rmq-host rmq-port)]
     (if-not connection
       (do
-        (println "PLANVIZ cannot connect to RabbitMQ at" host ":" port)
-        (log/error "PLANVIZ cannot connect to RabbitMQ at" host ":" port))
+        (println "PLANVIZ cannot connect to RabbitMQ at" rmq-host ":" rmq-port)
+        (log/error "PLANVIZ cannot connect to RabbitMQ at" rmq-host ":" rmq-port))
       (let [channel (lch/open connection)
             _ (le/declare channel exchange "topic")
             queue (lq/declare channel)
@@ -1043,8 +1061,8 @@
             (log/info "PLANVIZ server ready")
             (when (and (not (repl?)) (get-in @state [:rmq :connection]))
               (while true
-                (print ".")
-                (flush)
+                ;; (print ".")
+                ;; (flush)
                 (sleep 10)))))))))
 
 (defn- compare-url-config [a b]
@@ -1094,14 +1112,16 @@
   "Visualize HTN and TPN plans"
   {:added "0.8.0"}
   [options]
-  (let [{:keys [cwd verbose exchange rmq-host rmq-port
+  (let [{:keys [cwd verbose auto exchange rmq-host rmq-port
                 host port input url-config]} options
+        settings {:auto auto}
         exchange (or exchange rmq-default-exchange)
         rmq-host (or rmq-host rmq-default-host)
         rmq-port (or rmq-port rmq-default-port)
         host (or host planviz-default-host)
         port (or port planviz-default-port)]
     (setup-url-config cwd url-config)
+    (swap! state assoc :settings settings)
     (swap! state update-in [:rmq]
       assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
     (startup host port input cwd))) ;; lazily does start-msgs
