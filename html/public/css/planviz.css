@@ -82,6 +82,50 @@ ul.circle {
     z-index: -20;
 }
 
+.help-shown {
+    top: 1em;
+}
+
+.help-hidden {
+    top: -100em;
+}
+
+#help-menu {
+    font-size: 0.6em;
+    position: absolute;
+    padding: 0.5em;
+    left: 1em;
+    width: calc(100% - 8em);
+    height: calc(100% - 5em);
+    /* border: solid 3px SlateGrey; */
+    border-width: 3px;
+    border-style: ridge;
+    background: white;
+    overflow: auto;
+    z-index: 30;
+}
+
+#help-menu li {
+    list-style-type: none;
+    /* padding-left: 1em; */
+}
+
+#help-menu-close {
+    position: fixed;
+    padding: 0em;
+    left: calc(100% - 7em + 3px);
+    top: calc(1em + 3px);
+    width: 1em;
+    height: 1em;
+    line-height: 0.8em;
+    text-align: center;
+    border: none;
+    background: DarkSlateGrey;
+    color: white;
+    cursor: crosshair;
+    z-index: 40;
+}
+
 .pan-zoom {
     /* The following changes the overall size of the panzoom box */
     position: absolute;

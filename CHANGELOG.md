@@ -7,6 +7,14 @@ All notable changes to this project will be documented in this file. This change
 Added
 - Added --auto command line argument to start in /auto mode
 - Now fully respect --port argument (and log to port specific log files)
+- Updated dependencies
+- Subscribe to RMQ auto-ack true
+- Added --log-level command line argument
+- Quiet boot output (if not running from jar)
+- Removed text shadow (to improve legibility)
+- Development debugging (connect to PLANVIZ server on port 8080
+  if in development mode on port 3000)
+- Implemented help menu
 
 ### [0.8.5] - 2016-06-03
 

@@ -463,6 +463,7 @@
       :app/plans
       :app/css ;; source for css
       :app/url-config ;; url configuration for right click menus
+      :app/help ;; help configuration
       {:app/message-box ?message-box}
       {:app/input-box ?input-box}
       {:app/pan-zoom ?pan-zoom}])

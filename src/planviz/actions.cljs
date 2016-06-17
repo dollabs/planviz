@@ -38,16 +38,22 @@
       (subs protocol 0 (dec (count protocol))) ;; remove the "s"
       protocol)))
 
+;; debug-port is a vector of [debug-from debug-to], both integers
+;; which will set the port to debug-to if the current port is debug-from
+;; AND port is not explicitly set in the options
 (defn make-url [& opts]
   (let [opts (if opts (apply hash-map opts))
-        {:keys [protocol hostname port uri secure]} opts
+        {:keys [protocol hostname port uri secure debug-port]} opts
         location (.-location js/document)
         p (let [p (.-protocol location)] (subs p 0 (dec (count p)))) ;; no ":"
         secure (or secure (get secure-protocols p false))
         protocol (or protocol p)
         protocol (protocol-secure protocol secure)
         hostname (or hostname (.-hostname location))
-        port (str (or port (.-port location)))
+        [debug-from debug-to] debug-port
+        default-port (as-int (.-port location))
+        default-port (if (= default-port debug-from) debug-to default-port)
+        port (str (or port default-port))
         server (str hostname (if-not (empty? port) (str ":" port)))
         uri (or uri "/")
         url (str protocol "://" server uri)]
@@ -339,12 +345,16 @@
             :error-fn failed-plan-part}
     :request-plan-part plid part))
 
-(defn list-plans []
+(defn list-plans
+  "Shown known plan-id's"
+  []
   (let [plan-ids (vec (sort (keys (or (st/app-get :app/plans) {}))))]
     (apply status-msg "plans " plan-ids)))
 
 ;; may have value passed in from previous thing in chain
-(defn update-plan-list [ & [v]]
+(defn update-plan-list
+  "Refresh the known plan list"
+  [ & [v]]
   ;; (println "UPLR" v)
   (let [start (tasks/deferred)
         finish (-> start
@@ -389,17 +399,24 @@
     (status-msg "ERROR" (:error message))
     (status-msg message)))
 
-(defn whoami []
+(defn whoami
+  "Show my remote-id, nickname and following"
+  []
   (println "whoami")
   (rmethod {:success-fn generic-reply :error-fn generic-reply}
     :whoami))
 
-(defn who []
+(defn who
+  "Show list of PLANVIZ users"
+  []
   (println "who")
   (rmethod {:success-fn generic-reply :error-fn generic-reply}
     :who))
 
-(defn nick [nickname]
+(defn nick
+  "Set my nickname"
+  {:details {:nickname "my short name for /follow or /msg"}}
+  [nickname]
   (println "nick" nickname)
   (rmethod {:success-fn generic-reply :error-fn generic-reply}
     :nick nickname))
@@ -413,7 +430,10 @@
     (follow-error error)
     (status-msg x)))
 
-(defn follow [nickname]
+(defn follow
+  "Follow another user"
+  {:details {:nickname "remote-id or nick for user to follow"}}
+  [nickname]
   (println "FOLLOW" nickname)
   (st/app-set :app/following (if (not= nickname "-") nickname))
   (rmethod {:success-fn follow-success :error-fn follow-error}
@@ -425,13 +445,17 @@
 (defn auto? []
   (= (or (st/app-get :app/mode) :manual) :auto))
 
-(defn manual []
+(defn manual
+  "Switch to manual mode"
+  []
   (when (auto?)
     (st/app-set :app/mode :manual)
     (unfollow)
     (status-msg "switching to manual mode")))
 
-(defn auto []
+(defn auto
+  "Switch to automatic mode"
+  []
   (when-not (auto?)
     (st/app-set :app/mode :auto)
     (status-msg "switching to automatic mode")))
@@ -443,14 +467,18 @@
 (def max-zoom 256.0)
 (def min-zoom 0.5)
 
-(defn zoom-in []
+(defn zoom-in
+  "Zoom in"
+  []
   (let [zoom (:pan-zoom/zoom (st/app-get :app/pan-zoom))
         zoom (* zoom 1.2)
         zoom (min (max zoom min-zoom) max-zoom)]
     (zoom! zoom)
     (my-user-action {:type :pan-zoom :zoom zoom})))
 
-(defn zoom-out []
+(defn zoom-out
+  "Zoom out"
+  []
   (let [zoom (:pan-zoom/zoom (st/app-get :app/pan-zoom))
         zoom (* zoom 0.8)
         zoom (min (max zoom min-zoom) max-zoom)]
@@ -461,7 +489,9 @@
   (st/app-merge-pan-zoom {:pan-zoom/pan p})
   nil)
 
-(defn pan-left []
+(defn pan-left
+  "Pan left"
+  []
   (let [{:keys [pan-zoom/zoom pan-zoom/pan]} (st/app-get :app/pan-zoom)
         [pan-x pan-y] pan
         pan-min (if (>= zoom 1.0)
@@ -479,7 +509,9 @@
     (pan! pan)
     (my-user-action {:type :pan-zoom :pan pan})))
 
-(defn pan-right []
+(defn pan-right
+  "Pan right"
+  []
   (let [{:keys [pan-zoom/zoom pan-zoom/pan]} (st/app-get :app/pan-zoom)
         [pan-x pan-y] pan
         pan-min (if (>= zoom 1.0)
@@ -497,7 +529,9 @@
     (pan! pan)
     (my-user-action {:type :pan-zoom :pan pan})))
 
-(defn pan-up []
+(defn pan-up
+  "Pan up"
+  []
   (let [{:keys [pan-zoom/zoom pan-zoom/pan]} (st/app-get :app/pan-zoom)
         [pan-x pan-y] pan
         pan-min (if (>= zoom 1.0)
@@ -515,7 +549,9 @@
     (pan! pan)
     (my-user-action {:type :pan-zoom :pan pan})))
 
-(defn pan-down []
+(defn pan-down
+  "Pan down"
+  []
   (let [{:keys [pan-zoom/zoom pan-zoom/pan]} (st/app-get :app/pan-zoom)
         [pan-x pan-y] pan
         pan-min (if (>= zoom 1.0)
@@ -537,7 +573,9 @@
   (st/app-merge-pan-zoom {:pan-zoom/pan pan :pan-zoom/zoom zoom})
   nil)
 
-(defn reset [&[opts]]
+(defn reset
+  "Reset view to see entire plan"
+  [&[opts]]
   ;; (println "DEBUG reset")
   (let [from-auto? (:auto opts)]
     ;; (pan! [0.0 0.0])
@@ -985,7 +1023,9 @@
 (defn no-plan? [showing]
   (or (not showing) (#{:all :none :loading} showing)))
 
-(defn display-plan [plan-id &[opts]]
+(defn display-plan
+  "Display a plan"
+  [plan-id &[opts]]
   (let [plan-id (if (string? plan-id)
                   (keyword (string/replace-first plan-id  #"^:" ""))
                   plan-id)]
@@ -1026,6 +1066,12 @@
                               (st/loading false)
                               (st/app-set :app/loading nil))))))
         true)))) ;; for deferreds
+
+(defn show-plan-id
+  "Display a plan"
+  {:details {:plan-id "plan to display"}}
+  [plan-id]
+  (display-plan plan-id))
 
 (defn load-plan [plan-id &[opts]]
   (let [plan-id (if (string? plan-id)
@@ -1106,14 +1152,16 @@
 (defn recv-msg [line]
   (status-msg line))
 
-(defn msg [& args]
-  (let [user (first args)
-        comment (apply str (interpose " " (rest args)))]
-    (if-not user
-      (status-msg "must specify user: /msg USER your message here")
-      (rmethod {;; :return d-recv-msg
-                :success-fn recv-msg :error-fn generic-reply}
-        :msg user comment))))
+(defn msg
+  "Private message another user"
+  {:details {:user "other PLANVIZ to message"
+             :comments "contents of the message [optional]"}}
+  [user & comments]
+  (if-not user
+    (status-msg "must specify user: /msg USER your message here")
+    (rmethod {;; :return d-recv-msg
+              :success-fn recv-msg :error-fn generic-reply}
+      :msg user (apply str (interpose " " comments)))))
 
 (defn menu-click-handled [e]
   (st/merge-ui-opts {:ui/menu nil})
@@ -1377,7 +1425,9 @@
 
 ;; set the state of all nodes and edges to normal in the
 ;; selected and corresponding plan(s)
-(defn all-normal []
+(defn all-normal
+  "Set the state of all nodes and edges to normal"
+  []
   (let [{:keys [ui/show-plan ui/show-network ui/network-type]} (st/get-ui-opts)
         {:keys [loaded?]} (st/app-get-plan show-plan)]
     ;; (println "ALL NORMAL show-plan" show-plan "loaded?" loaded?)
@@ -1397,18 +1447,26 @@
       (display-plan next-id)
       (println "NO NEXT-PLAN"))))
 
-(defn next-plan []
+(defn next-plan
+  "Display the next plan in the known plan list"
+  []
   (another-plan inc))
 
-(defn prev-plan []
+(defn prev-plan
+  "Display the previous plan in the known plan list"
+  []
   (another-plan dec))
 
-(defn clear-plans []
+(defn clear-plans
+  "Discard the currently loaded plans"
+  []
   (status-msg "clear-plans")
   (st/clear-plans)
   (reset))
 
-(defn color-normal []
+(defn color-normal
+  "End node/edge state color test"
+  []
   (let [{:keys [ui/show-plan ui/show-network]} (st/get-ui-opts)]
     (if (or (not show-network) (= show-network :all))
       (status-msg "cannot run color-test for network:" show-network)
@@ -1426,7 +1484,9 @@
                 (keyword-identical? (:edge/type edge) :aggregation)
                 ))))))))
 
-(defn color-test []
+(defn color-test
+  "Start node/edge state color test"
+  []
   (let [{:keys [ui/show-plan ui/show-network]} (st/get-ui-opts)]
     (if (or (not show-network) (= show-network :all))
       (status-msg "cannot run color-test for network:" show-network)
@@ -1508,7 +1568,9 @@
     (tasks/timeout #(.removeChild application a) 10)
     true))
 
-(defn export []
+(defn export
+  "Download the current plan as an SVG file"
+  []
   (let [{:keys [ui/show-plan]} (st/get-ui-opts)]
     (if (no-plan? show-plan)
       (status-msg "cannot export: no plan shown")
@@ -1519,14 +1581,34 @@
         (success! start true)
         finish))))
 
-(defn help-menu []
-  ;; (let [options [{:tag :help-menu :text "Help Menu" :fn info-menu-fn}]
-  ;;       menu {:x 50 :y 50 :options options}]
-  ;;   (reset)
-  ;;   (st/merge-ui-opts {:ui/menu menu}))
-  (status-msg "future detailed help menu coming soon!"))
+(defn help-menu
+  "Show the detailed help menu"
+  []
+  (let [shown? (st/app-get-help-shown)]
+    (if shown?
+      (status-msg "")
+      (status-msg "help"))
+    (st/app-set-help-shown (not shown?))))
 
-(declare help)
+(defn help-menu-hide
+  "Hide the detailed help menu"
+  []
+  (if (st/app-get-help-shown)
+    (help-menu)))
+
+(defn help-click [e]
+  (help-menu-hide)
+  (when e
+    (.preventDefault e)
+    (.stopPropagation e)))
+
+(declare execute-methods)
+
+(defn help
+  "Show brief command reminder"
+  []
+  (status-msg (apply str (interpose " /"
+                           (cons "commands" (sort (keys execute-methods)))))))
 
 (def execute-methods
   {"who" #'who
@@ -1535,7 +1617,7 @@
    "nick" #'nick
    "follow" #'follow
    "list" #'list-plans
-   "show" #'display-plan
+   "show" #'show-plan-id
    "next" #'next-plan
    "prev" #'prev-plan
    "manual" #'manual
@@ -1547,27 +1629,21 @@
    "export" #'export
    "?" #'help})
 
-(defn help []
-  (status-msg (apply str (interpose " /"
-                           (cons "commands" (sort (keys execute-methods)))))))
-
 (defn execute [cmd]
   (if (string/starts-with? cmd "/")
     (let [args (string/split (subs cmd 1) #"\s")
           method-name (first args)
-          args (rest args)
+          args (doall (rest args))
           n (count args)
           method (get execute-methods method-name)
           method-fn (if method (deref method))
-          arity (if method (first (:arglists (meta method))))
-          arity (if arity
-                  (if-let [a (vec-index-of arity '&)]
-                    (if (zero? a) :var a)
-                    (count arity))
-                  0)]
-         (if-not method
+          arglist (if method (first (:arglists (meta method))))
+          variadic (if arglist (vec-index-of arglist '&))
+          arity (or variadic (and arglist (count arglist)) 0)]
+      (if-not method
         (status-msg "Command \"" method-name "\" not found (try /?)")
-        (if (and (not= :var arity) (not= n arity))
+        (if (or (and variadic (< n arity))
+              (and (not variadic) (not= n arity)))
           (status-msg (str "Command \"" method-name "\" expects " arity " argument" (if (not= arity 1) "s")))
           (do
             ;; (println "EXECUTE" method-name "[" arity "]" args)
@@ -1575,45 +1651,47 @@
     (my-user-action {:type :chat :chat cmd})))
 
 (defn cmd-key-fn [key]
-  (let [cmde (gdom/getElement "cmd")
-        start (.-selectionStart cmde)
-        cmd (.-value cmde)
-        cmd-len (count cmd)
-        ch? (= 1 (count key)) ;; regular character
-        [cmd new-start];
-        (if ch?
-          (if (>= start cmd-len)
-            [(str cmd key) (inc start)]
-            (if (zero? start)
-              [(str key cmd) (inc start)]
-              [(str (subs cmd 0 start) key (subs cmd start)) (inc start)]))
-          (cond
-            (= key "Enter")
-            (do
-              (execute cmd)
-              ["" 0])
-            (and (= key "Backspace") (pos? start))
-            (if (= start cmd-len)
-              [(subs cmd 0 (max (dec cmd-len) 0)) (dec start)]
-              [(str (subs cmd 0 (dec start)) (subs cmd start)) (dec start)])
-            (and (= key "ArrowLeft") (pos? start))
-            [cmd (dec start)]
-            (and (= key "ArrowRight") (< start cmd-len))
-            [cmd (inc start)]
-            (and (= key "C-d") (< start cmd-len))
-            (if (zero? start)
-              [(subs cmd 1) start]
-              [(str (subs cmd 0 start) (subs cmd (inc start))) start])
-            (= key "C-a")
-            [cmd 0]
-            (= key "C-e")
-            [cmd cmd-len]
-            :else
-            [cmd start]))]
-    (st/app-merge-input-box {:input-box/value cmd :input-box/start new-start})
-    (when (<= new-start (inc cmd-len))
-      (tasks/timeout #(.setSelectionRange cmde new-start new-start) 10))
-    nil))
+  (if (= key "Escape")
+    (help-menu-hide) ;; remove help menu
+    (let [cmde (gdom/getElement "cmd")
+          start (.-selectionStart cmde)
+          cmd (.-value cmde)
+          cmd-len (count cmd)
+          ch? (= 1 (count key)) ;; regular character
+          [cmd new-start];
+          (if ch?
+            (if (>= start cmd-len)
+              [(str cmd key) (inc start)]
+              (if (zero? start)
+                [(str key cmd) (inc start)]
+                [(str (subs cmd 0 start) key (subs cmd start)) (inc start)]))
+            (cond
+              (= key "Enter")
+              (do
+                (execute cmd)
+                ["" 0])
+              (and (= key "Backspace") (pos? start))
+              (if (= start cmd-len)
+                [(subs cmd 0 (max (dec cmd-len) 0)) (dec start)]
+                [(str (subs cmd 0 (dec start)) (subs cmd start)) (dec start)])
+              (and (= key "ArrowLeft") (pos? start))
+              [cmd (dec start)]
+              (and (= key "ArrowRight") (< start cmd-len))
+              [cmd (inc start)]
+              (and (= key "C-d") (< start cmd-len))
+              (if (zero? start)
+                [(subs cmd 1) start]
+                [(str (subs cmd 0 start) (subs cmd (inc start))) start])
+              (= key "C-a")
+              [cmd 0]
+              (= key "C-e")
+              [cmd cmd-len]
+              :else
+              [cmd start]))]
+      (st/app-merge-input-box {:input-box/value cmd :input-box/start new-start})
+      (when (<= new-start (inc cmd-len))
+        (tasks/timeout #(.setSelectionRange cmde new-start new-start) 10))
+      nil)))
 
 (defn show-extra-keys []
   ;; disable the META_KEY (problematic on Mac OS X)
@@ -1736,11 +1814,15 @@
       :else
       (println "Clicking on" type "not yet supported!"))))
 
-(defn show-tooltips []
+(defn show-tooltips
+  "Show node/edge tooltips"
+  []
   (status-msg "showing tooltips")
   (st/tooltips true))
 
-(defn hide-tooltips []
+(defn hide-tooltips
+  "Hide node/edge tooltips"
+  []
   (status-msg "hiding tooltips")
   (st/tooltips false))
 
@@ -1849,30 +1931,73 @@
                 (println "right click background")))
           true))))) ;; odd button case, let through
 
+(def app-bindings
+  {"x" #'zoom-out
+   "z" #'zoom-in
+   "ArrowRight" #'pan-right
+   "ArrowUp" #'pan-up
+   "ArrowLeft" #'pan-left
+   "ArrowDown" #'pan-down
+   "A-ArrowRight" #'next-plan
+   "A-ArrowLeft" #'prev-plan
+   "C-ArrowRight" #'next-plan
+   "C-ArrowLeft" #'prev-plan
+   "-" #'zoom-out
+   "=" #'zoom-in
+   "?" #'help-menu
+   "g" #'clear-plans
+   "p" #'list-plans
+   "1" #'reset
+   "6" #'update-plan-list
+   "t" #'show-tooltips
+   "T" #'hide-tooltips
+   "Escape" #'help-menu-hide})
+
 (defn app-key-fn [key]
   ;; (println "app-key-fn" key)
-  (case key
-    "x" (zoom-out) ;; 88
-    "z" (zoom-in) ;; 90
-    "ArrowRight" (pan-right) ;; 39
-    "ArrowUp" (pan-up) ;; 38
-    "ArrowLeft" (pan-left) ;; 37
-    "ArrowDown" (pan-down) ;; 40
-    "A-ArrowRight" (next-plan) ;; 39
-    "A-ArrowLeft" (prev-plan) ;; 37
-    "C-ArrowRight" (next-plan) ;; 39
-    "C-ArrowLeft" (prev-plan) ;; 37
-    "-" (zoom-out) ;; 173
-    "=" (zoom-in) ;; 61
-    "a" (unhide-all)
-    "g" (clear-plans)
-    "p" (list-plans) ;; 82
-    "y" (render-plans :graphic)
-    "1" (reset)
-    "6" (update-plan-list)
-    "t" (show-tooltips)
-    "T" (hide-tooltips)
-    true)) ;; always end a case with true
+  (let [key-fn-var (get app-bindings key)
+        key-fn (if key-fn-var (deref key-fn-var))]
+    (if key-fn
+      (key-fn))))
+
+(defn initialize-help []
+  (let [help {:help/shown false :help/help-click help-click}
+        cmds (sort (keys execute-methods))
+        commands (concatv
+                   [[:i "━━━ commands ━━━"][:br]]
+                   (apply concat
+                     (for [cmd cmds
+                           :let [meta-data (meta (get execute-methods cmd))
+                                 arglist (first (:arglists meta-data))
+                                 syms (remove #{'&} arglist)
+                                 details (:details meta-data)
+                                 doc [:li (:doc meta-data)]
+                                 args (for [sym syms]
+                                        [:li [:i (name sym)] " "
+                                         (get details (keyword sym))])]]
+                       [[:b (str "/" cmd)] " "
+                        (apply str (interpose " " arglist))
+                        [:br]
+                        (concatv [:ul doc] args)])))
+        key-bindings (concatv
+                       [[:i "━━━ key-bindings ━━━"][:br]]
+                       (apply concat
+                         (for [f (sort-by #(:name (meta %))
+                                   (set (vals app-bindings)))
+                               :let [meta-data (meta f)]]
+                           [[:b (name (:name meta-data))] " " (:doc meta-data)
+                            " ⇛ "
+                            (apply concatv
+                              [:span]
+                              (interpose [", "]
+                                (for [k (sort (mapv first
+                                                (filter #(= (second %) f)
+                                                  app-bindings)))]
+                                  [[:i k]])))
+                            [:br]])))
+        content (concatv commands [[:br]] key-bindings)]
+    ;; (pprint content)
+    (st/app-set-help (assoc help :help/content content))))
 
 (defn vp-initialize []
   (let [initialized (st/app-get :app/initialized)
@@ -1890,6 +2015,7 @@
   (keys/register-key-fn :extra show-extra-keys)
   (set! (.-onkeydown js/window) keys/keydown)
   (set! (.-onkeyup js/window) keys/keyup)
+  (initialize-help)
   (st/add-plans-root! graph-click)
   (st/add-app-root!)
   (vp-initialize)) ;; get and track viewport size

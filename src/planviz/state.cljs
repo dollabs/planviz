@@ -543,6 +543,19 @@
         plan-data (get plans plid)]
     (app-set :app/plans (assoc plans plid (assoc plan-data k v)))))
 
+(defn app-get-help []
+  (app-get :app/help))
+
+(defn app-set-help [help]
+  (app-set :app/help help))
+
+(defn app-get-help-shown []
+  (get (app-get-help) :help/shown))
+
+(defn app-set-help-shown [shown?]
+  (let [help (app-get-help)]
+    (app-set-help (assoc help :help/shown shown?))))
+
 (defn get-bigplan []
   (let [bigplan (gdom/getElement "bigplan")]
     (if bigplan
@@ -572,7 +585,7 @@
             (app-get :app/pan-zoom)]
         (if (and width height)
           (let [bp (get-bigplan)
-                _ (println "app-merge-pan-zoom")
+                ;; _ (println "app-merge-pan-zoom")
                 bp-new (calc-bigplan width height
                          vp-width vp-height zoom pan)]
             (when (not= bp bp-new)

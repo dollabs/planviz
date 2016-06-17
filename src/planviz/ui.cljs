@@ -1,4 +1,4 @@
--;; Copyright © 2016 Dynamic Object Language Labs Inc.
+;; Copyright © 2016 Dynamic Object Language Labs Inc.
 ;;
 ;; This software is licensed under the terms of the
 ;; Apache License, Version 2.0 which can be found in
@@ -567,7 +567,7 @@
         loading? (not (and width height))
         [width height] [(or width 800) (or height 800)]
         viewbox  (str "0 0 " width " " height)
-        _ (println "UI plans" zoom)
+        ;; _ (println "UI plans" zoom)
         [big-left big-top big-w big-h] (calc-bigplan width height
                                          vp-width vp-height zoom pan)]
     (html
@@ -636,13 +636,26 @@
           [:rect.planview {:x view-x :y view-y
                            :width view-w :height view-h}]]]))))
 
+(defn show-help [help]
+  (let [{:keys [help/shown help/help-click help/content]} help]
+    (if shown
+      [:div#help-menu.help-shown
+       [:div#help-menu-close
+        (if (fn? help-click)
+          {:on-click (partial help-click)}) "✕"]
+       [:b "Help Menu"] " " [:i "(press ESC to exit)"]
+       [:br]
+       content]
+      [:div#help-menu.help-hidden])))
+
 (defn application [{:keys [app/message-box app/input-box app/pan-zoom
-                           app/title app/mode] :as props}
+                           app/title app/mode app/help] :as props}
                    message-box-factory input-box-factory pan-zoom-factory]
   (html
     [:div#application
      [:div#title (str title "  " (name (or mode :manual)))]
      [:div#logo]
+     (show-help help)
      (message-box-factory message-box)
      (input-box-factory input-box)
      (pan-zoom-factory pan-zoom)]))

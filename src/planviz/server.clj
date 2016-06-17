@@ -76,7 +76,8 @@
 (def rmq-default-host "localhost")
 (def rmq-default-port 5672)
 (def rmq-default-exchange "tpn-updates")
-(def planviz-default-host (hostname))
+;; (def planviz-default-host (hostname))
+(def planviz-default-host "localhost")
 (def planviz-default-port 8080)
 (def pamela-visualization-key "pamela.viz")
 
@@ -118,7 +119,7 @@
 ;; }
 
 (def log-config
-  {:level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
+  {;; :level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
    ;; Control log filtering by namespaces/patterns. Useful for turning off
    ;; logging in noisy libraries, etc.:
    :ns-whitelist  [] #_["my-app.foo-ns"]
@@ -137,12 +138,15 @@
    ;; {:spit (log/spit-appender {:fname "./logs/planviz.log"})}
    })
 
-(defn log-initialize [port]
+(defn log-initialize [port log-level]
   (let [logfile (str "./logs/planviz-" port ".log")
         appenders {:spit (log/spit-appender {:fname logfile})}
-        config (assoc log-config :appenders appenders)]
+        config (assoc log-config
+                 :level log-level
+                 :appenders appenders)]
     (log/set-config! config)
-    (log/info "planviz logging initialized\n---------------------------------\n")
+    (log/warn "PLANVIZ logging initialized at level " log-level
+      "\n---------------------------------\n")
     (swap! state assoc :logging true)))
 
 (def non-websocket-request
@@ -811,7 +815,7 @@
 ;; OR are following THIS user
 (defn planviz-update [json-str]
   (let [action (read-json-str json-str)
-        _ (log/info "PLANVIZ" (with-out-str (pprint action)))
+        _ (log/info "PLANVIZ\n" (with-out-str (pprint action)))
         {:keys [host port]} @state
         server (str host ":" port)
         {:keys [planviz remote nick type plid selection pan zoom chat
@@ -847,10 +851,9 @@
   (let [[metadata json-str] msg
         {:keys [exchange routing-key app-id]} metadata
         details (str "MSG from exchange: " exchange " routing-key: " routing-key
-                  " app-id: " app-id
-                  \newline (with-out-str (clojure.pprint/pprint json-str))
-                  )]
+                  " app-id: " app-id)]
     (log/info details)
+    (log/trace (str \newline (with-out-str (clojure.pprint/pprint json-str))))
     (condp = routing-key ;; case does not work with a symbol below
       "network.new" (new-rmq-tpn json-str)
       "network.reset" (network-reset) ;;(tpn-object-update json-str)
@@ -862,13 +865,13 @@
       (unknown-update routing-key json-str))))
 
 ;; This is the message processing loop
-(defn start-msgs [port]
+(defn start-msgs [port log-level]
   (if (get-msgs)
     (log/debug "msgs already running!")
     (let [msgs (chan 10)]
       (swap! state assoc :msgs msgs)
       (if-not (:logging @state)
-        (log-initialize port))
+        (log-initialize port log-level))
       (log/info "msgs started")
       (go-loop [msg (<! msgs)]
         (if-not msg
@@ -914,8 +917,8 @@
       (doseq [r (keys clients)]
         (remove-client r))
       (.close server)
-      (log/info "PLANVIZ server stopped"))
-    (log/info "PLANVIZ server already stopped")))
+      (log/warn "PLANVIZ server stopped"))
+    (log/warn "PLANVIZ server already stopped")))
 
 
 ;; plan input is in normalized (validated) format
@@ -1024,9 +1027,9 @@
 
 ;; input is a vector of files to read
 ;; {TPN|HTN|HTN=TPN}
-(defn startup [host port input cwd]
+(defn startup [host port input cwd log-level]
   (if-not (get-msgs)
-    (start-msgs port)) ;; lazily does log-initialize
+    (start-msgs port log-level)) ;; lazily does log-initialize
   (if (get-in @state [:rmq :connection])
     (shutdown))
   (let [{:keys [rmq-host rmq-port exchange]} (:rmq @state)
@@ -1044,7 +1047,7 @@
             ;; interface to bind to.
             server (http/start-server http-handler {:port port})]
         (lq/bind channel qname exchange {:routing-key "#"})
-        (lc/subscribe channel qname incoming-msgs)
+        (lc/subscribe channel qname incoming-msgs {:auto-ack true})
         (swap! state update-in [:rmq]
           assoc :connection connection :channel channel)
         (log/info (str "RMQ host: " rmq-host " port: " rmq-port
@@ -1112,7 +1115,7 @@
   "Visualize HTN and TPN plans"
   {:added "0.8.0"}
   [options]
-  (let [{:keys [cwd verbose auto exchange rmq-host rmq-port
+  (let [{:keys [cwd verbose log-level auto exchange rmq-host rmq-port
                 host port input url-config]} options
         settings {:auto auto}
         exchange (or exchange rmq-default-exchange)
@@ -1124,4 +1127,4 @@
     (swap! state assoc :settings settings)
     (swap! state update-in [:rmq]
       assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
-    (startup host port input cwd))) ;; lazily does start-msgs
+    (startup host port input cwd log-level))) ;; lazily does start-msgs

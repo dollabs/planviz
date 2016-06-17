@@ -47,7 +47,7 @@
 
 (defn initialize [bounce]
   (tasks/on-started
-    #(ws/setup (make-url :protocol "ws" :uri "/ws")
+    #(ws/setup (make-url :protocol "ws" :uri "/ws" :debug-port [3000 8080])
        {:message read-default
         :open login}))
   (if bounce
