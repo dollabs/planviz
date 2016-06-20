@@ -41,6 +41,8 @@
   {"visualize" (var server/visualize)
    "save-config" #'save-config})
 
+(def log-levels #{"trace" "debug" "info" "warn" "error" "fatal" "report"})
+
 (def #^{:added "0.1.0"}
   cli-options
   "Command line options"
@@ -58,6 +60,13 @@
                 (let [oldv (get m k [])
                       oldv (if (= oldv ["-"]) [] oldv)]
                   (assoc m k (conj oldv v))))]
+   ["-l" "--log-level LEVEL" "Logging level"
+    :default "warn"
+    :parse-fn (fn [level]
+                (if (log-levels level)
+                  level
+                  (throw (Exception. (str "\nlog-level must be one of: "
+                                       log-levels)))))]
    ["-q" "--rmq-host RMQHOST" "RMQ Host"
     :default server/rmq-default-host]
    ["-r" "--rmq-port RMQPORT" "RMQ Port"
@@ -125,9 +134,11 @@
         {:keys [options arguments errors summary]}
         (config-parse-opts cwd args cli-options)
         {:keys [help version verbose auto exchange input
-                rmq-host rmq-port host port url-config]} options
+                log-level rmq-host rmq-port host port url-config]} options
         auto (as-boolean auto)
-        options (assoc options :auto auto :cwd cwd :arguments arguments)
+        log-level (keyword (or log-level "warn"))
+        options (assoc options :auto auto :cwd cwd :log-level log-level
+                  :arguments arguments)
         cmd (or (last arguments) default-action)
         action (get actions cmd)
         verbose? (pos? (or verbose 0))
@@ -150,6 +161,7 @@
         ;; (println "version:" (:planviz-version env))
         )
       (println "verbosity level:" verbose)
+      (println "log level:" log-level)
       (println "rmq-host:" rmq-host)
       (println "rmq-port:" rmq-port)
       (println "auto:" auto)

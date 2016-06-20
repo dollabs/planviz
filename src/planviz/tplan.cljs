@@ -215,7 +215,7 @@
               (let [old-rank (:node/rank node)
                     from (get-node (:edge/from edge))
                     rank (max old-rank (+ (:node/rank from) min-length))]
-                (println "DEBUG rank-sweep EDGE rank" rank)
+                ;; (println "DEBUG rank-sweep EDGE rank" rank)
                 (when (not= rank old-rank)
                   (update-node (assoc node :node/rank rank))
                   (swap! moves conj (node-key-fn node))

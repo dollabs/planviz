@@ -485,7 +485,7 @@ text {
     font-size: 9px;
     font-family: Roboto Condensed, Liberation Sans Narrow, Nimbus Sans Condensed,  Helvetica Narrow, Helvetica, Verdana, Arial, sans-serif;
     pointer-events: none;
-    text-shadow: 0.16em 0.16em 0.10em white, -0.16em -0.16em 0.10em white, -0.16em 0.16em 0.10em white, 0.16em -0.16em 0.10em white;
+    /* text-shadow: 0.16em 0.16em 0.10em white, -0.16em -0.16em 0.10em white, -0.16em 0.16em 0.10em white, 0.16em -0.16em 0.10em white; */
 }
 
 text.node-label {

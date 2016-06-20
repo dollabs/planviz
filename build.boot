@@ -14,26 +14,26 @@
   :source-paths #{"src" "html"}
   :resource-paths #{"src" "html"}
   :dependencies   '[[org.clojure/clojure "1.8.0"]
-                    [org.clojure/clojurescript "1.9.14"]
+                    [org.clojure/clojurescript "1.9.36"]
                     ;; both
                     [avenir "0.2.1"]
                     [dollabs/webtasks "0.2.1"]
                     [dollabs/webkeys "0.2.0"]
-                    [org.clojure/core.async "0.2.374"]
+                    [org.clojure/core.async "0.2.382"]
                     ;; server
                     [org.clojure/tools.cli "0.3.5"]
                     [me.raynes/fs "1.4.6"]
                     [com.cognitect/transit-clj "0.8.285"]
                     [environ "1.0.3"]
-                    [clj-time "0.11.0"]
-                    [com.taoensso/timbre "4.4.0-alpha1"]
+                    [clj-time "0.12.0"]
+                    [com.taoensso/timbre "4.4.0"]
                     [com.novemberain/langohr "3.5.1"]
                     [dollabs/plan-schema "0.2.5"]
                     ;; web server
                     [org.clojure/data.json "0.2.6"]
-                    [ring/ring-core "1.4.0"]
-                    [ring "1.4.0"]
-                    [ring/ring-defaults "0.2.0"]
+                    [ring/ring-core "1.5.0"]
+                    [ring "1.5.0"]
+                    [ring/ring-defaults "0.2.1"]
                     [amalloy/ring-gzip-middleware "0.1.3"]
                     [compojure "1.5.0"]
                     [enlive "1.1.6"]
@@ -61,6 +61,7 @@
   '[clojure.string :as string]
   '[clojure.java.io :as io]
   '[clojure.pprint :refer [pprint]]
+  '[boot.util :as util]
   '[environ.core :refer [env]]
   '[me.raynes.fs :as fs]
   '[adzerk.boot-cljs      :refer [cljs]]
@@ -191,6 +192,7 @@
 (deftask run
   "Run the project."
   [a args ARG [str] "the arguments for the application."]
+  (reset! util/*verbosity* 0) ;; quiet output
   (comp
     (build-cljs)
     (cli :args args)))
