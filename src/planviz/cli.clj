@@ -112,7 +112,7 @@
 (defn config-parse-opts [cwd args cli-options]
   (let [arg0 (first args)
         arg0 (if (and (= 1 (count args)) (re-find #".edn$" arg0)) arg0)
-        config-file (if (fs/exists? arg0)
+        config-file (if (and arg0 (fs/exists? arg0))
                       arg0
                       (if (fs/exists? (str cwd "/config/" arg0))
                         (str cwd "/config/" arg0)))]
