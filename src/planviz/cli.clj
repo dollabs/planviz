@@ -110,11 +110,12 @@
   true)
 
 (defn config-parse-opts [cwd args cli-options]
-  (let [config-file (if (= 1 (count args))
-                      (if (fs/exists? (first args))
-                        (first args)
-                        (if (fs/exists? (str cwd "/config/" (first args) ".edn"))
-                          (str cwd "/config/" (first args) ".edn"))))]
+  (let [arg0 (first args)
+        arg0 (if (and (= 1 (count args)) (re-find #".edn$" arg0)) arg0)
+        config-file (if (and arg0 (fs/exists? arg0))
+                      arg0
+                      (if (fs/exists? (str cwd "/config/" arg0))
+                        (str cwd "/config/" arg0)))]
     (if config-file
       (let [options (load-file config-file)
             arguments (:arguments options)
