@@ -93,11 +93,13 @@ that do not prevent building)
   * *NOTE* this config uses the example plans from **plan-schema**
   * For convenience you may add the [planviz/bin](bin) directory to your `PATH`
 (or simply refer to the startup script as `./bin/planviz`).
-  * Note that the single argument to `planviz FOO` refers to a configuration file
-    with details in `config/FOO.edn`.
+  * Note that the single argument to `planviz FOO.edn` refers to a configuration file
+    with details in `config/FOO.edn`. Alternatively you can give a full
+    path to an *.edn file as the sole argument to planviz (i.e. so it
+    can be located elsewhere than in the config/ directory).
 
    ````
-   $ planviz demo
+   $ planviz demo.edn
    ````
 
 7. After you see `PLANVIZ server ready` you can open a (or several) browser windows to [http://localhost:8080](http://localhost:8080)
