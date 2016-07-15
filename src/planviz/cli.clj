@@ -76,7 +76,7 @@
     :default server/planviz-default-host]
    ["-p" "--port PORT" "PLANVIZ server port"
     :default server/planviz-default-port
-    :parse-fn #(Integer/parseInt %)]
+    :parse-fn #(Long/parseLong %)]
    ["-u" "--url-config URLCONFIG" "URL Configuration file(s)"
     :default []
     :assoc-fn (fn [m k v] (assoc m k (conj (get m k []) v)))]])
@@ -112,10 +112,11 @@
 (defn config-parse-opts [cwd args cli-options]
   (let [arg0 (first args)
         arg0 (if (and (= 1 (count args)) (re-find #".edn$" arg0)) arg0)
-        config-file (if (and arg0 (fs/exists? arg0))
-                      arg0
-                      (if (fs/exists? (str cwd "/config/" arg0))
-                        (str cwd "/config/" arg0)))]
+        config-file (if arg0
+                      (if (fs/exists? arg0)
+                        arg0
+                        (if (fs/exists? (str cwd "/config/" arg0))
+                          (str cwd "/config/" arg0))))]
     (if config-file
       (let [options (load-file config-file)
             arguments (:arguments options)
@@ -177,8 +178,10 @@
         (exit 1 (str "Unknown action: \"" cmd "\". Must be one of: "
                   (keys actions)))
         (usage summary))
-      (try
+      (do ;; try
+        (println "BEFORE ACTION")
         (action options)
+        (println "AFTER ACTION")
         ;; (catch Throwable e ;; note AssertionError not derived from Exception
         ;;   ;; FIXME: use proper logging
         ;;   (binding [*out* *err*]
