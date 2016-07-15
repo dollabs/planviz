@@ -42,7 +42,8 @@
             [plan-schema.core :as pschema
              :refer [composite-key read-json-str write-json-str]]
             [avenir.utils :as au :refer [assoc-if keywordize concatv and-fn]]
-            [me.raynes.fs :as fs]))
+            [me.raynes.fs :as fs]
+            [planviz.net :as net]))
 
 (defn sleep
   "sleeps for the given number of seconds (may be fractional)"
@@ -148,6 +149,10 @@
     (log/warn "PLANVIZ logging initialized at level " log-level
       "\n---------------------------------\n")
     (swap! state assoc :logging true)))
+
+(defn log-if-possible [msg]
+  (when (:logging @state)
+    (log/error msg)))
 
 (def non-websocket-request
   {:status 400
@@ -1028,49 +1033,35 @@
 ;; input is a vector of files to read
 ;; {TPN|HTN|HTN=TPN}
 (defn startup [host port input cwd log-level]
-  (println "STARTUP host" host "port" port "(class port)" (class port))
   (if-not (get-msgs)
     (start-msgs port log-level)) ;; lazily does log-initialize
   (if (get-in @state [:rmq :connection])
     (shutdown))
-  (println "STARTUP 2")
   (let [{:keys [rmq-host rmq-port exchange]} (:rmq @state)
         connection (connect-to-rmq rmq-host rmq-port)]
-    (println "STARTUP 3 connection" connection)
     (if-not connection
       (do
         (println "PLANVIZ cannot connect to RabbitMQ at" rmq-host ":" rmq-port)
         (log/error "PLANVIZ cannot connect to RabbitMQ at" rmq-host ":" rmq-port))
-      (let [_ (println "STARTUP 4")
-            channel (lch/open connection)
-            _ (println "STARTUP 5")
+      (let [channel (lch/open connection)
             _ (le/declare channel exchange "topic")
-            _ (println "STARTUP 6")
             queue (lq/declare channel)
-            _ (println "STARTUP 7")
             qname (.getQueue queue)
             ;; FIXME convert host into Aleph :socket-address
             ;; a `java.net.SocketAddress` specifying both the port and
             ;; interface to bind to.
-            _ (println "STARTUP 8")
             ;; server (http/start-server http-handler
             ;;          {:shutdown-executor? false :port port})
             server (http/start-server http-handler {:port port})]
-        (println "STARTUP 9")
         (lq/bind channel qname exchange {:routing-key "#"})
-        (println "STARTUP 10")
         (lc/subscribe channel qname incoming-msgs {:auto-ack true})
-        (println "STARTUP 11")
         (swap! state update-in [:rmq]
           assoc :connection connection :channel channel)
-        (println "STARTUP 12")
         (log/info (str "RMQ host: " rmq-host " port: " rmq-port
                     " exchange: " exchange))
         (heartbeat-start)
-        (println "STARTUP 13")
         (swap! state assoc :server server
           :host host :port port :rmethods rmethods)
-        (println "STARTUP 14")
         (if-not (reduce and-fn true (for [i input] (load-input i cwd)))
           (do
             (println "PLANVIZ not starting due to errors!")
@@ -1139,8 +1130,12 @@
         rmq-port (or rmq-port rmq-default-port)
         host (or host planviz-default-host)
         port (or port planviz-default-port)]
-    (setup-url-config cwd url-config)
-    (swap! state assoc :settings settings)
-    (swap! state update-in [:rmq]
-      assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
-    (startup host port input cwd log-level))) ;; lazily does start-msgs
+    (if-not (net/port-available? port)
+      (let [msg (str "The port " port " is in use cannot be bound by PLANVIZ")]
+        (println msg))
+      (do
+        (setup-url-config cwd url-config)
+        (swap! state assoc :settings settings)
+        (swap! state update-in [:rmq]
+          assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
+        (startup host port input cwd log-level))))) ;; lazily does start-msgs

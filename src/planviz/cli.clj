@@ -7,6 +7,7 @@
 (ns planviz.cli
   "Temporal Planning Network schema command line interface"
   (:require [clojure.string :as string]
+            [clojure.repl :refer [pst]]
             [clojure.java.io :refer :all] ;; for as-file
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.pprint :as pp :refer [pprint]]
@@ -178,16 +179,14 @@
         (exit 1 (str "Unknown action: \"" cmd "\". Must be one of: "
                   (keys actions)))
         (usage summary))
-      (do ;; try
-        (println "BEFORE ACTION")
+      (try
         (action options)
-        (println "AFTER ACTION")
-        ;; (catch Throwable e ;; note AssertionError not derived from Exception
-        ;;   ;; FIXME: use proper logging
-        ;;   (binding [*out* *err*]
-        ;;     (println "ERROR caught exception:" (.getMessage e)))
-        ;;   (exit 1))
-        ))
+        (catch Throwable e
+          (let [msg (with-out-str (pst e))]
+            (binding [*out* *err*]
+              (server/log-if-possible msg)
+              (println msg)
+              (exit 1))))))
     (exit 0)))
 
 (defn -main
