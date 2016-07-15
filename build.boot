@@ -37,7 +37,7 @@
                     [amalloy/ring-gzip-middleware "0.1.3"]
                     [compojure "1.5.0"]
                     [enlive "1.1.6"]
-                    [aleph "0.4.2-alpha4"]
+                    [aleph "0.4.2-alpha6"]
                     ;; client
                     [com.cognitect/transit-cljs "0.8.237"]
                     [cljsjs/react-dom-server "15.1.0-0"]  ;; for sablono
@@ -158,7 +158,7 @@
 (deftask cider-boot
   "Cider boot params task"
   []
-  (if true ;; CIDER works on the client (true) or server (false)
+  (if false ;; CIDER works on the client (true) or server (false)
     (cljs-dev)
     (comp
       (server-resources)

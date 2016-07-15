@@ -1028,33 +1028,49 @@
 ;; input is a vector of files to read
 ;; {TPN|HTN|HTN=TPN}
 (defn startup [host port input cwd log-level]
+  (println "STARTUP host" host "port" port "(class port)" (class port))
   (if-not (get-msgs)
     (start-msgs port log-level)) ;; lazily does log-initialize
   (if (get-in @state [:rmq :connection])
     (shutdown))
+  (println "STARTUP 2")
   (let [{:keys [rmq-host rmq-port exchange]} (:rmq @state)
         connection (connect-to-rmq rmq-host rmq-port)]
+    (println "STARTUP 3 connection" connection)
     (if-not connection
       (do
         (println "PLANVIZ cannot connect to RabbitMQ at" rmq-host ":" rmq-port)
         (log/error "PLANVIZ cannot connect to RabbitMQ at" rmq-host ":" rmq-port))
-      (let [channel (lch/open connection)
+      (let [_ (println "STARTUP 4")
+            channel (lch/open connection)
+            _ (println "STARTUP 5")
             _ (le/declare channel exchange "topic")
+            _ (println "STARTUP 6")
             queue (lq/declare channel)
+            _ (println "STARTUP 7")
             qname (.getQueue queue)
             ;; FIXME convert host into Aleph :socket-address
             ;; a `java.net.SocketAddress` specifying both the port and
             ;; interface to bind to.
+            _ (println "STARTUP 8")
+            ;; server (http/start-server http-handler
+            ;;          {:shutdown-executor? false :port port})
             server (http/start-server http-handler {:port port})]
+        (println "STARTUP 9")
         (lq/bind channel qname exchange {:routing-key "#"})
+        (println "STARTUP 10")
         (lc/subscribe channel qname incoming-msgs {:auto-ack true})
+        (println "STARTUP 11")
         (swap! state update-in [:rmq]
           assoc :connection connection :channel channel)
+        (println "STARTUP 12")
         (log/info (str "RMQ host: " rmq-host " port: " rmq-port
                     " exchange: " exchange))
         (heartbeat-start)
+        (println "STARTUP 13")
         (swap! state assoc :server server
           :host host :port port :rmethods rmethods)
+        (println "STARTUP 14")
         (if-not (reduce and-fn true (for [i input] (load-input i cwd)))
           (do
             (println "PLANVIZ not starting due to errors!")
