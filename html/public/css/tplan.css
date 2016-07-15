@@ -16,7 +16,7 @@ svg, g, rect, circle, text, symbol, use {
 }
 
 #arrowhead {
-    fill: #444;
+    fill: #444;   """controls color for all the arrowheads""";
 }
 
 #arrowlight {
@@ -56,7 +56,7 @@ svg, g, rect, circle, text, symbol, use {
 
 .activity-normal, .null-activity-normal, .delay-activity-normal, .parallel-edge-normal {
     fill: none;
-    stroke: #444;
+    stroke: #66ccff;  /* gray #444  light-blue  #66ccff */
     stroke-width: 3.0px;
 }
 
@@ -74,7 +74,7 @@ svg, g, rect, circle, text, symbol, use {
 
 .choice-edge-normal {
     fill: none;
-    stroke: #888;
+    stroke: #888;         /*  Bookmark!  This needs to be talked about  */
     stroke-width: 3.0px;
 }
 
@@ -122,33 +122,45 @@ svg, g, rect, circle, text, symbol, use {
                                   stroke-width: 8px;
                               }
 
+/*.............Activities(TPN)................*/
+
 .activity-active, .null-activity-active, .delay-activity-active, .activity-started, .null-activity-started, .delay-activity-started, .choice-edge-active, .parallel-edge-active, .choice-edge-started, .parallel-edge-started {
     fill: none;
-    stroke: blue;
+    stroke: #00ff00;  /*flashing green*/
+    animation-name: example;
+    animation-duration: 1s;
+    animation-iteration-count: infinite;
     stroke-width: 3.0px;
+}
+
+/* Standard syntax */
+@keyframes example {
+    0% {stroke: #80ff80;}
+    50% {stroke: #00b300;}
+    100% {stroke: #80ff80;}
 }
 
 .activity-finished, .null-activity-finished, .delay-activity-finished, .choice-edge-finished, .parallel-edge-finished {
     fill: none;
-    stroke: #00ff00;
+    stroke: #009900;   /*dark green*/
     stroke-width: 3.0px;
 }
 
 .activity-negotiation, .null-activity-negotiation, .delay-activity-negotiation, .activity-start, .null-activity-start, .delay-activity-start, .choice-edge-negotiation, .parallel-edge-negotiation  {
     fill: none;
-    stroke: orange;
+    stroke: #80ff80;   /*light green*/
     stroke-width: 3.0px;
 }
 
 .activity-best, .null-activity-best, .delay-activity-best, .choice-edge-best, .parallel-edge-best {
     fill: none;
-    stroke: magenta;
+    stroke: #ffbf00;   /*gold*/
     stroke-width: 3.0px;
 }
-
+/*TODO infeasile is same as impossible. Update as appropriate*/
 .activity-impossible, .null-activity-impossible, .delay-activity-impossible, .choice-edge-impossible, .parallel-edge-impossible  {
     fill: none;
-    stroke: grey;
+    stroke: silver;    /*silver*/
     stroke-width: 3.0px;
 }
 
@@ -264,10 +276,11 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 1px;
 }
 
+/*.............Nodes(TPN)................*/
+
 .parallel-normal, .choice-normal, .unchoice-normal, .state-normal {
-    /* fill: #0099cc; */
-    fill: white;
-    stroke: #006699;
+    fill: #66ccff;  """normal""";
+    stroke: #66ccff;  /* #777777*/;
     stroke-width: 3px;
 }
 
@@ -280,39 +293,39 @@ svg, g, rect, circle, text, symbol, use {
 }
 
 .parallel-best, .choice-best, .unchoice-best, .state-best {
-    fill: magenta;
-    stroke: #006699;
+    fill: #ffbf00; """gold #ffbf00""";
+    stroke: #ffbf00;  /* #b38600;*/
     stroke-width: 3px;
 }
 
 .parallel-impossible, .choice-impossible, .unchoice-impossible, .state-impossible {
-    fill: silver;
-    stroke: #006699;
+    fill: silver;  """gray""";
+    stroke: silver; /*#555555;*/
     stroke-width: 3px;
 }
 
 .parallel-reached, .choice-reached, .unchoice-reached, .state-reached {
-    fill: #00ff00;
-    stroke: #006699;
+    fill: #009900; """DARK GREENn""";
+    stroke: #009900;/*#004d00;*/
     stroke-width: 3px;
 }
 
 .parallel-failed, .choice-failed, .unchoice-failed, .state-failed {
-    fill: #ff0000;
-    stroke: #006699;
+    fill: #ff0000;   """red""";
+    stroke: #ff0000; /*#990000;*/
     stroke-width: 3px;
 }
 
 /* typically :started is not used for TPN nodes */
 .parallel-started, .choice-started, .unchoice-started, .state-started {
-    fill: blue;
-    stroke: #006699;
+    fill: #00ff00; """green""";
+    stroke: #009900; """darker green""";
     stroke-width: 3px;
 }
 
 .hem-normal {
-    fill: white;
-    stroke: Chocolate;
+    fill: #b3e6ff; /* #66ccff = light-blue   #b3e6ff = lighter-blue  white*/
+    stroke: #b3e6ff;
     stroke-width: 3.0px;
 }
 
@@ -322,40 +335,41 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3.0px;
 }
 
+/* Bookmark!   This one below seems redundant*/
 .hem-reached {
-    fill: #00ff00;
-    stroke: Chocolate;
+    fill: #009900;
+    stroke: #009900;
     stroke-width: 3.0px;
 }
 
 .hem-best {
-    fill: magenta;
-    stroke: Chocolate;
+    fill: #ffbf00; /*gold*/
+    stroke: #ffbf00;
     stroke-width: 3.0px;
 }
 
 .hem-impossible {
     fill: silver;
-    stroke: Chocolate;
+    stroke: silver;
     stroke-width: 3.0px;
 }
 
 .hem-reached {
-    fill: #00ff00;
-    stroke: Chocolate;
+    fill: #009900;
+    stroke: #009900;
     stroke-width: 3.0px;
 }
 
 .hem-failed {
-    fill: red;
-    stroke: Chocolate;
+    fill: #ff0000;
+    stroke: #ff0000;
     stroke-width: 3.0px;
 }
 
 .hem-started {
     /* fill: #0099cc; */
-    fill: blue;
-    stroke: Chocolate;
+    fill: #00ff00;
+    stroke: #00ff00;
     stroke-width: 3.0px;
 }
 
@@ -366,7 +380,7 @@ svg, g, rect, circle, text, symbol, use {
 }
 
 .active, .started {
-    fill: blue;
+    fill: #00ff00; /*Light green*/
     stroke: #006699;
     stroke-width: 4px;
 }
