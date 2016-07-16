@@ -1,0 +1,15 @@
+;; Copyright © 2016 Dynamic Object Language Labs Inc.
+;;
+;; This software is licensed under the terms of the
+;; Apache License, Version 2.0 which can be found in
+;; the file LICENSE at the root of this distribution.
+
+{:require [planviz.client]
+ :init-fns [planviz.client/reload]
+ :compiler-options {:asset-path "js/app.out"
+                    :source-map true
+                    :source-map-timestamp true
+                    :verbose false
+                    :cache-analysis true
+                    :optimizations :none
+                    :pretty-print false}}
