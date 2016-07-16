@@ -158,7 +158,7 @@
 (deftask cider-boot
   "Cider boot params task"
   []
-  (if true ;; CIDER works on the client (true) or server (false)
+  (if false ;; CIDER works on the client (true) or server (false)
     (cljs-dev)
     (comp
       (server-resources)

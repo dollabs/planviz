@@ -2,7 +2,10 @@
 /logs
 /pom.xml
 /out
-/resources
+/resources/planviz
+/resources/public/js/app.cljs.edn
+/resources/public/js/app.js
+/resources/public/js/app.out
 
 # Emacs backup files
 *~
