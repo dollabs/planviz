@@ -77,7 +77,7 @@
   (let [n (if (keyword? s) (name s) s)]
     (string/replace n "." "-")))
 
-(def xchar 4)
+(def xchar 5)
 (def ychar 10)
 (def ydesc 3) ;; descender
 
@@ -306,13 +306,16 @@
               marker-end (if cnstr?
                            (if hidden
                              nil
-                             (str "url(#arrow" length-class ")"))
+                             (str "url(#arrow" length-class
+                               ;; "-" (name state)
+                               ")"))
                            (if virtual? "url(#arrowlight)"
                                (if (keyword-identical? network-type :hem-network)
                                  "url(#arrowhem)"
                                  (if hidden
                                    nil ;; "url(#arrowlight)"
-                                   "url(#arrowhead)"))))
+                                   ;; "url(#arrowhead)"
+                                   (str "url(#arrowhead-" (name state) ")")))))
               marker-start nil ;; (if (keyword-identical? type :choice-edge) "url(#choicehem)")
               class (str (safe-type-name type) "-"
                       (if hidden "hidden" (name state)) length-class)
@@ -441,6 +444,15 @@
 (def markers
   (str
     "<marker id=\"arrowhead\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+    "<marker id=\"arrowhead-normal\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+    "<marker id=\"arrowhead-impossible\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+    "<marker id=\"arrowhead-start\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+    "<marker id=\"arrowhead-negotiation\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+    "<marker id=\"arrowhead-best\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+    "<marker id=\"arrowhead-active\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+    "<marker id=\"arrowhead-started\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+    "<marker id=\"arrowhead-finished\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+    "<marker id=\"arrowhead-failed\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
     "<marker id=\"choicehem\" orient=\"auto\" markerHeight=\"5\" markerWidth=\"5\" refY=\"0\" refX=\"-70\" viewBox=\"-5 -5 10 10\"><circle r=\"5\"></circle></marker>\n"
     "<marker id=\"arrowhem\" orient=\"auto\" markerHeight=\"5\" markerWidth=\"5\" refY=\"0\" refX=\"5\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
     "<marker id=\"arrowlight\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"19\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"

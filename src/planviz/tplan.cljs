@@ -45,7 +45,7 @@
                        :ysize 10
                        :nodesep 40
                        :ranksep 50 ;; (* ??? (+ ysize nodesep))
-                       :label-char 5
+                       :label-char 7
                        :min-length 1
                        :plid nil
                        :network-plid-id nil
@@ -55,7 +55,7 @@
                        :ysize 20; 50
                        :nodesep 80 ;; 250
                        :ranksep 100 ;; 250 ;; (* ??? (+ ysize nodesep))
-                       :label-char 5
+                       :label-char 7
                        :min-length 1
                        :plid nil
                        :network-plid-id nil
