@@ -2,10 +2,9 @@
 /logs
 /pom.xml
 /out
-/resources/planviz
-/resources/public/js/app.cljs.edn
-/resources/public/js/app.js
-/resources/public/js/app.out
+
+# for this project resources is a *target* directory
+/resources
 
 # Emacs backup files
 *~
