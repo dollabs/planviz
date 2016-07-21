@@ -65,13 +65,14 @@ svg, g, rect, circle, text, symbol, use {
 }
 
 
-.activity-normal, .null-activity-normal, .delay-activity-normal, .parallel-edge-normal {
+.activity-normal, .null-activity-normal, .delay-activity-normal, .parallel-edge-normal, .aggregation-normal {
     fill: none;
     stroke: #66ccff;  /* gray #444  light-blue  #66ccff */
     stroke-width: 3.0px;
 }
 
-.aggregation-normal {
+.aggregation-mixed
+{
     fill: none;
     stroke: #111;
     stroke-width: 3.0px;
@@ -136,7 +137,7 @@ svg, g, rect, circle, text, symbol, use {
 
 /*.............Activities(TPN)................*/
 
-.activity-active, .null-activity-active, .delay-activity-active, .activity-started, .null-activity-started, .delay-activity-started, .choice-edge-active, .parallel-edge-active, .choice-edge-started, .parallel-edge-started {
+.activity-active, .null-activity-active, .delay-activity-active, .activity-started, .null-activity-started, .delay-activity-started, .choice-edge-active, .parallel-edge-active, .choice-edge-started, .parallel-edge-started, .aggregation-active {
     fill: none;
     stroke: #00ff00;  /*flashing green*/
     animation-name: example;
@@ -152,31 +153,31 @@ svg, g, rect, circle, text, symbol, use {
     100% {stroke: #80ff80;}
 }
 
-.activity-finished, .null-activity-finished, .delay-activity-finished, .choice-edge-finished, .parallel-edge-finished {
+.activity-finished, .null-activity-finished, .delay-activity-finished, .choice-edge-finished, .parallel-edge-finished, .aggregation-finished {
     fill: none;
     stroke: #009900;   /*dark green*/
     stroke-width: 3.0px;
 }
 
-.activity-negotiation, .null-activity-negotiation, .delay-activity-negotiation, .activity-start, .null-activity-start, .delay-activity-start, .choice-edge-negotiation, .parallel-edge-negotiation  {
+.activity-negotiation, .null-activity-negotiation, .delay-activity-negotiation, .activity-start, .null-activity-start, .delay-activity-start, .choice-edge-negotiation, .parallel-edge-negotiation, aggregation-negotiation  {
     fill: none;
     stroke: #80ff80;   /*light green*/
     stroke-width: 3.0px;
 }
 
-.activity-best, .null-activity-best, .delay-activity-best, .choice-edge-best, .parallel-edge-best {
+.activity-best, .null-activity-best, .delay-activity-best, .choice-edge-best, .parallel-edge-best, .aggregation-best {
     fill: none;
     stroke: #ffbf00;   /*gold*/
     stroke-width: 3.0px;
 }
 /*TODO infeasile is same as impossible. Update as appropriate*/
-.activity-impossible, .null-activity-impossible, .delay-activity-impossible, .choice-edge-impossible, .parallel-edge-impossible  {
+.activity-impossible, .null-activity-impossible, .delay-activity-impossible, .choice-edge-impossible, .parallel-edge-impossible, .aggregation-impossible  {
     fill: none;
     stroke: silver;    /*silver*/
     stroke-width: 3.0px;
 }
 
-.activity-failed, .null-activity-failed, .delay-activity-failed, .choice-edge-failed, .parallel-edge-failed  {
+.activity-failed, .null-activity-failed, .delay-activity-failed, .choice-edge-failed, .parallel-edge-failed, .aggregation-failed  {
     fill: none;
     stroke: red;
     stroke-width: 3.0px;

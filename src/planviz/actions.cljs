@@ -1477,10 +1477,11 @@
             (assoc (dissoc node :plans/ui-opts :node/tpn-selection)
               :node/state :normal :node/hidden false)))
         (doseq [edge edges]
-          (if (keyword-identical? (:edge/type edge) :activity)
+          (if (activity? edge)
             (st/plans-merge-edge
               (assoc (dissoc edge :edge/from :edge/to)
-                :edge/state :normal :edge/hidden
+                :edge/state :normal
+                :edge/hidden
                 (keyword-identical? (:edge/type edge) :aggregation)
                 ))))))))
 

@@ -199,11 +199,11 @@
                (let [r 12
                      hem-size (* 4 r)
                      hem-offset (- (/ hem-size 2))]
-                 [:rect {:class (target-class selected?)
+                 [:rect {:class (target-class (and selected? (not hidden)))
                          :x (+ (* 2 hem-offset) x) :y (+ hem-offset y)
                          :rx 3 :ry 3
                          :width (* 2 hem-size) :height hem-size}])
-               [:circle {:class (target-class selected?)
+               [:circle {:class (target-class (and selected? (not hidden)))
                          :cx x :cy y :r 16}])]
             [use]
             labels
@@ -224,17 +224,14 @@
             dh (sqrt (+ (* dx dx) (* dy dy)))
             ranksep 70 ;; grab from state?
             ratio (/ dh ranksep)
-            ;; a (+ 0.75 (* 0.85 (max (- (min (/ dh ranksep) 16) 2) 0)))
             offset (case type ;; FIXME differentiate constraints
-                     :reward>=-constraint 0.58
-                     :cost<=-constraint 0.65
-                     0.80)
-            ;; offset (- offset 0.06)
+                     :reward>=-constraint 0.8
+                     :cost<=-constraint 0.9
+                     1.0)
             factor (case type ;; FIXME differentiate constraints
-                     :reward>=-constraint 0.55
-                     :cost<=-constraint 0.70
-                     0.85)
-            factor (- factor 0.50)
+                     :reward>=-constraint 0.75
+                     :cost<=-constraint 0.9
+                     1.1)
             a (+ offset (* factor (max (- (min (/ dh ranksep) 16) 2) 0)))
             r (* a dh)
             z (- r (/ (sqrt (- (* 4 r r) (* dh dh))) 2))
@@ -324,7 +321,8 @@
                       :marker-end marker-end)
               target-attrs (if (#{:activity :delay-activity
                                   :choice-edge :parallel-edge} type)
-                             {:class (target-class selected?) :d d})
+                             {:class (target-class
+                                       (and selected? (not hidden))) :d d})
               extra (construct-extra cost reward probability guard)
               tip (if (empty? extra) (str (name id) " " (name state)) extra)]
           (if (and hidden (keyword-identical? type :aggregation))
