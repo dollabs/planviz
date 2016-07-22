@@ -137,7 +137,7 @@ svg, g, rect, circle, text, symbol, use {
 
 /*.............Activities(TPN)................*/
 
-.activity-active, .null-activity-active, .delay-activity-active, .activity-started, .null-activity-started, .delay-activity-started, .choice-edge-active, .parallel-edge-active, .choice-edge-started, .parallel-edge-started, .aggregation-active {
+.activity-active, .null-activity-active, .delay-activity-active, .activity-started, .null-activity-started, .delay-activity-started, .choice-edge-active, .parallel-edge-active, .choice-edge-started, .parallel-edge-started, .aggregation-started, .aggregation-active {
     fill: none;
     stroke: #00ff00;  /*flashing green*/
     animation-name: example;
@@ -159,7 +159,7 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3.0px;
 }
 
-.activity-negotiation, .null-activity-negotiation, .delay-activity-negotiation, .activity-start, .null-activity-start, .delay-activity-start, .choice-edge-negotiation, .parallel-edge-negotiation, aggregation-negotiation  {
+.activity-negotiation, .null-activity-negotiation, .delay-activity-negotiation, .activity-start, .null-activity-start, .delay-activity-start, .choice-edge-negotiation, .parallel-edge-negotiation, .aggregation-start, .aggregation-negotiation  {
     fill: none;
     stroke: #80ff80;   /*light green*/
     stroke-width: 3.0px;

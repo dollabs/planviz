@@ -532,8 +532,8 @@
         (if-not (empty? more)
           (recur mj (first more) (rest more)))))))
 
-(defn network-update [update]
-  (broadcast-clients nil {:rmethod :network-update :args [update]}))
+;; (defn network-update [update]
+;;   (broadcast-clients nil {:rmethod :network-update :args [update]}))
 
 (defn new-network-notification [network]
   (broadcast-clients nil {:rmethod :new-network-notification :args [network]}))
@@ -617,16 +617,16 @@
 ;; (defn get-end-node []
 ;;   (get-in @state [:networks "rmq-tpn" :end-node]))
 
-(defn update-object-state [uid tpn-object-state]
+;; (defn update-object-state [uid tpn-object-state]
 
-  ;; do NOT attempt to update local state --> just send updates to clients
-  ;; in any case the parts would become obosolete
-  ;; (swap! state assoc-in [:networks "rmq-tpn" :objects uid :tpn-object-state]
-  ;;   tpn-object-state)
-  (network-update {:plid (:rmq-plan-id @state) :update-uid uid :state tpn-object-state})
-  )
-  ;; (if (and (= tpn-object-state :reached) (= uid (get-end-node)))
-  ;;   (log/debug "end-node reached:" uid "\n+++++++++++++++++++++++++++")))
+;;   ;; do NOT attempt to update local state --> just send updates to clients
+;;   ;; in any case the parts would become obosolete
+;;   ;; (swap! state assoc-in [:networks "rmq-tpn" :objects uid :tpn-object-state]
+;;   ;;   tpn-object-state)
+;;   (network-update {:plid (:rmq-plan-id @state) :update-uid uid :state tpn-object-state})
+;;   )
+;;   ;; (if (and (= tpn-object-state :reached) (= uid (get-end-node)))
+;;   ;;   (log/debug "end-node reached:" uid "\n+++++++++++++++++++++++++++")))
 
 ;; returns the path of the planviz tmpdir or false if unable to create
 (defn user-tmpdir [program]
