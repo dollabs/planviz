@@ -29,8 +29,8 @@
 (defn login [ & args]
   (if (fn? ws/add-rmethod)
     (do
-      (ws/add-rmethod ws/ws
-        :network-update actions/network-update)
+      ;; (ws/add-rmethod ws/ws
+      ;;   :network-update actions/network-update)
       (ws/add-rmethod ws/ws
         :network-updates actions/network-updates)
       (ws/add-rmethod ws/ws
