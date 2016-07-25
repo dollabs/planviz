@@ -219,6 +219,7 @@
       ;; for display
       :node/selected?
       :node/aggregated?
+      :node/number
       ])
   Object
   (render [this]
@@ -279,6 +280,7 @@
       :edge/hidden
       ;; for display
       :edge/selected?
+      :edge/number
       {:edge/from ?node} {:edge/to ?node}])
   Object
   (render [this]
@@ -339,6 +341,7 @@
       :edge/hidden
       ;; for display
       :edge/selected?
+      :edge/number
       {:edge/from ?node} {:edge/to ?node}])
   Object
   (render [this]

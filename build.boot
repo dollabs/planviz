@@ -28,7 +28,7 @@
                     [clj-time "0.12.0"]
                     [com.taoensso/timbre "4.4.0"]
                     [com.novemberain/langohr "3.5.1"]
-                    [dollabs/plan-schema "0.2.5"]
+                    [dollabs/plan-schema "0.2.6"]
                     ;; web server
                     [org.clojure/data.json "0.2.6"]
                     [ring/ring-core "1.5.0"]
@@ -158,7 +158,7 @@
 (deftask cider-boot
   "Cider boot params task"
   []
-  (if true ;; CIDER works on the client (true) or server (false)
+  (if false ;; CIDER works on the client (true) or server (false)
     (cljs-dev)
     (comp
       (server-resources)

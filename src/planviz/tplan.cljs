@@ -15,7 +15,7 @@
               ;; [planviz.components :as comp]
               [planviz.ui :as ui
                :refer [node-key-fn edge-key-fn network-key-fn non-zero?
-                       constraint? activity? begin?]]))
+                       constraint? activity-type? begin?]]))
 
 ;; helper function
 (defn reversev [s]
@@ -295,7 +295,7 @@
                           (swap! visit conj from))))))
                 (map-outgoing node
                   (fn [edge]
-                    (when (activity? edge)
+                    (when (activity-type? edge)
                       (let [{:keys [node/rank]} node
                             node-plid-id (node-key-fn node)
                             {:keys [edge/to edge/type]} edge
@@ -1013,7 +1013,7 @@
                             (let [{:keys [edge/type edge/hidden edge/weight]}
                                   (get-edge edge-id)]
                               (+ sum
-                                (if (and (activity? type)
+                                (if (and (activity-type? type)
                                       (not (or hidden (zero? weight))))
                                   1 0))))
                   n-outgoing (reduce edge-fn 0 outgoing)
@@ -1039,7 +1039,7 @@
                             (let [{:keys [edge/type edge/hidden edge/weight]}
                                   (get-edge edge-id)]
                               (+ sum
-                                (if (and (activity? type)
+                                (if (and (activity-type? type)
                                       (not (or hidden (zero? weight))))
                                   1 0))))
                   n-incoming (reduce edge-fn 0 incoming)
