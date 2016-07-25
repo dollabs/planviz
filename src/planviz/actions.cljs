@@ -1541,22 +1541,23 @@
           (sleep 5) ;; pace the browser
           (chain #(user-action action)))))))
 
-;; FIXME: verify TPN before HTN
-;; (defn add-plan [plid plan-details]
-;;   (let [{:keys [ui/show-plan ui/show-network ui/network-type]} (st/get-ui-opts)
-;;         {:keys [n-keys loaded? corresponding]} (st/app-get-plan plid)]
-;;     ;; (println "ADD-PLAN" plid "DETAILS" plan-details
-;;     ;;   "loaded?" loaded? "show-plan" show-plan)
-;;     (if-not n-keys
-;;       (st/app-set-plan plid plan-details))
-;;     (status-msg "executing" plid)
-;;     (if loaded?
-;;       ;; only switch if not currently showing this plan or the corresponding one
-;;       (when-not (or (= show-plan plid) (= show-plan corresponding))
-;;         (display-plan plid))
-;;       (-> (load-plan plid) ;; loading on demand
-;;         (sleep 5) ;; pace the browser
-;;         (chain #(display-plan plid))))))
+;; NOTE this is used ONLY for TPN's over RMQ --
+;; Otherwise we would need to verify TPN was loaded before HTN
+(defn add-plan [plid plan-details]
+  (let [{:keys [ui/show-plan ui/show-network ui/network-type]} (st/get-ui-opts)
+        {:keys [n-keys loaded? corresponding]} (st/app-get-plan plid)]
+    ;; (println "ADD-PLAN" plid "DETAILS" plan-details
+    ;;   "loaded?" loaded? "show-plan" show-plan)
+    (if-not n-keys
+      (st/app-set-plan plid plan-details))
+    (status-msg "executing" plid)
+    (if loaded?
+      ;; only switch if not currently showing this plan or the corresponding one
+      (when-not (or (= show-plan plid) (= show-plan corresponding))
+        (display-plan plid))
+      (-> (load-plan plid) ;; loading on demand
+        (sleep 5) ;; pace the browser
+        (chain #(display-plan plid))))))
 
 ;; set the state of all nodes and edges to normal in the
 ;; selected and corresponding plan(s)
