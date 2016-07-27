@@ -321,7 +321,7 @@
                 ))
           start (tasks/deferred)
           finish (-> start
-                   (sleep 5) ;; pace
+                   (sleep 30) ;; pace
                    (chain #(balance-sweep d min-length @visit done)))]
       (tasks/on-realized finish #(identity true)) ;; consume finish
       (success! start true)
@@ -761,7 +761,7 @@
         true)
       (let [start (tasks/deferred)
             finish (-> start
-                     (sleep 5) ;; pace
+                     (sleep 100) ;; pace
                      (chain #(mincross-sweep d max-iterations
                                (inc i) (transpose (wmedian br i) i))))]
         (tasks/on-realized finish #(identity true)) ;; consume finish
@@ -1217,7 +1217,7 @@
   @graph)
 
 (defn layout [plan]
-  (let [a-little 5
+  (let [a-little 30
         start (tasks/deferred)
         finish (-> start
                  (sleep a-little)
@@ -1228,7 +1228,7 @@
                  (chain initialize-plan)
                  (sleep a-little)
                  (chain rank)
-                 (sleep a-little)
+                 (sleep (* 3 a-little))
                  (chain save-ranking)
                  (sleep a-little)
                  (chain balance)

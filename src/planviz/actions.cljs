@@ -11,6 +11,7 @@
             [cljs.pprint :refer [pprint]]
             [avenir.utils :as au :refer [assoc-if concatv as-boolean as-int
                                          as-float remove-fn vec-index-of]]
+            [avenir.math :as am :refer [log2]]
             [webtasks.tasks :as tasks
              :refer [on-realized chain sleep success! error!]]
             [webtasks.ws :as ws]
@@ -164,9 +165,13 @@
   (let [plan-id (first (keys (:plan/by-plid plan)))
         start (tasks/deferred)
         finish (-> start
+                 (sleep 100)
                  (chain tplan/layout)
+                 (sleep 100)
                  (chain st/new-plan)
-                 (chain update-tpn-end))]
+                 (sleep 100)
+                 (chain update-tpn-end)
+                 (sleep 200))]
     (success! start plan)
     finish))
 
@@ -324,7 +329,7 @@
                   (apply-network-updates false))))
           (let [start (tasks/deferred)
                 finish (-> start
-                         (sleep 5) ;; pace the loading
+                         (sleep (+ 30 (* 5 (log2 n-keys)))) ;; pace the loading
                          (chain #(do
                                    (request-plan-part plan-id have-parts)
                                    true)))]
@@ -605,29 +610,20 @@
 (defn map-outgoing [node edge-fn]
   (doall (map (comp edge-fn st/plans-get-edge) (:node/outgoing node))))
 
-(defn is-within? [sel id]
-  (let [node (st/plans-get-node id)
-        {:keys [node/end]} node
-        sel-id (second sel)
-        within (atom (= sel-id end))]
-    (if-not @within
-      (visit-nodes id #{end}
-        (fn [node]
-          (if (= sel-id (node-key-fn node))
-            (do
-              (reset! within true)
-              nil)
-            (map-outgoing node
-              (fn [edge]
-                (if (= sel-id (edge-key-fn edge))
-                  (do
-                    (reset! within true)
-                    nil)
-                  (let [{:keys [edge/type edge/to
-                                edge/weight edge/hidden]} edge]
-                    (if (activity-type? type)
-                      (node-key-fn to))))))))))
-    @within))
+;; new generation using :node/number and :edge/number
+;; is sel within node-id?
+(defn is-within-node? [sel node-id]
+  (let [node (st/plans-get-node node-id)
+        {:keys [node/number]} node
+        [element id] sel
+        sel-number (if (= :node element)
+                     (:node/number (st/plans-get-node id))
+                     (:edge/number (st/plans-get-edge id)))
+        number-n (count number)
+        sel-number-n (count sel-number)]
+    (and (> sel-number-n number-n)
+      (= number
+        (vec (take number-n sel-number))))))
 
 ;; return the parts of sub in selection
 (defn selection-subset [sub selection]
@@ -638,7 +634,7 @@
                       (if-not b
                         false
                         (if (or (= a b) (and (= (first b) :node)
-                                          (is-within? a (second b))))
+                                          (is-within-node? a (second b))))
                           true
                           (recur (first b-more) (rest b-more)))))
             a-subs (if within? (conj a-subs a) a-subs)]
@@ -1082,13 +1078,13 @@
   "Display a plan"
   [plid &[opts]]
   (let [{:keys [load-delay]} opts
-        load-delay (+ (or load-delay 0) 100)
-        opts (assoc opts :load-delay load-delay)
         plid (if (string? plid)
                   (keyword (string/replace-first plid  #"^:" ""))
                   plid)]
     (when-not (no-plan? plid)
       (let [{:keys [loaded? type corresponding n-keys]} (st/app-get-plan plid)
+            load-delay (+ (or load-delay 0) (+ 100 (* 5 (log2 n-keys))))
+            opts (assoc opts :load-delay load-delay)
             plid-type type
             plid-loaded? loaded?
             {:keys [loaded? focus]} (if corresponding
@@ -1145,7 +1141,8 @@
                   plan-id)]
     (when-not (no-plan? plan-id)
       (let [d (tasks/deferred)
-            dtimeout (tasks/timeout! d 60000 :timed-out)
+            secs (* 3 60 1000)
+            dtimeout (tasks/timeout! d secs :timed-out)
             {:keys [loaded? n-keys parts n-parts]} (st/app-get-plan plan-id)
             have-parts (if parts (count parts) 0)
             reload? (:reload? opts)
@@ -1447,7 +1444,6 @@
       (if e (menu-click-handled e)))))
 
 (defn user-action [action]
-  (println "USER-ACTION" action)
   (let [client (st/app-get :app/client)
         ui-opts (st/get-ui-opts)
         showing (:ui/show-plan ui-opts)
@@ -1471,11 +1467,8 @@
         ready? (and plid-loaded? (not load-corresponding?)
                  (= showing to-show))
         opts {:auto true}]
-    (println "  blank-screen?" blank-screen? "showing" showing
-      "plid" plid "plid-loaded?" plid-loaded?
-      "corresponding" corresponding "loaded?" loaded?
-      "tpn-plan" tpn-plan "htn-plan" htn-plan
-      "to-show" to-show "ready?" ready?)
+    (when (not= remote client)
+      (println "USER-ACTION" action))
     (if ready?
       (do
         (case action-type
@@ -1529,16 +1522,16 @@
         true) ;; for deferred
       (if load-corresponding?
         (-> (load-plan tpn-plan opts) ;; LOAD TPN first!
-          (sleep 5) ;; pace the browser
+          (sleep 30) ;; pace the browser
           (chain #(load-plan htn-plan opts))
-          (sleep 5) ;; pace the browser
+          (sleep 30) ;; pace the browser
           (chain #(display-plan to-show opts))
-          (sleep 5) ;; pace the browser
+          (sleep 30) ;; pace the browser
           (chain #(user-action action)))
         (-> (load-plan plid opts) ;; loading on demand
-          (sleep 5) ;; pace the browser
+          (sleep 30) ;; pace the browser
           (chain #(display-plan to-show opts))
-          (sleep 5) ;; pace the browser
+          (sleep 30) ;; pace the browser
           (chain #(user-action action)))))))
 
 ;; NOTE this is used ONLY for TPN's over RMQ --
@@ -1556,7 +1549,7 @@
       (when-not (or (= show-plan plid) (= show-plan corresponding))
         (display-plan plid))
       (-> (load-plan plid) ;; loading on demand
-        (sleep 5) ;; pace the browser
+        (sleep 30) ;; pace the browser
         (chain #(display-plan plid))))))
 
 ;; set the state of all nodes and edges to normal in the

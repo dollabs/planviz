@@ -627,9 +627,9 @@
       (if loading?
         [:div#plans [:div.load-container.load5 [:div.loader "Loading..."]]]
         [:svg#bigplan {:viewBox viewbox
-                       :style {:top (str big-top)
-                               :left (str big-left)}
-                       :width big-w :height big-h
+                       :style {:top (str big-top "px")
+                               :left (str big-left "px")}
+                       :width (str big-w "px") :height (str big-h "px")
                        :on-click (partial graph-click nil)}
          (svg-defs)
          (concatv
