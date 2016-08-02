@@ -571,8 +571,8 @@
   (let [bigplan (gdom/getElement "bigplan")
         style (str "top:" top "px;left:" left "px;")]
     (when bigplan
-      (.setAttribute bigplan "width", width)
-      (.setAttribute bigplan "height", height)
+      (.setAttribute bigplan "width", (str width "px"))
+      (.setAttribute bigplan "height", (str height "px"))
       (.setAttribute bigplan "style", style))))
 
 (defn app-merge-pan-zoom [pz & [both?]]

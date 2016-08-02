@@ -74,7 +74,7 @@
 
 (def activity-types #{:activity :null-activity :delay-activity})
 
-(defn activity? [edge-or-type]
+(defn activity-type? [edge-or-type]
   (activity-types (if (map? edge-or-type)
                       (:edge/type edge-or-type)
                       edge-or-type)))
@@ -185,7 +185,7 @@
                    node/type node/state node/x node/y node/hidden
                    node/label node/sequence-label
                    node/probability node/selected?
-                   node/tpn-selection] :as props}]
+                   node/tpn-selection node/number] :as props}]
   (let [{:keys [ui/network-type ui/node-ids? ui/tooltips?
                 ui/graph-click]} ui-opts
         state (if tpn-selection
@@ -204,50 +204,52 @@
                       :else
                       "state")
                     (if hidden "-hidden"))
-              css (str xlink "-"
-                    (if (keyword-identical? type :virtual) "virtual-")
-                    (name state))
-              use [:use {:class css :x x :y y :xlinkHref (str "#" xlink)
-                         ;; :on-click #(nodeclick id)
-                         }]
-              top (- y 10)
-              ychar 8
-              ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
-              label (if sequence-label
-                      (str label "\n▹ " sequence-label)
-                      label)
-              lines (if label (string/split label #"\n"))
-              labels (if (and lines (not hidden))
-                       (for [i (range (count lines))
-                             :let [lab (get lines i)]]
-                         [:text {:class "node-label"
-                                 :textAnchor "middle"
-                                 :x x :y (+ top (* i ychar))} lab]))
-              y-node-id (+ y (if (keyword-identical? network-type :hem-network) 30 20))
-              tip (str (name id) " " (name state))]
-          (concatv
-            [:g.node
-             (if (fn? graph-click)
-               {:on-click (partial graph-click props)
-                :on-context-menu (partial graph-click props)
-                })
-             ]
-            [(if (keyword-identical? type :htn-expanded-method)
-               (let [r 12
-                     hem-size (* 4 r)
-                     hem-offset (- (/ hem-size 2))]
-                 [:rect {:class (target-class (and selected? (not hidden)))
-                         :x (+ (* 2 hem-offset) x) :y (+ hem-offset y)
-                         :rx 3 :ry 3
-                         :width (* 2 hem-size) :height hem-size}])
-               [:circle {:class (target-class (and selected? (not hidden)))
-                         :cx x :cy y :r 16}])]
-            [use]
-            labels
-            (if node-ids?
-              [[:text {:textAnchor "middle" :x x :y y-node-id} (name id)]])
-            (if tooltips?
-              [(tooltip :g.node-tooltip.hide x y tip type)]))))))
+            css (str xlink "-"
+                  (if (keyword-identical? type :virtual) "virtual-")
+                  (name state))
+            use [:use {:class css :x x :y y :xlinkHref (str "#" xlink)
+                       ;; :on-click #(nodeclick id)
+                       }]
+            top (- y 10)
+            ychar 8
+            ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
+            label (if sequence-label
+                    (str label "\n▹ " sequence-label)
+                    label)
+            lines (if label (string/split label #"\n"))
+            labels (if (and lines (not hidden))
+                     (for [i (range (count lines))
+                           :let [lab (get lines i)]]
+                       [:text {:class "node-label"
+                               :textAnchor "middle"
+                               :x x :y (+ top (* i ychar))} lab]))
+            y-node-id (+ y (if (keyword-identical? network-type :hem-network) 30 20))
+            ;; tip (str (name id) " " (name state))
+            tip (str (name id) " " (name state) " " number)
+            ]
+        (concatv
+          [:g.node
+           (if (fn? graph-click)
+             {:on-click (partial graph-click props)
+              :on-context-menu (partial graph-click props)
+              })
+           ]
+          [(if (keyword-identical? type :htn-expanded-method)
+             (let [r 12
+                   hem-size (* 4 r)
+                   hem-offset (- (/ hem-size 2))]
+               [:rect {:class (target-class (and selected? (not hidden)))
+                       :x (+ (* 2 hem-offset) x) :y (+ hem-offset y)
+                       :rx 3 :ry 3
+                       :width (* 2 hem-size) :height hem-size}])
+             [:circle {:class (target-class (and selected? (not hidden)))
+                       :cx x :cy y :r 16}])]
+          [use]
+          labels
+          (if node-ids?
+            [[:text {:textAnchor "middle" :x x :y y-node-id} (name id)]])
+          (if tooltips?
+            [(tooltip :g.node-tooltip.hide x y tip type)]))))))
 
 (def node-memo (memoize node))
 
@@ -323,7 +325,8 @@
                    edge/type edge/state edge/from edge/to
                    edge/cost edge/reward edge/controllable
                    edge/probability edge/guard
-                   edge/selected? edge/hidden]
+                   edge/selected? edge/hidden
+                   edge/number]
              :as props}
             node-factory]
   (let [{:keys [ui/network-type ui/tooltips?
@@ -361,7 +364,10 @@
                              {:class (target-class
                                        (and selected? (not hidden))) :d d})
               extra (construct-extra cost reward probability guard)
-              tip (if (empty? extra) (str (name id) " " (name state)) extra)]
+              ;; tip (if (empty? extra) (str (name id) " " (name state)) extra)
+              tip (if (empty? extra) (str (name id) " " (name state) " " number)
+                      extra)
+              ]
           (if (and hidden (keyword-identical? type :aggregation))
             [:desc "hidden"]
             [:g.edge
@@ -378,12 +384,17 @@
 (def edge-memo (memoize edge))
 
 (defn construct-label [name label sequence-label plant plantid command
-                       type value]
-  (let [full (str plant
-               (if-not (empty? plantid) ".")
+                       args type value]
+  (let [argstr (apply str (interpose " " args))
+        full (str plant
+               (if-not (empty? plantid) "[")
                plantid
-               (if (and (not (empty? command)) (not= command "delay")) "$")
-               command)
+               (if-not (empty? plantid) "]")
+               (if (and (not (empty? command)) (not= command "delay")) ".")
+               command
+               (if (not (empty? argstr)) " ")
+               argstr)
+        full (if (not (empty? full)) (str "(" full ")"))
         label (str
                 (if-not (empty? full) full name)
                 (if label " (") label
@@ -403,7 +414,7 @@
 
 (defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
                     edge/sequence-label edge/hidden
-                    edge/plant edge/plantid edge/command
+                    edge/plant edge/plantid edge/command edge/args
                     edge/from edge/to edge/value
                     edge/cost edge/reward edge/probability edge/guard
                     edge/order] :as props}]
@@ -411,7 +422,7 @@
         virtual? (keyword-identical? type :virtual)
         label? (or show-virtual? (not virtual?))
         label (if label? (construct-label name label sequence-label
-                           plant plantid command type value))
+                           plant plantid command args type value))
         label (if edge-ids?
                 (str label " = "
                   (clojure.core/name id)
@@ -621,9 +632,9 @@
       (if loading?
         [:div#plans [:div.load-container.load5 [:div.loader "Loading..."]]]
         [:svg#bigplan {:viewBox viewbox
-                       :style {:top (str big-top)
-                               :left (str big-left)}
-                       :width big-w :height big-h
+                       :style {:top (str big-top "px")
+                               :left (str big-left "px")}
+                       :width (str big-w "px") :height (str big-h "px")
                        :on-click (partial graph-click nil)}
          (svg-defs)
          (concatv

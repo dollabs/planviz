@@ -15,7 +15,7 @@
               ;; [planviz.components :as comp]
               [planviz.ui :as ui
                :refer [node-key-fn edge-key-fn network-key-fn non-zero?
-                       constraint? activity? begin?]]))
+                       constraint? activity-type? begin?]]))
 
 ;; helper function
 (defn reversev [s]
@@ -295,7 +295,7 @@
                           (swap! visit conj from))))))
                 (map-outgoing node
                   (fn [edge]
-                    (when (activity? edge)
+                    (when (activity-type? edge)
                       (let [{:keys [node/rank]} node
                             node-plid-id (node-key-fn node)
                             {:keys [edge/to edge/type]} edge
@@ -321,7 +321,7 @@
                 ))
           start (tasks/deferred)
           finish (-> start
-                   (sleep 5) ;; pace
+                   (sleep 30) ;; pace
                    (chain #(balance-sweep d min-length @visit done)))]
       (tasks/on-realized finish #(identity true)) ;; consume finish
       (success! start true)
@@ -496,11 +496,12 @@
                                       edge/name edge/label
                                       edge/type edge/value
                                       edge/sequence-label
-                                      edge/plant edge/plantid edge/command
+                                      edge/plant edge/plantid
+                                      edge/command edge/args
                                       edge/cost edge/reward
                                       edge/probability edge/guard]} edge
                               label (ui/construct-label name label sequence-label
-                                      plant plantid command type value)
+                                      plant plantid command args type value)
                               extra (ui/construct-extra
                                       cost reward probability guard)
                               max-label (max (count label) (count extra))]
@@ -761,7 +762,7 @@
         true)
       (let [start (tasks/deferred)
             finish (-> start
-                     (sleep 5) ;; pace
+                     (sleep 100) ;; pace
                      (chain #(mincross-sweep d max-iterations
                                (inc i) (transpose (wmedian br i) i))))]
         (tasks/on-realized finish #(identity true)) ;; consume finish
@@ -1013,7 +1014,7 @@
                             (let [{:keys [edge/type edge/hidden edge/weight]}
                                   (get-edge edge-id)]
                               (+ sum
-                                (if (and (activity? type)
+                                (if (and (activity-type? type)
                                       (not (or hidden (zero? weight))))
                                   1 0))))
                   n-outgoing (reduce edge-fn 0 outgoing)
@@ -1039,7 +1040,7 @@
                             (let [{:keys [edge/type edge/hidden edge/weight]}
                                   (get-edge edge-id)]
                               (+ sum
-                                (if (and (activity? type)
+                                (if (and (activity-type? type)
                                       (not (or hidden (zero? weight))))
                                   1 0))))
                   n-incoming (reduce edge-fn 0 incoming)
@@ -1217,7 +1218,7 @@
   @graph)
 
 (defn layout [plan]
-  (let [a-little 5
+  (let [a-little 30
         start (tasks/deferred)
         finish (-> start
                  (sleep a-little)
@@ -1228,7 +1229,7 @@
                  (chain initialize-plan)
                  (sleep a-little)
                  (chain rank)
-                 (sleep a-little)
+                 (sleep (* 3 a-little))
                  (chain save-ranking)
                  (sleep a-little)
                  (chain balance)

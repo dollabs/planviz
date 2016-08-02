@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Added
+- *TBD*
+
+### [0.8.6] - 2016-06-03
+
+Added
 - Added --auto command line argument to start in /auto mode
 - Now fully respect --port argument (and log to port specific log files)
 - Updated dependencies
@@ -15,6 +20,18 @@ Added
 - Development debugging (connect to PLANVIZ server on port 8080
   if in development mode on port 3000)
 - Implemented help menu
+- Fixed link-arc algorithm to be closer to to the activity edge (so bounds don't overlap)
+- Fixed /normal to clear null-activites after a run
+- Fixed highlighted and hidden edges visible.
+- The aggregated ("fake") edge is now styled to be a "rollup" of subgraph states
+- Now /auto mode will display the corresponding plan (HTN for TPN, or vice versa)
+  Care is taken to insure that both parts of a merged plan pair (TPN=HTN) are
+  loaded such that highlighting works as expected.
+- Verified that the CSS units are explicitly "px" for the Plans component.
+- Exit gracefully if the desired web server port is unavailable.
+- Used the new element number to improve selection (highlighting) performance
+- The planviz launcher script now respects JVM_OPTS
+- Added support for TPN args and argsmap
 
 ### [0.8.5] - 2016-06-03
 

@@ -5,7 +5,7 @@
 ;; the file LICENSE at the root of this distribution.
 
 (def project 'dollabs/planviz)
-(def version "0.8.5")
+(def version "0.8.6")
 (def description "Planning Network Visualization")
 (def project-url "https://github.com/dollabs/planviz")
 (def main 'planviz.cli)
@@ -14,21 +14,21 @@
   :source-paths #{"src" "html"}
   :resource-paths #{"src" "html"}
   :dependencies   '[[org.clojure/clojure "1.8.0"]
-                    [org.clojure/clojurescript "1.9.36"]
+                    [org.clojure/clojurescript "1.9.93"]
                     ;; both
                     [avenir "0.2.1"]
                     [dollabs/webtasks "0.2.1"]
                     [dollabs/webkeys "0.2.0"]
-                    [org.clojure/core.async "0.2.382"]
+                    [org.clojure/core.async "0.2.385"]
                     ;; server
                     [org.clojure/tools.cli "0.3.5"]
                     [me.raynes/fs "1.4.6"]
                     [com.cognitect/transit-clj "0.8.285"]
                     [environ "1.0.3"]
                     [clj-time "0.12.0"]
-                    [com.taoensso/timbre "4.4.0"]
-                    [com.novemberain/langohr "3.5.1"]
-                    [dollabs/plan-schema "0.2.5"]
+                    [com.taoensso/timbre "4.7.3"]
+                    [com.novemberain/langohr "3.6.1"]
+                    [dollabs/plan-schema "0.2.7"]
                     ;; web server
                     [org.clojure/data.json "0.2.6"]
                     [ring/ring-core "1.5.0"]
@@ -39,19 +39,19 @@
                     [enlive "1.1.6"]
                     [aleph "0.4.2-alpha6"]
                     ;; client
-                    [com.cognitect/transit-cljs "0.8.237"]
-                    [cljsjs/react-dom-server "15.1.0-0"]  ;; for sablono
-                    [cljsjs/react-dom "15.1.0-0"] ;; for sablono
-                    [org.omcljs/om "1.0.0-alpha36"]
-                    [sablono "0.7.2"]
+                    [com.cognitect/transit-cljs "0.8.239"]
+                    [cljsjs/react-dom-server "15.2.1-1"]  ;; for sablono
+                    [cljsjs/react-dom "15.2.1-1"] ;; for sablono
+                    [org.omcljs/om "1.0.0-alpha40"]
+                    [sablono "0.7.3"]
                     ;; cljs-dev
                     [com.cemerick/piggieback "0.2.1"     :scope "test"]
                     [weasel                 "0.7.0"      :scope "test"]
                     [org.clojure/tools.nrepl "0.2.12"    :scope "test"]
-                    [adzerk/boot-reload     "0.4.8"      :scope "test"]
+                    [adzerk/boot-reload     "0.4.12"     :scope "test"]
                     [pandeiro/boot-http "0.7.3" :scope "test"]
                     [adzerk/boot-cljs       "1.7.228-1"  :scope "test"]
-                    [adzerk/boot-cljs-repl  "0.3.0"      :scope "test"]
+                    [adzerk/boot-cljs-repl  "0.3.3"      :scope "test"]
                     ;; testing/development
                     ;; [adzerk/boot-test "1.1.1" :scope "test"]
                     ;; [crisptrutski/boot-cljs-test "0.2.2-SNAPSHOT" :scope "test"]
@@ -158,7 +158,7 @@
 (deftask cider-boot
   "Cider boot params task"
   []
-  (if true ;; CIDER works on the client (true) or server (false)
+  (if false ;; CIDER works on the client (true) or server (false)
     (cljs-dev)
     (comp
       (server-resources)
