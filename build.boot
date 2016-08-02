@@ -28,7 +28,7 @@
                     [clj-time "0.12.0"]
                     [com.taoensso/timbre "4.7.3"]
                     [com.novemberain/langohr "3.6.1"]
-                    [dollabs/plan-schema "0.2.6"]
+                    [dollabs/plan-schema "0.2.7"]
                     ;; web server
                     [org.clojure/data.json "0.2.6"]
                     [ring/ring-core "1.5.0"]

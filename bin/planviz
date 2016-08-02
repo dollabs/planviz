@@ -15,8 +15,9 @@ cd "$dir"
 cd ..
 top="."
 jar="$top/target/planviz.jar"
-DEFAULT_JVM_OPTS="-server -Xms128m -Xmx512m -Xss512k"
-JVM_OPTS="${JVM_OPTS:-DEFAULT_JVM_OPTS}"
+DEFAULT_JVM_OPTS="-server -Xms128m -Xmx2g -Xss128m"
+JVM_OPTS="${JVM_OPTS:-$DEFAULT_JVM_OPTS}"
+PLANVIZ_JVM_OPTS="${PLANVIZ_JVM_OPTS:-$JVM_OPTS}"
 
 # ensure pamela does not use PAGER to guess we are in the repl
 unset PAGER
@@ -53,8 +54,8 @@ esac
 
 vlog "-- starting $program at $(date) --"
 if [ -e "$jar" ]; then
-    vlog java $JVM_OPTS -jar "$jar" $@
-    java $JVM_OPTS -jar "$jar" $@
+    vlog java $PLANVIZ_JVM_OPTS -jar "$jar" $@
+    java $PLANVIZ_JVM_OPTS -jar "$jar" $@
 else
     args="$@"
     vlog boot run -a "\"$args\""

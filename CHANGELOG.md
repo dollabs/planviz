@@ -31,6 +31,7 @@ Added
 - Exit gracefully if the desired web server port is unavailable.
 - Used the new element number to improve selection (highlighting) performance
 - The planviz launcher script now respects JVM_OPTS
+- Added support for TPN args and argsmap
 
 ### [0.8.5] - 2016-06-03
 

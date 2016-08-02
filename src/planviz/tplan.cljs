@@ -496,11 +496,12 @@
                                       edge/name edge/label
                                       edge/type edge/value
                                       edge/sequence-label
-                                      edge/plant edge/plantid edge/command
+                                      edge/plant edge/plantid
+                                      edge/command edge/args
                                       edge/cost edge/reward
                                       edge/probability edge/guard]} edge
                               label (ui/construct-label name label sequence-label
-                                      plant plantid command type value)
+                                      plant plantid command args type value)
                               extra (ui/construct-extra
                                       cost reward probability guard)
                               max-label (max (count label) (count extra))]

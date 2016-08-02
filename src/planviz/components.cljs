@@ -267,6 +267,8 @@
       :edge/plant
       :edge/plantid
       :edge/command
+      :edge/args
+      :edge/argsmap
       :edge/cost
       :edge/reward
       :edge/controllable
@@ -328,6 +330,8 @@
       :edge/plant
       :edge/plantid
       :edge/command
+      :edge/args
+      :edge/argsmap
       :edge/cost
       :edge/reward
       :edge/controllable

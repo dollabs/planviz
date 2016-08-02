@@ -384,12 +384,17 @@
 (def edge-memo (memoize edge))
 
 (defn construct-label [name label sequence-label plant plantid command
-                       type value]
-  (let [full (str plant
-               (if-not (empty? plantid) ".")
+                       args type value]
+  (let [argstr (apply str (interpose " " args))
+        full (str plant
+               (if-not (empty? plantid) "[")
                plantid
-               (if (and (not (empty? command)) (not= command "delay")) "$")
-               command)
+               (if-not (empty? plantid) "]")
+               (if (and (not (empty? command)) (not= command "delay")) ".")
+               command
+               (if (not (empty? argstr)) " ")
+               argstr)
+        full (if (not (empty? full)) (str "(" full ")"))
         label (str
                 (if-not (empty? full) full name)
                 (if label " (") label
@@ -409,7 +414,7 @@
 
 (defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
                     edge/sequence-label edge/hidden
-                    edge/plant edge/plantid edge/command
+                    edge/plant edge/plantid edge/command edge/args
                     edge/from edge/to edge/value
                     edge/cost edge/reward edge/probability edge/guard
                     edge/order] :as props}]
@@ -417,7 +422,7 @@
         virtual? (keyword-identical? type :virtual)
         label? (or show-virtual? (not virtual?))
         label (if label? (construct-label name label sequence-label
-                           plant plantid command type value))
+                           plant plantid command args type value))
         label (if edge-ids?
                 (str label " = "
                   (clojure.core/name id)
