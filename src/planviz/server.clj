@@ -1008,6 +1008,7 @@
           true)))
     (pschema/tpn-filename? filename)
     (let [plan (pschema/tpn-plan {:input [filename] :cwd cwd})]
+      ;; (log/error "RV plan" plan)
       (if (and (map? plan) (:error plan))
         (let [msg (str "error parsing TPN plan: " filename)]
           (log/error msg)

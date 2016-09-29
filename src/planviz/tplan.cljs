@@ -502,9 +502,9 @@
                                       edge/probability edge/guard]} edge
                               label (ui/construct-label name label sequence-label
                                       plant plantid command args type value)
-                              extra (ui/construct-extra
-                                      cost reward probability guard)
-                              max-label (max (count label) (count extra))]
+                              ;; CONSIDER ui/construct-edge-tip length
+                              ;; max-label (max (count label) (count tip))
+                              max-label (count label)]
                           ;; unhide non-aggregation edges
                           (if (and (keyword-identical? plan-type :tpn-network)
                                 hidden (not (keyword-identical? type :aggregation)))

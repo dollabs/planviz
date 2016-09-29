@@ -5,7 +5,7 @@
 ;; the file LICENSE at the root of this distribution.
 
 (def project 'dollabs/planviz)
-(def version "0.8.6")
+(def version "0.8.7")
 (def description "Planning Network Visualization")
 (def project-url "https://github.com/dollabs/planviz")
 (def main 'planviz.cli)
@@ -14,21 +14,21 @@
   :source-paths #{"src" "html"}
   :resource-paths #{"src" "html"}
   :dependencies   '[[org.clojure/clojure "1.8.0"]
-                    [org.clojure/clojurescript "1.9.93"]
+                    [org.clojure/clojurescript "1.9.229"]
                     ;; both
                     [avenir "0.2.1"]
                     [dollabs/webtasks "0.2.1"]
                     [dollabs/webkeys "0.2.0"]
-                    [org.clojure/core.async "0.2.385"]
+                    [org.clojure/core.async "0.2.391"]
                     ;; server
                     [org.clojure/tools.cli "0.3.5"]
                     [me.raynes/fs "1.4.6"]
-                    [com.cognitect/transit-clj "0.8.285"]
-                    [environ "1.0.3"]
+                    [com.cognitect/transit-clj "0.8.288"]
+                    [environ "1.1.0"]
                     [clj-time "0.12.0"]
                     [com.taoensso/timbre "4.7.3"]
                     [com.novemberain/langohr "3.6.1"]
-                    [dollabs/plan-schema "0.2.7"]
+                    [dollabs/plan-schema "0.2.9"]
                     ;; web server
                     [org.clojure/data.json "0.2.6"]
                     [ring/ring-core "1.5.0"]
@@ -37,13 +37,13 @@
                     [amalloy/ring-gzip-middleware "0.1.3"]
                     [compojure "1.5.0"]
                     [enlive "1.1.6"]
-                    [aleph "0.4.2-alpha6"]
+                    [aleph "0.4.2-alpha8"]
                     ;; client
                     [com.cognitect/transit-cljs "0.8.239"]
-                    [cljsjs/react-dom-server "15.2.1-1"]  ;; for sablono
-                    [cljsjs/react-dom "15.2.1-1"] ;; for sablono
-                    [org.omcljs/om "1.0.0-alpha40"]
-                    [sablono "0.7.3"]
+                    [cljsjs/react-dom-server "15.3.1-0"]  ;; for sablono
+                    [cljsjs/react-dom "15.3.1-0"] ;; for sablono
+                    [org.omcljs/om "1.0.0-alpha46"]
+                    [sablono "0.7.4"]
                     ;; cljs-dev
                     [com.cemerick/piggieback "0.2.1"     :scope "test"]
                     [weasel                 "0.7.0"      :scope "test"]
