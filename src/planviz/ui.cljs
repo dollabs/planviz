@@ -210,13 +210,12 @@
             use [:use {:class css :x x :y y :xlinkHref (str "#" xlink)
                        ;; :on-click #(nodeclick id)
                        }]
-            top (- y 10)
+            top (- y 13)
             ychar 8
             ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
-            label (if sequence-label
-                    (str label "\n▹ " sequence-label)
-                    label)
-            lines (if label (string/split label #"\n"))
+            label (str label (if label "\n")
+                    (if sequence-label "▹ ") sequence-label)
+            lines (if (not (empty? label)) (string/split label #"\n"))
             labels (if (and lines (not hidden))
                      (for [i (range (count lines))
                            :let [lab (get lines i)]]
@@ -303,9 +302,23 @@
 
 (def link-arc-memo (memoize link-arc))
 
-(defn construct-extra [cost reward probability guard]
-  (let [extra (str
-                (if (non-zero? cost) "cost: ")
+(defn construct-edge-tip [id state number cost reward probability
+                          controllable plant plantid argsmap guard]
+  (let [tip (str
+              (name id)
+              " "
+              (name state)
+              ;; " " number
+              " : "
+              plant
+              (if plantid "[")
+              plantid
+              (if plantid "]")
+              " "
+              argsmap
+              " controllable: "
+              controllable
+              (if (non-zero? cost) "cost: ")
                 (if (non-zero? cost) cost)
                 (if (non-zero? reward) " reward: ")
                 (if (non-zero? reward) reward)
@@ -313,7 +326,7 @@
                 (if (non-zero? probability) probability)
                 (if guard " guard: ")
                 guard)]
-    extra))
+    tip))
 
 (defn safe-type-name [type]
   (case type
@@ -326,6 +339,7 @@
                    edge/cost edge/reward edge/controllable
                    edge/probability edge/guard
                    edge/selected? edge/hidden
+                   edge/plant edge/plantid edge/argsmap
                    edge/number]
              :as props}
             node-factory]
@@ -363,10 +377,8 @@
                                   :choice-edge :parallel-edge} type)
                              {:class (target-class
                                        (and selected? (not hidden))) :d d})
-              extra (construct-extra cost reward probability guard)
-              ;; tip (if (empty? extra) (str (name id) " " (name state)) extra)
-              tip (if (empty? extra) (str (name id) " " (name state) " " number)
-                      extra)
+              tip (construct-edge-tip id state number cost reward probability
+                    controllable plant plantid argsmap guard)
               ]
           (if (and hidden (keyword-identical? type :aggregation))
             [:desc "hidden"]
@@ -383,9 +395,9 @@
 
 (def edge-memo (memoize edge))
 
-(defn construct-label [name label sequence-label plant plantid command
-                       args type value]
-  (let [argstr (apply str (interpose " " args))
+(defn construct-label-classic [name label sequence-label plant plantid command
+                               args type value]
+  (let [argstr (apply str (interpose ", " args))
         full (str plant
                (if-not (empty? plantid) "[")
                plantid
@@ -394,7 +406,7 @@
                command
                (if (not (empty? argstr)) " ")
                argstr)
-        full (if (not (empty? full)) (str "(" full ")"))
+        full (if (not (empty? full)) (str full "()"))
         label (str
                 (if-not (empty? full) full name)
                 (if label " (") label
@@ -411,6 +423,22 @@
                   value)
                 label)]
     label))
+
+(defn construct-label [name label sequence-label plant plantid command
+                       args type value]
+  (if (= type :temporal-constraint)
+    (str value)
+    (or name
+      (let [argstr (apply str (interpose ", " args))]
+        (str
+          command
+          (if command "(")
+          argstr
+          (if command ")")
+          (if label " ")
+          label
+          (if sequence-label " ▹ ")
+          sequence-label)))))
 
 (defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
                     edge/sequence-label edge/hidden

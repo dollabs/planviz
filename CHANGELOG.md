@@ -7,6 +7,16 @@ All notable changes to this project will be documented in this file. This change
 Added
 - *TBD*
 
+### [0.8.7] - 2016-09-30
+
+Changed
+- Updated dependencies
+- Repositioned label and sequence-label notations
+- Activities are shown with :name (if that slot was set)
+  else derived based on ui/construct-label
+- Now support a more elaborate edge tool tip which includes
+  plant, plantid, interface, argsmap, cost, reward, controllable
+
 ### [0.8.6] - 2016-06-03
 
 Added

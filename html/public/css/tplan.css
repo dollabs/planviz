@@ -92,6 +92,8 @@ svg, g, rect, circle, text, symbol, use {
 }
 
 .target-unselected {
+    /* DEBUG */
+    /* fill: lightgrey; */
     fill: none;
 }
 
@@ -292,8 +294,11 @@ svg, g, rect, circle, text, symbol, use {
 /*.............Nodes(TPN)................*/
 
 .parallel-normal, .choice-normal, .unchoice-normal, .state-normal {
-    fill: #66ccff; /* normal; */
-    stroke: #66ccff;  /* #777777*/;
+    fill: #66ccff;
+    stroke: #66ccff;
+    /* DEBUG */
+    /* fill: none; */
+    /* stroke: none; */
     stroke-width: 3px;
 }
 
