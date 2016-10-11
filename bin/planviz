@@ -55,9 +55,11 @@ esac
 vlog "-- starting $program at $(date) --"
 if [ -e "$jar" ]; then
     vlog java $PLANVIZ_JVM_OPTS -jar "$jar" $@
+    # java $PLANVIZ_JVM_OPTS -jar "$jar" $@ | grep -v '^[0-9][0-9]-[0-9][0-9]-[0-9][0-9] '
     java $PLANVIZ_JVM_OPTS -jar "$jar" $@
 else
     args="$@"
     vlog boot run -a "\"$args\""
+    # boot run -a "$args" | grep -v '^[0-9][0-9]-[0-9][0-9]-[0-9][0-9] '
     boot run -a "$args"
 fi

@@ -4,6 +4,11 @@
 ;; Apache License, Version 2.0 which can be found in
 ;; the file LICENSE at the root of this distribution.
 
+;; Prevent aleph from pulling in netty's logging at :debug level
+;; before we properly initialize logging
+(require '(taoensso timbre))
+(taoensso.timbre/set-level! :warn)
+
 (ns planviz.server
   (:gen-class) ;; for :uberjar
   (:require [clojure.java.io :as io]
@@ -20,7 +25,8 @@
             [ring.middleware.params :as params]
             [ring.middleware.gzip :refer [wrap-gzip]]
             [environ.core :refer [env]]
-            [taoensso.timbre :as log]
+            [taoensso.timbre :as timbre]
+            [clojure.tools.logging :as log]
             [clj-time.core :as time]
             [clj-time.format :as timef]
             [clj-time.local :as timel]
@@ -43,7 +49,9 @@
              :refer [composite-key read-json-str write-json-str]]
             [avenir.utils :as au :refer [assoc-if keywordize concatv and-fn]]
             [me.raynes.fs :as fs]
-            [planviz.net :as net]))
+            [planviz.net :as net])
+  (:import [java.lang
+            IllegalArgumentException]))
 
 (defn sleep
   "sleeps for the given number of seconds (may be fractional)"
@@ -62,17 +70,16 @@
 
 ;; ---------------------------------------
 
-(defn hostname []
-  (try
-    (let [{:keys [exit out err]} (sh "hostname")]
-      (if (zero? exit)
-        (string/replace out #"\s" "")
-        "localhost"))
-    (catch Exception e
-      (println "unable to run the hostname command:"
-        (.. e getCause getMessage))
-      "localhost"
-      )))
+;; (defn hostname []
+;;   (try
+;;     (let [{:keys [exit out err]} (sh "hostname")]
+;;       (if (zero? exit)
+;;         (string/replace out #"\s" "")
+;;         "localhost"))
+;;     (catch Exception e
+;;       (println "unable to run the hostname command:"
+;;         (.. e getCause getMessage))
+;;       "localhost")))
 
 (def rmq-default-host "localhost")
 (def rmq-default-port 5672)
@@ -134,25 +141,33 @@
                       ;; (java.util.TimeZone/getTimeZone "UTC")
                       }
 
-   :output-fn log/default-output-fn ; (fn [data]) -> string
+   :output-fn timbre/default-output-fn ; (fn [data]) -> string
    ;; :appenders
    ;; {:spit (log/spit-appender {:fname "./logs/planviz.log"})}
    })
 
-(defn log-initialize [port log-level]
+(defn log-initialize [port log-level & [debug-args]]
   (let [logfile (str "./logs/planviz-" port ".log")
-        appenders {:spit (log/spit-appender {:fname logfile})}
+        appenders {:println (timbre/println-appender {:stream :*err*})
+                   :spit (timbre/spit-appender {:fname logfile})}
         config (assoc log-config
                  :level log-level
-                 :appenders appenders)]
-    (log/set-config! config)
-    (log/warn "PLANVIZ logging initialized at level " log-level
-      "\n---------------------------------\n")
+                 :appenders appenders)
+        debug? (and (#{:trace :debug} log-level) debug-args)
+        banner? (or debug? (= :info log-level))
+        line-break "\n--------------------------------------------------------------------------------"]
+    (timbre/set-config! config)
+    (if banner?
+      (log/warn "PLANVIZ logging initialized at level" log-level
+        (if debug?
+          (str line-break "\nargs: " debug-args)
+          line-break)))
     (swap! state assoc :logging true)))
 
 (defn log-if-possible [msg]
-  (when (:logging @state)
-    (log/error msg)))
+  (if(:logging @state)
+    (log/error msg)
+    (println msg)))
 
 (def non-websocket-request
   {:status 400
@@ -580,8 +595,8 @@
 (defn hello-world-handler
   "A basic Ring handler which immediately returns 'hello world'"
   [req]
-  (if-not (:logging @state)
-    (log-initialize))
+  ;; (if-not (:logging @state)
+  ;;   (log-initialize))
   (log/info "HELLO" (with-out-str (pprint req)))
   {:status 200
    :headers {"content-type" "text/plain"}
@@ -599,17 +614,33 @@
     (log/debug "REQ" (:uri req))
     (handler req)))
 
+(defn debug-handler [handler step]
+  (fn [req]
+    ;; (log/debug "DEBUG HANDLER BEFORE" step)
+    (try
+      (let [rv (handler req)]
+      ;; (log/debug "DEBUG HANDLER AFTER" step)
+        rv)
+      (catch IllegalArgumentException e
+        (log/debug "BROWSER CLOSED")
+        {}))))
+
 ;; https://github.com/ring-clojure/ring-defaults
 (def http-handler
   (-> routes
+    (debug-handler :routes)
     (log-request-handler)
+    ;; (debug-handler :log-request-handler)
     (wrap-defaults (dissoc site-defaults :security))
+    ;; (debug-handler :wrap-defaults)
     ;; (wrap-cors
     ;;   :access-control-allow-origin #"localhost:*"
     ;;   :access-control-allow-methods [:get]
     ;;   :access-control-allow-headers ["Origin" "X-Requested-With"
     ;;                                  "Content-Type" "Accept"])
-    (wrap-gzip)))
+    (wrap-gzip)
+    ;; (debug-handler :wrap-gzip)
+    ))
 
 ;; TPN functions
 ;; NOTE: assumes only one active network for now
@@ -980,7 +1011,6 @@
         (let [msg (str "error parsing plans: " htn-filename " = " tpn-filename)]
           (log/error msg)
           (log/error (:error plans))
-          (println msg)
           false)
         (and (vector? plans) (= 2 (count plans)))
         (do
@@ -992,7 +1022,6 @@
         (let [msg (str "ERROR parsing: " htn-filename " = " tpn-filename)]
           (log/error msg)
           (log/error "PLANS" plans)
-          (println msg)
           false)))
     (pschema/htn-filename? filename)
     (let [plan (pschema/htn-plan {:input [filename] :cwd cwd})]
@@ -1000,7 +1029,6 @@
         (let [msg (str "error parsing HTN plan: " filename)]
           (log/error msg)
           (log/error (:error plan))
-          (println msg)
           false)
         (do
           (log/info "HTN plan parsed correctly:" filename)
@@ -1013,7 +1041,6 @@
         (let [msg (str "error parsing TPN plan: " filename)]
           (log/error msg)
           (log/error (:error plan))
-          (println msg)
           false)
         (do
           (log/info "TPN plan parsed correctly:" filename)
@@ -1022,7 +1049,6 @@
     :else
     (let [msg (str "Invalid filename, does not contain tpn nor htn: " filename)]
       (log/error msg)
-      (println msg)
       false)))
 
 (defn connect-to-rmq [host port]
@@ -1041,9 +1067,7 @@
   (let [{:keys [rmq-host rmq-port exchange]} (:rmq @state)
         connection (connect-to-rmq rmq-host rmq-port)]
     (if-not connection
-      (do
-        (println "PLANVIZ cannot connect to RabbitMQ at" rmq-host ":" rmq-port)
-        (log/error "PLANVIZ cannot connect to RabbitMQ at" rmq-host ":" rmq-port))
+      (log/error "PLANVIZ cannot connect to RabbitMQ at" rmq-host ":" rmq-port)
       (let [channel (lch/open connection)
             _ (le/declare channel exchange "topic")
             queue (lq/declare channel)
@@ -1064,12 +1088,9 @@
         (swap! state assoc :server server
           :host host :port port :rmethods rmethods)
         (if-not (reduce and-fn true (for [i input] (load-input i cwd)))
+          (log/info "PLANVIZ not starting due to errors!")
           (do
-            (println "PLANVIZ not starting due to errors!")
-            (log/info "PLANVIZ not starting due to errors!"))
-          (do
-            (println "PLANVIZ server ready")
-            (log/info "PLANVIZ server ready")
+            (log/warn "\nPLANVIZ server ready")
             (when (and (not (repl?)) (get-in @state [:rmq :connection]))
               (while true
                 ;; (print ".")
@@ -1106,8 +1127,6 @@
         (log/error (:error url-filename))
         (let [urls (load-file url-filename)]
           (when (vector? urls)
-            ;; (println "DEBUG url-filename" url-filename "urls")
-            ;; (pprint urls)
             (swap! state update-in [:url-config] concatv urls))))))
   (swap! state update-in [:url-config] sort-url-config))
 
@@ -1133,7 +1152,7 @@
         port (or port planviz-default-port)]
     (if-not (net/port-available? port)
       (let [msg (str "The port " port " is in use cannot be bound by PLANVIZ")]
-        (println msg))
+        (log-if-possible msg))
       (do
         (setup-url-config cwd url-config)
         (swap! state assoc :settings settings)
