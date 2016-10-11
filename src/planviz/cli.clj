@@ -11,6 +11,7 @@
             [clojure.java.io :refer :all] ;; for as-file
             [clojure.tools.cli :refer [parse-opts]]
             [clojure.pprint :as pp :refer [pprint]]
+            [clojure.tools.logging :as log]
             [environ.core :refer [env]]
             [me.raynes.fs :as fs]
             [avenir.utils :as au :refer [as-boolean]]
@@ -103,7 +104,11 @@
   "Exit planviz with given status code (and optional messages)."
   {:added "0.1.0"}
   [status & msgs]
-  (if msgs (println (string/join \newline msgs)))
+  (when msgs
+    (if (zero? status)
+      (println (string/join \newline msgs))
+      (server/log-if-possible (str \newline (string/join \newline msgs)))))
+  (flush) ;; ensure all pending output has been flushed
   (when (server/repl?)
     (throw (Exception. (str "DEV MODE exit(" status ")"))))
   (shutdown-agents)
@@ -138,8 +143,9 @@
         (config-parse-opts cwd args cli-options)
         {:keys [help version verbose auto exchange input
                 log-level rmq-host rmq-port host port url-config]} options
-        auto (as-boolean auto)
         log-level (keyword (or log-level "warn"))
+        _ (server/log-initialize port log-level (apply pr-str args))
+        auto (as-boolean auto)
         options (assoc options :auto auto :cwd cwd :log-level log-level
                   :arguments arguments)
         cmd (or (last arguments) default-action)
@@ -179,14 +185,12 @@
         (exit 1 (str "Unknown action: \"" cmd "\". Must be one of: "
                   (keys actions)))
         (usage summary))
-      (try
+      (if (> verbose 1) ;; throw full exception with stack trace when -v -v
         (action options)
-        (catch Throwable e
-          (let [msg (with-out-str (pst e))]
-            (binding [*out* *err*]
-              (server/log-if-possible msg)
-              (println msg)
-              (exit 1))))))
+        (try
+          (action options)
+          (catch Throwable e
+            (exit 1 "ERROR caught exception:" (with-out-str (pst e)))))))
     (exit 0)))
 
 (defn -main

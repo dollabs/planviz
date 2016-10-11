@@ -23,10 +23,13 @@
                     ;; server
                     [org.clojure/tools.cli "0.3.5"]
                     [me.raynes/fs "1.4.6"]
-                    [com.cognitect/transit-clj "0.8.288"]
+                    [com.cognitect/transit-clj "0.8.290"]
                     [environ "1.1.0"]
                     [clj-time "0.12.0"]
-                    [com.taoensso/timbre "4.7.3"]
+                    [com.taoensso/timbre "4.7.4"]
+                    [org.slf4j/slf4j-api "1.7.21"]
+                    [com.fzakaria/slf4j-timbre "0.3.2"]
+                    [org.clojure/tools.logging "0.3.1"]
                     [com.novemberain/langohr "3.6.1"]
                     [dollabs/plan-schema "0.2.9"]
                     ;; web server
@@ -43,7 +46,7 @@
                     [cljsjs/react-dom-server "15.3.1-0"]  ;; for sablono
                     [cljsjs/react-dom "15.3.1-0"] ;; for sablono
                     [org.omcljs/om "1.0.0-alpha46"]
-                    [sablono "0.7.4"]
+                    [sablono "0.7.5"]
                     ;; cljs-dev
                     [com.cemerick/piggieback "0.2.1"     :scope "test"]
                     [weasel                 "0.7.0"      :scope "test"]
