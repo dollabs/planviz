@@ -58,6 +58,7 @@
     :default server/rmq-default-exchange]
    ["-i" "--input INPUT" "Input file(s) {TPN|HTN|HTN=TPN}"
     :default []
+    :parse-fn #(-> % fs/expand-home str)
     :assoc-fn (fn [m k v]
                 (let [oldv (get m k [])
                       oldv (if (= oldv ["-"]) [] oldv)]
@@ -79,6 +80,7 @@
    ["-p" "--port PORT" "PLANVIZ server port"
     :default server/planviz-default-port
     :parse-fn #(Long/parseLong %)]
+   ["-s" "--strict" "Enforce strict plan schema checking"]
    ["-u" "--url-config URLCONFIG" "URL Configuration file(s)"
     :default []
     :assoc-fn (fn [m k v] (assoc m k (conj (get m k []) v)))]])
@@ -142,7 +144,7 @@
         {:keys [options arguments errors summary]}
         (config-parse-opts cwd args cli-options)
         {:keys [help version verbose auto exchange input
-                log-level rmq-host rmq-port host port url-config]} options
+                log-level rmq-host rmq-port host port strict url-config]} options
         log-level (keyword (or log-level "warn"))
         _ (server/log-initialize port log-level (apply pr-str args))
         auto (as-boolean auto)
@@ -178,6 +180,7 @@
       (println "host:" host)
       (println "port:" port)
       (println "input:" input)
+      (println "strict:" strict)
       (println "url-config:" url-config)
       (println "cmd:" cmd (if action "(valid)" "(invalid)")))
     (if-not action
