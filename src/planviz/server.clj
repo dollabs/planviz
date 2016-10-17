@@ -162,6 +162,15 @@
         (if debug?
           (str line-break "\nargs: " debug-args)
           line-break)))
+    ;; Configure plan-schema to user our logging
+    (pschema/set-logger! :debug (fn [& msgs]
+                                  (log/debug (string/join " " msgs))))
+    (pschema/set-logger! :info (fn [& msgs]
+                                  (log/debug (string/join " " msgs))))
+    (pschema/set-logger! :warn (fn [& msgs]
+                                  (log/debug (string/join " " msgs))))
+    (pschema/set-logger! :error (fn [& msgs]
+                                  (log/debug (string/join " " msgs))))
     (swap! state assoc :logging true)))
 
 (defn log-if-possible [msg]
@@ -1143,13 +1152,14 @@
   {:added "0.8.0"}
   [options]
   (let [{:keys [cwd verbose log-level auto exchange rmq-host rmq-port
-                host port input url-config]} options
+                host port input url-config strict]} options
         settings {:auto auto}
         exchange (or exchange rmq-default-exchange)
         rmq-host (or rmq-host rmq-default-host)
         rmq-port (or rmq-port rmq-default-port)
         host (or host planviz-default-host)
         port (or port planviz-default-port)]
+    (pschema/set-strict! strict)
     (if-not (net/port-available? port)
       (let [msg (str "The port " port " is in use cannot be bound by PLANVIZ")]
         (log-if-possible msg))

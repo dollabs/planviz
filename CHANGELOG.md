@@ -7,7 +7,15 @@ All notable changes to this project will be documented in this file. This change
 Added
 - *TBD*
 
-### [0.8.7] - 2016-09-30
+### [0.8.8] - 2016-10-17
+
+Changed
+- Leverage plan-schema flexibility
+  https://github.com/dollabs/planviz/issues/24
+- Added command line switch --strict to enforce schema checking
+- Updated dependencies
+
+### 0.8.7 - 2016-09-30
 
 Changed
 - Updated dependencies
@@ -17,7 +25,7 @@ Changed
 - Now support a more elaborate edge tool tip which includes
   plant, plantid, interface, argsmap, cost, reward, controllable
 
-### [0.8.6] - 2016-06-03
+### 0.8.6 - 2016-06-03
 
 Added
 - Added --auto command line argument to start in /auto mode
@@ -43,7 +51,7 @@ Added
 - The planviz launcher script now respects JVM_OPTS
 - Added support for TPN args and argsmap
 
-### [0.8.5] - 2016-06-03
+### 0.8.5 - 2016-06-03
 
 Added
 - Show new activity attribute :controllable in the right click "edge information" menu.
@@ -112,5 +120,5 @@ Added
 [0.8.2]: https://github.com/dollabs/planviz/compare/0.8.1...0.8.2
 [0.8.3]: https://github.com/dollabs/planviz/compare/0.8.2...0.8.3
 [0.8.4]: https://github.com/dollabs/planviz/compare/0.8.3...0.8.4
-[0.8.4]: https://github.com/dollabs/planviz/compare/0.8.4...0.8.5
-[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.5...HEAD
+[0.8.8]: https://github.com/dollabs/planviz/compare/0.8.4...0.8.8
+[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.8...HEAD
