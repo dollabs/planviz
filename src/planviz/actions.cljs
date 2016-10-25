@@ -1461,11 +1461,13 @@
         [tpn-plan htn-plan] (if (keyword-identical? plid-type :htn-network)
                               [corresponding plid]
                               [plid corresponding])
-        to-show (if (and auto-on?
+        to-show (if (and auto-on? ;; assuming we want to show HTN or TPN
                       (not= remote client))
                   (or corresponding plid))
         ready? (and plid-loaded? (not load-corresponding?)
-                 (= showing to-show))
+                 ;; do NOT require showing this HTN or TPN
+                 ;; (= showing to-show)
+                 )
         opts {:auto true}]
     (when (not= remote client)
       (println "USER-ACTION" action))
@@ -1525,12 +1527,16 @@
           (sleep 30) ;; pace the browser
           (chain #(load-plan htn-plan opts))
           (sleep 30) ;; pace the browser
-          (chain #(display-plan to-show opts))
+          ;; do NOT require showing this HTN or TPN
+          ;; (chain #(display-plan to-show opts))
+          (chain #(display-plan showing opts))
           (sleep 30) ;; pace the browser
           (chain #(user-action action)))
         (-> (load-plan plid opts) ;; loading on demand
           (sleep 30) ;; pace the browser
-          (chain #(display-plan to-show opts))
+          ;; do NOT require showing this HTN or TPN
+          ;; (chain #(display-plan to-show opts))
+          (chain #(display-plan showing opts))
           (sleep 30) ;; pace the browser
           (chain #(user-action action)))))))
 
@@ -1855,7 +1861,7 @@
   (reset))
 
 (defn vp-resize [[w h]]
-  (println "vp" w "x" h)
+  (println "vp" w "x" h) ;; DEBUG
   (st/app-merge-pan-zoom {:pan-zoom/vp-width w :pan-zoom/vp-height h})
   nil)
 
@@ -1877,7 +1883,9 @@
                   h (.-innerHeight js/window)]
               (when (or (not= w vp-width) (not= h vp-height))
                 (vp-resize [w h])))
+;; DEBUG
             ) 1000)]
+;;            ) 60000)]
     ;; (println "Starting vp listener:" vp-timer)
     vp-timer))
 

@@ -658,7 +658,8 @@
                                          vp-width vp-height zoom pan)]
     (html
       (if loading?
-        [:div#plans [:div.load-container.load5 [:div.loader "Loading..."]]]
+        [:div#plans [:div#load-container.load-container.load5
+                     [:div#loader.loader "Loading..."]]]
         [:svg#bigplan {:viewBox viewbox
                        :style {:top (str big-top "px")
                                :left (str big-left "px")}
@@ -676,6 +677,8 @@
            )]))))
 
 (defn message-box [{:keys [message-box/id message-box/value] :as props}]
+  ;; DEBUG
+  ;; (println "message-box" props)
   (let [id (or id :mb-wat)
         tag (keyword (str "div#mb-" (name id) ".message-box"))]
     (html
@@ -684,6 +687,8 @@
 (defn input-box [{:keys [input-box/id input-box/value
                          ;; input-box/start input-box/end
                          input-box/placeholder input-box/size] :as props}]
+  ;; DEBUG
+  ;; (println "input-box" props)
   (let [id (or id :ib-wat)
         id-str (name id)
         div-tag (keyword (str "div#ib-" id-str ".input-box"))
@@ -698,6 +703,8 @@
 (defn pan-zoom [{:keys [pan-zoom/id pan-zoom/width pan-zoom/height
                         pan-zoom/vp-width pan-zoom/vp-height
                         pan-zoom/pan pan-zoom/zoom] :as props}]
+  ;; DEBUG
+  ;; (println "pan-zoom" props)
   (let [id (or id :pz-wat)
         tag (keyword (str "div#pz-" (name id) ".pan-zoom"))
         loading? (not (and width height))
@@ -737,11 +744,17 @@
 (defn application [{:keys [app/message-box app/input-box app/pan-zoom
                            app/title app/mode app/help] :as props}
                    message-box-factory input-box-factory pan-zoom-factory]
+  ;; DEBUG
+  ;; needs remove-fn
+  ;; (println "application" props)
   (html
     [:div#application
      [:div#title (str title "  " (name (or mode :manual)))]
+     ;; DEBUG
      [:div#logo]
      (show-help help)
      (message-box-factory message-box)
      (input-box-factory input-box)
-     (pan-zoom-factory pan-zoom)]))
+     (pan-zoom-factory pan-zoom)
+     ]
+    ))
