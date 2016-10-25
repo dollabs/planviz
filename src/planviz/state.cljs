@@ -22,6 +22,10 @@
                        ui-opts-key-fn node-key-fn edge-key-fn
                        label-key-fn network-key-fn]]))
 
+;; DEBUG
+(defn explain-exception [e]
+  (str "Exception: " (.-message e) " at " (.-fileName e) ":" (.-lineNumber e)))
+
 (defn replace-kv [replace-k replace-v & [ensure-k]]
   (letfn [(rkv
             ([v]
@@ -489,6 +493,7 @@
   nil)
 
 (defn plans-merge-edge [edge]
+  ;; DEBUG
   ;; (println "PLANS-MERGE-EDGE" edge)
   (plans-query `[(plans/edge {:edge ~edge})])
   nil)
@@ -504,6 +509,8 @@
     (get (plans-query q) ref)))
 
 (defn app-get [k]
+  ;; DEBUG
+  ;; (println "app-get" k)
   (let [q (cond
             (= k :app/message-box)
             [{:app/message-box comp/message-box-query}]
@@ -513,7 +520,8 @@
             [{:app/pan-zoom comp/pan-zoom-query}]
             :else
             [k])]
-  (get (app-query q) k)))
+    (get (app-query q) k))
+  )
 
 (defn app-set [k v]
   (app-query `[(app/set {:k ~k :v ~v})])
@@ -576,6 +584,8 @@
       (.setAttribute bigplan "style", style))))
 
 (defn app-merge-pan-zoom [pz & [both?]]
+  ;; DEBUG
+  ;; (println "app-merge-pan-zoom" pz "both?" both?)
   (let [pz (assoc pz :pan-zoom/id pan-zoom-app-id)]
     (app-query `[(app/pan-zoom {:pan-zoom ~pz})])
     (if-not both? ;; cheat!
@@ -590,12 +600,16 @@
                          vp-width vp-height zoom pan)]
             (when (not= bp bp-new)
               ;; (println "FORCE" bp-new)
-              (set-bigplan bp-new))))))))
+              (set-bigplan bp-new)))))))
+  )
 
 (defn plans-merge-pan-zoom [pz]
+  ;; DEBUG
+  ;; (println "plans-merge-pan-zoom" pz)
   (let [pz (assoc pz :pan-zoom/id pan-zoom-plans-id)]
     (plans-query `[(plans/pan-zoom {:pan-zoom ~pz})])
-    nil))
+    nil)
+  )
 
 (defn get-ui-opts []
   (let [k :plans/ui-opts

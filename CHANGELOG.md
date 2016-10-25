@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Added
+- No longer change all user's view to the latest selection (Closes #28)
 - *TBD*
 
 ### [0.8.8] - 2016-10-17

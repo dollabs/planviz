@@ -14,7 +14,7 @@
   :source-paths #{"src" "html"}
   :resource-paths #{"src" "html"}
   :dependencies   '[[org.clojure/clojure "1.8.0"]
-                    [org.clojure/clojurescript "1.9.229"]
+                    [org.clojure/clojurescript "1.9.293"]
                     ;; both
                     [avenir "0.2.1"]
                     [dollabs/webtasks "0.2.1"]
@@ -31,7 +31,7 @@
                     [com.fzakaria/slf4j-timbre "0.3.2"]
                     [org.clojure/tools.logging "0.3.1"]
                     [com.novemberain/langohr "3.6.1"]
-                    [dollabs/plan-schema "0.2.10"]
+                    [dollabs/plan-schema "0.2.11"]
                     ;; web server
                     [org.clojure/data.json "0.2.6"]
                     [ring/ring-core "1.5.0"]
@@ -45,15 +45,15 @@
                     [com.cognitect/transit-cljs "0.8.239"]
                     [cljsjs/react-dom-server "15.3.1-0"]  ;; for sablono
                     [cljsjs/react-dom "15.3.1-0"] ;; for sablono
-                    [org.omcljs/om "1.0.0-alpha46"]
+                    [org.omcljs/om "1.0.0-alpha40"]
                     [sablono "0.7.5"]
                     ;; cljs-dev
                     [com.cemerick/piggieback "0.2.1"     :scope "test"]
                     [weasel                 "0.7.0"      :scope "test"]
                     [org.clojure/tools.nrepl "0.2.12"    :scope "test"]
-                    [adzerk/boot-reload     "0.4.12"     :scope "test"]
+                    [adzerk/boot-reload     "0.4.13"     :scope "test"]
                     [pandeiro/boot-http "0.7.3" :scope "test"]
-                    [adzerk/boot-cljs       "1.7.228-1"  :scope "test"]
+                    [adzerk/boot-cljs       "1.7.228-2"  :scope "test"]
                     [adzerk/boot-cljs-repl  "0.3.3"      :scope "test"]
                     ;; testing/development
                     ;; [adzerk/boot-test "1.1.1" :scope "test"]
