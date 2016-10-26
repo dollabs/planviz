@@ -8,6 +8,11 @@ Added
 - No longer change all user's view to the latest selection (Closes #28)
 - *TBD*
 
+### [0.8.9] - 2016-10-26
+
+Changed
+- Resolve #30 (cleanup relaxed tpn values, via plan-schema)
+
 ### [0.8.8] - 2016-10-17
 
 Changed
@@ -122,4 +127,5 @@ Added
 [0.8.3]: https://github.com/dollabs/planviz/compare/0.8.2...0.8.3
 [0.8.4]: https://github.com/dollabs/planviz/compare/0.8.3...0.8.4
 [0.8.8]: https://github.com/dollabs/planviz/compare/0.8.4...0.8.8
-[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.8...HEAD
+[0.8.9]: https://github.com/dollabs/planviz/compare/0.8.8...0.8.9
+[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.9...HEAD
