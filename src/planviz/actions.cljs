@@ -145,13 +145,15 @@
     true)) ;; for deferreds
 
 (defn my-user-action [action]
-  (let [action (if (or (:plid action) (= (:type action) :chat)) action
-                   (assoc action
-                     :plid (:ui/show-plan (st/get-ui-opts))))]
-    (println "MY USER-ACTION" action)
-    ;; (rmethod {:success-fn generic-reply :error-fn generic-reply}
-    (rmethod {}
-      :user-action action)))
+  (let [action-type (:type action)
+        chat? (= action-type :chat)
+        plid (or (:plid action) (:ui/show-plan (st/get-ui-opts)))
+        action (if chat? action (assoc action :plid plid))]
+    (when (or chat? (not= plid :none))
+      (println "MY USER-ACTION" action)
+      ;; (rmethod {:success-fn generic-reply :error-fn generic-reply}
+      (rmethod {}
+        :user-action action))))
 
 (defn update-tpn-end [plid]
   (let [end (if (= (st/app-get-plan-value plid :type) :tpn-network)
@@ -313,7 +315,7 @@
                 (on-realized (new-plan (normalize-plan plan-id plan))
                   #(do
                      (success! d %)
-                     (status-msg "loaded" plan-id)
+                     ;; (status-msg "loaded" plan-id)
                      (st/app-set :app/loading nil)
                      (apply-network-updates true))
                   #(do
@@ -906,11 +908,12 @@
 (defn highlight-relevant [&[remote]]
   (let [{:keys [ui/show-plan ui/show-network ui/network-type]} (st/get-ui-opts)
         {:keys [corresponding selection]} (st/app-get-plan show-plan)
-        csel (if corresponding (st/app-get-plan-value corresponding :selection))
+        csel (if (and corresponding selection)
+               (st/app-get-plan-value corresponding :selection))
         auto-on? (auto?)]
     (println "HIGHLIGHT-RELEVANT" show-plan show-network network-type
       "CORRESPONDING" corresponding
-      "SELECTION" selection)
+      "SELECTION" selection "CSEL" csel)
     (when csel
       (case network-type
         :hem-network
@@ -1100,7 +1103,7 @@
           "focus" focus)
         (if (and plid-loaded? (not load-corresponding?))
           (do
-            (status-msg "display-plan" plid)
+            ;; (status-msg "display-plan" plid)
             (st/app-set :app/title (name plid))
             (st/tooltips tooltips?)
             (st/show-plan plid)
@@ -1175,8 +1178,8 @@
             (chain dtimeout #(load-plan plan-id opts)))
           :else
           (do
-            (status-msg "loading" plan-id)
-            (st/loading true)
+            ;; (status-msg "loading" plan-id)
+            ;; (st/loading true)
             (st/app-set :app/loading d)
             (request-plan-part plan-id have-parts)
             dtimeout
@@ -1464,13 +1467,16 @@
         to-show (if (and auto-on? ;; assuming we want to show HTN or TPN
                       (not= remote client))
                   (or corresponding plid))
-        ready? (and plid-loaded? (not load-corresponding?)
+        ready? (or
+                 (= :chat action-type)
+                 (and plid-loaded? (not load-corresponding?))
                  ;; do NOT require showing this HTN or TPN
                  ;; (= showing to-show)
                  )
         opts {:auto true}]
     (when (not= remote client)
-      (println "USER-ACTION" action))
+      (println "USER-ACTION" action "ready?" ready? "plid-loaded?" plid-loaded?
+        "load-corresponding?" load-corresponding?))
     (if ready?
       (do
         (case action-type
