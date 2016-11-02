@@ -68,9 +68,9 @@
 (defn rmethod [{:keys [return success-fn error-fn] :as opts} method & args]
   (let [return (or return (tasks/deferred))
         success-fn (or success-fn
-                     #(println "ANSWER" method "->"  %))
+                     #(println "  ANSWER for" method "->"  %))
         error-fn (or error-fn
-                   #(println "ERROR" method "->"  %))]
+                   #(println "  ERROR for" method "->"  %))]
     ;; (println "RMETHOD" return method args)
     (tasks/on-realized return success-fn error-fn)
     (apply ws/rmethod ws/ws return method args)
@@ -772,7 +772,7 @@
 ;; sel MIGHT be a vector
 (defn set-selection [plid sel & [opts]]
   (when (and plid sel)
-    ;; (println "DEBUG set-selection" sel)
+    ;; (println "DEBUG set-selection PLID" plid "SEL" sel)
     (let [selection (st/app-get-plan-value plid :selection)
           multiple? (vector? (first sel))
           new-selection (if (or multiple? (empty? sel)) sel [sel])]
@@ -908,7 +908,7 @@
 (defn highlight-relevant [&[remote]]
   (let [{:keys [ui/show-plan ui/show-network ui/network-type]} (st/get-ui-opts)
         {:keys [corresponding selection]} (st/app-get-plan show-plan)
-        csel (if (and corresponding selection)
+        csel (if corresponding
                (st/app-get-plan-value corresponding :selection))
         auto-on? (auto?)]
     (println "HIGHLIGHT-RELEVANT" show-plan show-network network-type
