@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file. This change
 
 Added
 - No longer change all user's view to the latest selection (Closes #28)
+- Resolve #30 (cleanup relaxed tpn values, via plan-schema)
+- Resolve event storm bug #33. Also quiets peer browser sessions showing a
+  spinner or giving a status message when loading files.
+- Resolve Selection bug #35. Also disable ring-default not-modified
+  headers at log level :trace and :debug (to force *.cljs reloading)
 - *TBD*
 
 ### [0.8.9] - 2016-10-26

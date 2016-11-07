@@ -171,7 +171,7 @@
                                   (log/debug (string/join " " msgs))))
     (pschema/set-logger! :error (fn [& msgs]
                                   (log/debug (string/join " " msgs))))
-    (swap! state assoc :logging true)))
+    (swap! state assoc :logging log-level)))
 
 (defn log-if-possible [msg]
   (if(:logging @state)
@@ -635,21 +635,29 @@
         {}))))
 
 ;; https://github.com/ring-clojure/ring-defaults
-(def http-handler
-  (-> routes
-    (debug-handler :routes)
-    (log-request-handler)
-    ;; (debug-handler :log-request-handler)
-    (wrap-defaults (dissoc site-defaults :security))
-    ;; (debug-handler :wrap-defaults)
-    ;; (wrap-cors
-    ;;   :access-control-allow-origin #"localhost:*"
-    ;;   :access-control-allow-methods [:get]
-    ;;   :access-control-allow-headers ["Origin" "X-Requested-With"
-    ;;                                  "Content-Type" "Accept"])
-    (wrap-gzip)
-    ;; (debug-handler :wrap-gzip)
-    ))
+;; When (false? not-modified?) the following will help ensure the most recent
+;; ClojureScript are re-sent to the browser.
+(defn http-handler []
+  (let [not-modified? (if (#{:trace :debug} (:logging @state))
+                        false true)
+        defaults (-> site-defaults
+                   (dissoc :security)
+                   (assoc-in [:responses :not-modified-responses]
+                     not-modified?))]
+    (-> routes
+      (debug-handler :routes)
+      (log-request-handler)
+      ;; (debug-handler :log-request-handler)
+      (wrap-defaults defaults)
+      ;; (debug-handler :wrap-defaults)
+      ;; (wrap-cors
+      ;;   :access-control-allow-origin #"localhost:*"
+      ;;   :access-control-allow-methods [:get]
+      ;;   :access-control-allow-headers ["Origin" "X-Requested-With"
+      ;;                                  "Content-Type" "Accept"])
+      (wrap-gzip)
+      ;; (debug-handler :wrap-gzip)
+      )))
 
 ;; TPN functions
 ;; NOTE: assumes only one active network for now
@@ -1086,7 +1094,7 @@
             ;; interface to bind to.
             ;; server (http/start-server http-handler
             ;;          {:shutdown-executor? false :port port})
-            server (http/start-server http-handler {:port port})]
+            server (http/start-server (http-handler) {:port port})]
         (lq/bind channel qname exchange {:routing-key "#"})
         (lc/subscribe channel qname incoming-msgs {:auto-ack true})
         (swap! state update-in [:rmq]
@@ -1138,12 +1146,6 @@
           (when (vector? urls)
             (swap! state update-in [:url-config] concatv urls))))))
   (swap! state update-in [:url-config] sort-url-config))
-
-(def dev-handler
-  (fn [req]
-    (start-msgs)
-    (log/info "DEV HANDLER")
-    (http-handler req)))
 
 ;; main program --------------------------------------------------
 
