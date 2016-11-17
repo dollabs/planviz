@@ -1,0 +1,8 @@
+{:settings/rewrap-htn-labels true,
+ :settings/font-weight "font-weight-light",
+ :settings/tooltips true,
+ :settings/font-size "font-size-9",
+ :settings/ychar 10,
+ :settings/auto false,
+ :settings/font-family "font-family-helvetica",
+ :settings/xchar 5}

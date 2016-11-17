@@ -46,8 +46,7 @@
   static om/IQuery
   (query [_]
     '[:message-box/id
-      :message-box/value
-      ])
+      :message-box/value])
   Object
   (render [this]
     (let [props (om/props this)]
@@ -65,9 +64,9 @@
   static om/IQuery
   (query [_]
     '[:input-box/id
+      ;; :input-box/numeric?
       :input-box/value
-      :input-box/start
-      :input-box/end
+      :input-box/placeholder-orig
       :input-box/placeholder
       :input-box/size])
   Object
@@ -119,11 +118,8 @@
       :ui/tooltips? ;; show tooltips
       :ui/graph-click ;; fn when a graph item is clicked
       :ui/menu ;; popup menu
-      ])
-  Object
-  (render [this]
-    (let [props (om/props this)]
-      )))
+      :ui/settings ;; settings configuration
+      ]))
 
 (def ui-opts-query (om/get-query UIOpts))
 
@@ -150,11 +146,7 @@
   static om/IQuery
   (query [_]
     '{:node/node-by-plid-id ?node
-      :edge/edge-by-plid-id ?edge})
-  Object
-  (render [this]
-    (let [props (om/props this)]
-      )))
+      :edge/edge-by-plid-id ?edge}))
 
 (def gsi-query (om/get-query GraphSelectionItem))
 (def gsi-refs {})
@@ -167,7 +159,8 @@
     [:node/node-by-plid-id (node-key-fn props)])
   static om/IQueryParams
   (params [_]
-    {:ui-opts [:ui/network-type :ui/node-ids? :ui/tooltips? :ui/graph-click]
+    {:ui-opts [:ui/network-type :ui/node-ids? :ui/tooltips?
+               :ui/graph-click :ui/settings]
      :selection gsi-query})
   static om/IQuery
   (query [_]
@@ -219,8 +212,7 @@
       ;; for display
       :node/selected?
       :node/aggregated?
-      :node/number
-      ])
+      :node/number])
   Object
   (render [this]
     (let [props (om/props this)]
@@ -240,8 +232,8 @@
   static om/IQueryParams
   (params [_]
     {:node [:plan/plid :node/id :node/x :node/y]
-     :ui-opts [:ui/network-type :ui/tooltips? :ui/graph-click]
-     })
+     :ui-opts [:ui/network-type :ui/tooltips? :ui/graph-click
+               :ui/settings]})
   static om/IQuery
   (query [_] ;; NORMAL QUOTE below
     '[{:plans/ui-opts ?ui-opts}
@@ -304,7 +296,7 @@
   static om/IQueryParams
   (params [_]
     {:node [:node/x :node/y]
-     :ui-opts [:ui/show-virtual? :ui/edge-ids?]})
+     :ui-opts [:ui/show-virtual? :ui/edge-ids? :ui/settings]})
   static om/IQuery
   (query [_] ;; NORMAL QUOTE below
     '[{:plans/ui-opts ?ui-opts}
@@ -431,7 +423,7 @@
   static om/IQueryParams
   (params [_]
     {:pan-zoom pan-zoom-query
-     :ui-opts [:ui/show-plan :ui/graph-click :ui/menu]
+     :ui-opts [:ui/show-plan :ui/graph-click :ui/menu :ui/settings]
      :plans plan-query})
   static om/IQuery
   (query [_]
@@ -471,9 +463,14 @@
       :app/css ;; source for css
       :app/url-config ;; url configuration for right click menus
       :app/help ;; help configuration
+      :app/settings ;; for the settings-menu
       {:app/message-box ?message-box}
-      {:app/input-box ?input-box}
-      {:app/pan-zoom ?pan-zoom}])
+      {:app/cmd-box ?input-box}
+      {:app/pan-zoom ?pan-zoom}
+      {:app/xchar-box ?input-box}
+      {:app/ychar-box ?input-box}
+      {:app/filename-box ?input-box}
+      ])
   Object
   (render [this]
     (let [props (om/props this)]
@@ -482,5 +479,8 @@
 
 (def app-query (om/get-query Application))
 (def app-refs {:app/message-box :message-box/message-box-by-id
-               :app/input-box :input-box/input-box-by-id
-               :app/pan-zoom :pan-zoom/pan-zoom-by-id})
+               :app/cmd-box :input-box/input-box-by-id
+               :app/pan-zoom :pan-zoom/pan-zoom-by-id
+               :app/xchar-box :input-box/input-box-by-id
+               :app/ychar-box :input-box/input-box-by-id
+               :app/filename-box :input-box/input-box-by-id})

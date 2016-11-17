@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file. This change
 
 ### [Unreleased]
 
+Changed
+- _TBD_
+
+### [0.9.0] - 2016-11-16
+
 Added
 - No longer change all user's view to the latest selection (Closes #28)
 - Resolve #30 (cleanup relaxed tpn values, via plan-schema)
@@ -11,7 +16,16 @@ Added
   spinner or giving a status message when loading files.
 - Resolve Selection bug #35. Also disable ring-default not-modified
   headers at log level :trace and :debug (to force *.cljs reloading)
-- *TBD*
+- Update dependencies
+- Added settings dialog menu. Closes:
+  * Leverages various webfonts to allow run time customization
+  * BB 37 TPNVIZ: create a Settings page
+  * BB 48 TPNVIZ: Save settings (server side)
+  * #32 Config Option to change HTN node Font and Size
+- Performance:
+  * use keyword-identical? in favor of = for keyword comparisons
+  * use simple keywords as key-fn's where applicable
+- NOTE: This version requires [dollabs/webkeys "0.4.0"]
 
 ### [0.8.9] - 2016-10-26
 
@@ -133,4 +147,5 @@ Added
 [0.8.4]: https://github.com/dollabs/planviz/compare/0.8.3...0.8.4
 [0.8.8]: https://github.com/dollabs/planviz/compare/0.8.4...0.8.8
 [0.8.9]: https://github.com/dollabs/planviz/compare/0.8.8...0.8.9
-[Unreleased]: https://github.com/dollabs/planviz/compare/0.8.9...HEAD
+[0.9.0]: https://github.com/dollabs/planviz/compare/0.8.0...0.9.0
+[Unreleased]: https://github.com/dollabs/planviz/compare/0.9.0...HEAD
