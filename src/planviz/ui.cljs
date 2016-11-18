@@ -24,6 +24,63 @@
 
 (defonce SQRT3 (sqrt 3))
 
+(defn digit? [s]
+  ;; (and (string? s) (boolean (#{"0" "1" "2" "3" "4" "5" "6" "7" "8" "9"} s)))
+  (and (string? s) (= 1 (count s))
+    (let [a (.charCodeAt s 0)]
+      (and (>= a 48) (<= a 57)))))
+
+(defn lower-case-letter? [s]
+  (and (string? s) (= 1 (count s))
+    (let [a (.charCodeAt s 0)]
+      (and (>= a 97) (<= a 122)))))
+
+(defn upper-case-letter? [s]
+  (and (string? s) (= 1 (count s))
+    (let [a (.charCodeAt s 0)]
+      (and (>= a 65) (<= a 90)))))
+
+(defn lower-case? [s]
+  (and (string? s) (not (digit? s)) (= s (string/lower-case s))))
+
+(defn upper-case? [s]
+  (and (string? s) (not (digit? s))  (= s (string/upper-case s))))
+
+;; fonts
+(def font-families {"font-family-helvetica" "Helvetica"
+                    "font-family-pt-sans-narrow" "PT Sans Narrow"
+                    "font-family-roboto" "Roboto"
+                    "font-family-open-sans-condensed" "Open Sans Condensed"
+                    "font-family-nunito" "Nunito"})
+
+(def font-weights {"font-weight-light" "Light"
+                   ;; "font-weight-regular" "Regular"
+                   "font-weight-bold" "Bold"})
+
+(def font-sizes {"font-size-7" "7 px"
+                 "font-size-8" "8 px"
+                 "font-size-9" "9 px"
+                 "font-size-10" "10 px"
+                 "font-size-11" "11 px"
+                 "font-size-12" "12 px"
+                 "font-size-13" "13 px"})
+
+
+(def planviz-settings {:settings/auto false
+                       :settings/tooltips true
+                       :settings/font-family "font-family-helvetica"
+                       :settings/font-size "font-size-9"
+                       :settings/font-weight "font-weight-light"
+                       :settings/rewrap-htn-labels true
+                       :settings/xchar 5
+                       :settings/ychar 10
+                       :settings/filename "default"
+                       :settings/filenames ["default"]})
+
+;; ignore these keys when saving settings
+(def planviz-settings-ignore [:settings/shown? :settings/settings-action
+                              :settings/filenames])
+
 ;; for TPN graphs
 
 (def edge-states {:normal      {:parallel 0 :choice 2 :node-state :normal}
@@ -34,16 +91,14 @@
                   :start       {:parallel 4 :choice 4 :node-state :started}
                   :negotiation {:parallel 4 :choice 4 :node-state :started}
                   :impossible  {:parallel 5 :choice 0 :node-state :impossible}
-                  :failed      {:parallel 6 :choice 1 :node-state :failed}
-                  })
+                  :failed      {:parallel 6 :choice 1 :node-state :failed}})
 
 (def node-states {:normal      {:parallel 0 :choice 2 :edge-state :normal}
                   :best        {:parallel 1 :choice 3 :edge-state :best}
                   :reached     {:parallel 2 :choice 6 :edge-state :finished}
                   :started     {:parallel 3 :choice 5 :edge-state :started}
                   :impossible  {:parallel 5 :choice 0 :edge-state :impossible}
-                  :failed      {:parallel 6 :choice 1 :edge-state :failed}
-                  })
+                  :failed      {:parallel 6 :choice 1 :edge-state :failed}})
 
 (def parallel-edge-states {0 :normal
                            1 :best
@@ -51,8 +106,7 @@
                            3 :started
                            4 :start
                            5 :impossible
-                           6 :failed
-                          })
+                           6 :failed})
 
 (def choice-edge-states {0 :impossible
                          1 :failed
@@ -60,8 +114,7 @@
                          3 :best
                          4 :start
                          5 :started
-                         6 :finished
-                         })
+                         6 :finished})
 
 (def constraint-types #{:temporal-constraint
                         :cost<=-constraint
@@ -88,14 +141,11 @@
 
 ;; key-fn's
 
-(defn message-box-key-fn [props]
-  (:message-box/id props))
+(def message-box-key-fn :message-box/id)
 
-(defn input-box-key-fn [props]
-  (:input-box/id props))
+(def input-box-key-fn :input-box/id)
 
-(defn pan-zoom-key-fn [props]
-  (:pan-zoom/id props))
+(def pan-zoom-key-fn :pan-zoom/id)
 
 (def ui-opts-key-fn (constantly :singleton))
 
@@ -114,10 +164,6 @@
   (let [n (if (keyword? s) (name s) s)]
     (string/replace n "." "-")))
 
-(def xchar 5)
-(def ychar 10)
-(def ydesc 3) ;; descender
-
 (defn translate [x y]
   (str "translate(" x "," y ")"))
 
@@ -131,8 +177,9 @@
   (if selected?
     "target-selected" "target-unselected"))
 
-(defn tooltip [tag x y tip type]
-  (let [tip-len (count tip)
+(defn tooltip [settings tag x y tip type]
+  (let [{:keys [settings/xchar settings/ychar]} settings
+        tip-len (count tip)
         width (* (+ tip-len 2) xchar)
         height (* 1.5 ychar)
         x-tip (- x (/ width 2))
@@ -143,12 +190,48 @@
                 (+ y ychar -3)
                 :htn-expanded-method
                 (- y (* 4 ychar))
-                (- y ychar height))
-        ]
+                (- y ychar height))]
     [tag
      [:rect {:x x-tip :y y-tip :rx 3 :ry 3
              :width width :height height}]
      [:text {:x (+ x-tip xchar) :y (+ y-tip ychar)} tip]]))
+
+(defn rewrap-label [settings label]
+  (when label
+    (let [{:keys [settings/xchar]} settings
+          raw (string/replace label "\n" "")
+          len (count raw) ;; avoid fencepost
+          hem-width 89
+          ;; desired number of lines
+          n (inc (quot (* (dec len) xchar) hem-width))
+          ;; naive partition based on length
+          m (quot len n) ;; break every mth char
+          ;; parts (if (= n 1)
+          ;;         (list raw)
+          ;;         (partition m m "" raw))
+          ;; label (apply str (map #(apply str (conj (vec %) "\n")) parts))
+          ;; keeps a trailing newline
+          ;; --------------------
+          ;; break space, -
+          ]
+      ;; i is the number chars since a newline
+      (loop [label "" i 0 ch (first raw) more (rest raw)]
+        (if-not ch
+          label
+          (let [next-ch (first more)
+                lower-to-upper? (and
+                                  (or (digit? ch) (lower-case-letter? ch))
+                                  (upper-case-letter? next-ch))
+                break? (and (>= i (quot (* 0.65 m) 1))
+                         (or (= ch " ") (= ch "-") lower-to-upper?)
+                         (> (- len (count label)) 5))
+                [newline i] (if break?
+                              ["\n" 0]
+                              [(if lower-to-upper? " " "")
+                               (inc i)])
+                label (str label ch newline)]
+            (recur label i next-ch (rest more)))))
+      )))
 
 ;; 0 for normal
 ;; 0.5 for started
@@ -186,8 +269,11 @@
                    node/label node/sequence-label
                    node/probability node/selected?
                    node/tpn-selection node/number] :as props}]
-  (let [{:keys [ui/network-type ui/node-ids? ui/tooltips?
-                ui/graph-click]} ui-opts
+  (let [{:keys [ui/network-type ui/node-ids?
+                ui/graph-click ui/settings]} ui-opts
+        {:keys [settings/font-family settings/font-size settings/font-weight
+                settings/rewrap-htn-labels settings/tooltips
+                settings/xchar settings/ychar]} settings
         state (if tpn-selection
                 (hem-node-state tpn-selection)
                 state)]
@@ -210,16 +296,21 @@
             use [:use {:class css :x x :y y :xlinkHref (str "#" xlink)
                        ;; :on-click #(nodeclick id)
                        }]
-            top (- y 13)
-            ychar 8
+            top (- y 11)
             ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
+            label (if rewrap-htn-labels
+                    (rewrap-label settings label)
+                    label)
             label (str label (if label "\n")
                     (if sequence-label "▹ ") sequence-label)
             lines (if (not (empty? label)) (string/split label #"\n"))
             labels (if (and lines (not hidden))
                      (for [i (range (count lines))
                            :let [lab (get lines i)]]
-                       [:text {:class "node-label"
+                       [:text {:class (str "node-label "
+                                        font-family " "
+                                        font-size " "
+                                        font-weight)
                                :textAnchor "middle"
                                :x x :y (+ top (* i ychar))} lab]))
             y-node-id (+ y (if (keyword-identical? network-type :hem-network) 30 20))
@@ -247,8 +338,8 @@
           labels
           (if node-ids?
             [[:text {:textAnchor "middle" :x x :y y-node-id} (name id)]])
-          (if tooltips?
-            [(tooltip :g.node-tooltip.hide x y tip type)]))))))
+          (if tooltips
+            [(tooltip settings :g.node-tooltip.hide x y tip type)]))))))
 
 (def node-memo (memoize node))
 
@@ -343,8 +434,9 @@
                    edge/number]
              :as props}
             node-factory]
-  (let [{:keys [ui/network-type ui/tooltips?
-                ui/graph-click]} ui-opts]
+  (let [{:keys [ui/network-type
+                ui/graph-click ui/settings]} ui-opts
+        {:keys [settings/tooltips]} settings]
     (html
       ;; (if (= rendering :graphic)
         (let [[x0 y0] [(:node/x from) (:node/y from)]
@@ -390,8 +482,8 @@
              (if target-attrs
                [:path target-attrs])
              [:path attrs]
-             (if tooltips?
-               [(tooltip :g.edge-tooltip.hide x y tip type)])])))))
+             (if tooltips
+               [(tooltip settings :g.edge-tooltip.hide x y tip type)])])))))
 
 (def edge-memo (memoize edge))
 
@@ -426,7 +518,7 @@
 
 (defn construct-label [name label sequence-label plant plantid command
                        args type value]
-  (if (= type :temporal-constraint)
+  (if (keyword-identical? type :temporal-constraint)
     (str value)
     (or name
       (let [argstr (apply str (interpose ", " args))]
@@ -446,7 +538,8 @@
                     edge/from edge/to edge/value
                     edge/cost edge/reward edge/probability edge/guard
                     edge/order] :as props}]
-  (let [{:keys [ui/show-virtual? ui/edge-ids?]} ui-opts
+  (let [{:keys [ui/show-virtual? ui/edge-ids? ui/settings]} ui-opts
+        {:keys [settings/ychar]} settings
         virtual? (keyword-identical? type :virtual)
         label? (or show-virtual? (not virtual?))
         label (if label? (construct-label name label sequence-label
@@ -465,7 +558,7 @@
                         (link-arc-memo type x0 y0 x1 y1)
                         [x0 y0 0 0])
         y (case type
-            :cost<=-constraint (- y ychar) ;; FIXME
+            :cost<=-constraint (- y ychar)
             :reward>=-constraint (- y 18)
             y)
         order (if edge-ids? order)
@@ -594,8 +687,9 @@
       [:stop.menu-stop3 {:offset "100%"}]]
      ]))
 
-(defn show-menu [menu]
-  (let [{:keys [node edge x y options]} menu
+(defn show-menu [settings menu]
+  (let [{:keys [settings/xchar settings/ychar]} settings
+        {:keys [node edge x y options]} menu
         n (count options)
         max-text (reduce #(max %1 (count (:text %2))) 0 options)
         w (* (+ max-text 2) xchar)
@@ -620,7 +714,7 @@
         vertical? (> ratio vp-ratio) ;; constrained vertically?
         ;; _ (println "CALC-BIGPLAN height" height "width" width "ratio" ratio)
         ;; _ (println "vp-height" vp-height "vp-width" vp-width "vp-ratio" vp-ratio
-        ;;     "vertical?" vertical?)
+        ;;     "vertical?" vertical?) ;; DEBUG
         [pan-x pan-y] pan
         [big-w big-h] (mapv #(* % zoom)
                         (if vertical?
@@ -631,12 +725,11 @@
                                  (/ (max (- vp-width big-w) 0) 2) 0) 0]
                               [0 (if (zero? pan-y)
                                    (/ (max (- vp-height big-h) 0) 2) 0)])
-        ;; [offset-x offset-y] [0 0]
+        ;; DEBUG
         _ (println "zoom" zoom "pan" pan "offset-x" offset-x "offset-y" offset-y)
         [big-left big-top] [(- offset-x (* pan-x big-w))
                             (- offset-y (* pan-y big-h))]
         bp [big-left big-top big-w big-h]]
-    ;; (println "BP" bp)
     bp))
 
 (defn plans [{:keys [plans/pan-zoom plans/ui-opts plans/plans] :as props}
@@ -644,7 +737,7 @@
   (let [{:keys [pan-zoom/width pan-zoom/height
                 pan-zoom/vp-width pan-zoom/vp-height
                 pan-zoom/pan pan-zoom/zoom]} pan-zoom
-        {:keys [ui/show-plan ui/graph-click ui/menu]} ui-opts
+        {:keys [ui/show-plan ui/graph-click ui/menu ui/settings]} ui-opts
         plans-to-show (if (or (nil? show-plan) (keyword-identical? :all show-plan))
                         plans
                         (filter #(keyword-identical? (:plan/plid %) show-plan) plans))
@@ -653,58 +746,50 @@
         loading? (not (and width height))
         [width height] [(or width 800) (or height 800)]
         viewbox  (str "0 0 " width " " height)
-        ;; _ (println "UI plans" zoom)
         [big-left big-top big-w big-h] (calc-bigplan width height
                                          vp-width vp-height zoom pan)]
     (html
-      (if loading?
-        [:div#plans [:div#load-container.load-container.load5
-                     [:div#loader.loader "Loading..."]]]
-        [:svg#bigplan {:viewBox viewbox
-                       :style {:top (str big-top "px")
-                               :left (str big-left "px")}
-                       :width (str big-w "px") :height (str big-h "px")
-                       :on-click (partial graph-click nil)}
-         (svg-defs)
-         (concatv
-           [:g#planviz
-            ;; blue rect for entire graph
-            ;; [:rect.plans {:x 0 :y 0
-            ;;               :width (- width 2) :height (- height 2)}]
-            ]
-           (map plan-factory plans-to-show)
-           (if menu [(show-menu menu)])
-           )]))))
+      [:div#plans
+       (if loading?
+         [:div#load-container.load-container.load5
+          [:div#loader.loader "Loading..."]]
+         [:svg#bigplan {:viewBox viewbox
+                        :style {:top (str big-top "px")
+                                :left (str big-left "px")}
+                        :width (str big-w "px") :height (str big-h "px")
+                        :on-click (partial graph-click nil)}
+          (svg-defs)
+          (concatv
+            [:g#planviz
+             ;; blue rect for entire graph
+             ;; [:rect.plans {:x 0 :y 0
+             ;;               :width (- width 2) :height (- height 2)}]
+             ]
+            (map plan-factory plans-to-show)
+            (if menu [(show-menu settings menu)]))])
+       ])))
 
 (defn message-box [{:keys [message-box/id message-box/value] :as props}]
-  ;; DEBUG
-  ;; (println "message-box" props)
   (let [id (or id :mb-wat)
         tag (keyword (str "div#mb-" (name id) ".message-box"))]
     (html
       [tag value])))
 
-(defn input-box [{:keys [input-box/id input-box/value
-                         ;; input-box/start input-box/end
+(defn input-box [{:keys [input-box/id input-box/numeric? input-box/value
                          input-box/placeholder input-box/size] :as props}]
-  ;; DEBUG
-  ;; (println "input-box" props)
-  (let [id (or id :ib-wat)
-        id-str (name id)
-        div-tag (keyword (str "div#ib-" id-str ".input-box"))
+  (let [id-str (name id)
+        ;; div-tag (keyword (str "div#ib-" id-str ".input-box"))
         input-tag (keyword (str "input#" id-str))
-        attrs (assoc-if {:type "text" :value (or value "")}
+        attrs (assoc-if
+                {:type "text"
+                 :value (or value "")}
                 :placeholder placeholder
                 :size size)]
-    (html
-       [div-tag
-        [input-tag attrs]])))
+    (html [input-tag attrs])))
 
 (defn pan-zoom [{:keys [pan-zoom/id pan-zoom/width pan-zoom/height
                         pan-zoom/vp-width pan-zoom/vp-height
                         pan-zoom/pan pan-zoom/zoom] :as props}]
-  ;; DEBUG
-  ;; (println "pan-zoom" props)
   (let [id (or id :pz-wat)
         tag (keyword (str "div#pz-" (name id) ".pan-zoom"))
         loading? (not (and width height))
@@ -741,20 +826,120 @@
        content]
       [:div#help-menu.help-hidden])))
 
-(defn application [{:keys [app/message-box app/input-box app/pan-zoom
-                           app/title app/mode app/help] :as props}
+
+(defn show-settings [settings input-box-factory xchar-box ychar-box filename-box]
+  (let [{:keys [settings/shown? settings/settings-action
+                settings/font-family settings/font-size settings/font-weight
+                settings/rewrap-htn-labels settings/auto
+                settings/tooltips settings/filename settings/filenames
+                settings/xchar settings/ychar]} settings
+        label "Example Node Label\nWith some very long lines of details"
+        ;; label "GetDataAndInterpretGetDataAndInterpret(A B)"
+        label (if rewrap-htn-labels
+                (rewrap-label settings label)
+                label)
+        filenames (set filenames)
+        filenames (vec (if (filenames filename) filenames
+                           (conj filenames filename)))]
+    (if shown?
+      [:div#settings-menu.settings-shown
+       [:div#settings-menu-close
+        {:on-click (partial settings-action :settings-menu-close)}
+        "✕"]
+       [:b "Settings Menu"] " " [:i "(press ESC to exit)"]
+       [:br]
+       [:br]
+       "Node font: "
+       (vec
+         (cons
+           :select#font-family
+           (cons
+             {:value font-family
+              :on-change (partial settings-action :font-family)}
+             (for [k (sort (keys font-families))]
+               [:option {:value k} (get font-families k)]))))
+       " "
+       (vec
+         (cons
+           :select#font-size
+           (cons
+             {:value font-size
+              :on-change (partial settings-action :font-size)}
+             (for [k (keys font-sizes)]
+               [:option {:value k} (get font-sizes k)]))))
+       " "
+       (vec
+         (cons
+           :select#font-weight
+           (cons
+             {:value font-weight
+              :on-change (partial settings-action :font-weight)}
+             (for [k (keys font-weights)]
+               [:option {:value k} (get font-weights k)]))))
+       " "
+       (vec
+         (cons
+           (keyword (str "div#examplenode."
+                      font-family "." font-size "." font-weight))
+           (interpose [:br] (string/split label "\n"))))
+       [:br]
+       [:br]
+       "Rewrap node labels?: "
+       [:input#rewrap-htn-labels
+        (assoc-if {:type "checkbox" :value true
+                   :on-change (partial settings-action :rewrap-htn-labels)}
+          :checked rewrap-htn-labels)]
+       " Character width (px): "
+       (input-box-factory xchar-box)
+       " Character height (px): "
+       (input-box-factory ychar-box)
+       [:br]
+       [:br]
+       "Auto mode: "
+       [:input#auto
+        (assoc-if {:type "checkbox" :value true
+                   :on-change (partial settings-action :auto)}
+          :checked auto)]
+       " Show tooltips?: "
+       [:input#tooltips
+        (assoc-if {:type "checkbox" :value true
+                   :on-change (partial settings-action :tooltips)}
+          :checked tooltips)]
+       [:br]
+       [:br]
+       "Settings filename: "
+       [:br]
+       (vec
+         (cons
+           :select#filenames
+           (cons
+             {:value filename
+              :selected true
+              :size 5
+              :on-change (partial settings-action :filenames)}
+             (for [f (sort filenames)]
+               [:option {:value f} f]))))
+       [:br]
+       [:button#load {:on-click (partial settings-action :load)}
+        "Load"]
+       " "
+       [:button#save {:on-click (partial settings-action :save)}
+        "Save"]
+       [:i " Save As... "]
+       (input-box-factory filename-box)]
+      [:div#settings-menu.settings-hidden])))
+
+(defn application [{:keys [app/message-box app/cmd-box app/pan-zoom
+                           app/title app/mode app/help app/settings
+                           app/xchar-box app/ychar-box app/filename-box] :as props}
                    message-box-factory input-box-factory pan-zoom-factory]
-  ;; DEBUG
-  ;; needs remove-fn
-  ;; (println "application" props)
   (html
     [:div#application
      [:div#title (str title "  " (name (or mode :manual)))]
-     ;; DEBUG
      [:div#logo]
      (show-help help)
      (message-box-factory message-box)
-     (input-box-factory input-box)
+     [:div#ib-cmd.input-box
+      (input-box-factory cmd-box)]
      (pan-zoom-factory pan-zoom)
-     ]
-    ))
+     (show-settings settings input-box-factory xchar-box ychar-box filename-box)]))

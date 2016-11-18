@@ -82,21 +82,21 @@ ul.circle {
     z-index: -20;
 }
 
-.help-shown {
+.help-shown, .settings-shown {
     top: 1em;
 }
 
-.help-hidden {
+.help-hidden, .settings-hidden {
     top: -100em;
 }
 
-#help-menu {
+#help-menu, #settings-menu {
     font-size: 0.6em;
     position: absolute;
     padding: 0.5em;
     left: 1em;
     width: calc(100% - 8em);
-    height: calc(100% - 5em);
+    height: calc(100% - 7.5em);
     /* border: solid 3px SlateGrey; */
     border-width: 3px;
     border-style: ridge;
@@ -105,12 +105,12 @@ ul.circle {
     z-index: 30;
 }
 
-#help-menu li {
+#help-menu li, #settings-menu li {
     list-style-type: none;
     /* padding-left: 1em; */
 }
 
-#help-menu-close {
+#help-menu-close, #settings-menu-close {
     position: fixed;
     padding: 0em;
     left: calc(100% - 7em + 3px);
@@ -154,7 +154,7 @@ ul.circle {
     z-index: 5;
 }
 
-.input-box {
+#ib-cmd {
     position: absolute;
     bottom: 0px;
     left: 0px;
@@ -178,7 +178,7 @@ input::-webkit-input-placeholder {
     color: rgba(0,0,0,0.2);
 }
 
-#cmd {
+#cmd, #xchar, #ychar, #filename {
     padding: 2px;
     margin: 0px;
     border-radius: 4px;
@@ -298,6 +298,26 @@ rect.plans {
     -webkit-transform: translateZ(0);
     -ms-transform: translateZ(0);
     transform: translateZ(0);
+}
+
+#examplenode {
+    position: absolute;
+    top: 20px;
+    left: 450px;
+    text-align: center;
+    border-radius: 3px;
+    width: 80px;
+    height: 40px;
+    color: DarkSlateGrey;
+    background: #b3e6ff;
+    text-overflow: clip;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+#filenames {
+    width: 20em;
+    margin: 0.5em;
 }
 
 @-webkit-keyframes load5 {

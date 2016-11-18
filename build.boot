@@ -5,7 +5,7 @@
 ;; the file LICENSE at the root of this distribution.
 
 (def project 'dollabs/planviz)
-(def version "0.8.9")
+(def version "0.9.0")
 (def description "Planning Network Visualization")
 (def project-url "https://github.com/dollabs/planviz")
 (def main 'planviz.cli)
@@ -18,14 +18,14 @@
                     ;; both
                     [avenir "0.2.1"]
                     [dollabs/webtasks "0.2.1"]
-                    [dollabs/webkeys "0.2.0"]
+                    [dollabs/webkeys "0.4.0"]
                     [org.clojure/core.async "0.2.395"]
                     ;; server
                     [org.clojure/tools.cli "0.3.5"]
                     [me.raynes/fs "1.4.6"]
-                    [com.cognitect/transit-clj "0.8.290"]
+                    [com.cognitect/transit-clj "0.8.293"]
                     [environ "1.1.0"]
-                    [clj-time "0.12.0"]
+                    [clj-time "0.12.2"]
                     [com.taoensso/timbre "4.7.4"]
                     [org.slf4j/slf4j-api "1.7.21"]
                     [com.fzakaria/slf4j-timbre "0.3.2"]
@@ -43,16 +43,16 @@
                     [aleph "0.4.2-alpha8"]
                     ;; client
                     [com.cognitect/transit-cljs "0.8.239"]
-                    [cljsjs/react-dom-server "15.3.1-0"]  ;; for sablono
-                    [cljsjs/react-dom "15.3.1-0"] ;; for sablono
+                    [cljsjs/react-dom-server "15.3.1-1"]  ;; for sablono
+                    [cljsjs/react-dom "15.3.1-1"] ;; for sablono
                     [org.omcljs/om "1.0.0-alpha40"]
-                    [sablono "0.7.5"]
+                    [sablono "0.7.6"]
                     ;; cljs-dev
                     [com.cemerick/piggieback "0.2.1"     :scope "test"]
                     [weasel                 "0.7.0"      :scope "test"]
                     [org.clojure/tools.nrepl "0.2.12"    :scope "test"]
                     [adzerk/boot-reload     "0.4.13"     :scope "test"]
-                    [pandeiro/boot-http "0.7.3" :scope "test"]
+                    [pandeiro/boot-http "0.7.6" :scope "test"]
                     [adzerk/boot-cljs       "1.7.228-2"  :scope "test"]
                     [adzerk/boot-cljs-repl  "0.3.3"      :scope "test"]
                     ;; testing/development

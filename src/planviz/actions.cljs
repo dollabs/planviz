@@ -71,7 +71,7 @@
                      #(println "  ANSWER for" method "->"  %))
         error-fn (or error-fn
                    #(println "  ERROR for" method "->"  %))]
-    ;; (println "RMETHOD" return method args)
+    ;; (println "RMETHOD" return method args) ;; DEBUG
     (tasks/on-realized return success-fn error-fn)
     (apply ws/rmethod ws/ws return method args)
     return))
@@ -103,7 +103,7 @@
       (if-not sel
         node
         (let [[type id] sel
-              sel (if (= type :node)
+              sel (if (keyword-identical? type :node)
                     (get-end-node-ref id)
                     [:edge/edge-by-plid-id id])
               tpn-selection (conj (:node/tpn-selection node) sel)
@@ -146,7 +146,7 @@
 
 (defn my-user-action [action]
   (let [action-type (:type action)
-        chat? (= action-type :chat)
+        chat? (keyword-identical? action-type :chat)
         plid (or (:plid action) (:ui/show-plan (st/get-ui-opts)))
         action (if chat? action (assoc action :plid plid))]
     (when (or chat? (not= plid :none))
@@ -156,7 +156,7 @@
         :user-action action))))
 
 (defn update-tpn-end [plid]
-  (let [end (if (= (st/app-get-plan-value plid :type) :tpn-network)
+  (let [end (if (keyword-identical? (st/app-get-plan-value plid :type) :tpn-network)
               (st/get-network-end plid))]
     (when end
       ;; (println "TPN-END" plid end)
@@ -188,56 +188,6 @@
         (st/all-normal plid)
         (if corresponding (st/all-normal corresponding))))))
 
-;; (defn network-update [update]
-;;   (let [d (st/app-get :app/loading)
-;;         defer (or (st/app-get :app/defer) [])]
-;;     (if d
-;;       (st/app-set :app/defer (conj defer update))
-;;       (let [{:keys [plid update-uid state]} update
-;;             {:keys [loaded? tpn-end corresponding]} (st/app-get-plan plid)]
-;;         (if-not loaded?
-;;           (println "ERROR network-update for not loaded plan:" plid)
-;;           (do ;; if it has node in the uid then it's node, else edge
-;;             (if (not (nil? (string/index-of (name update-uid) "node")))
-;;               (let [node-id (composite-key plid update-uid)
-;;                     node (st/plans-get-node node-id)
-;;                     {:keys [node/htn-node]} node
-;;                     hpt-hent (if (and corresponding htn-node)
-;;                                (st/plans-get-node htn-node))
-;;                     {:keys [node/type node/parent]} hpt-hent
-;;                     network-parent (st/get-network-parent parent)
-;;                     hem (if (= type :htn-expanded-method)
-;;                           hpt-hent
-;;                           (if network-parent (st/plans-get-node network-parent)))
-;;                     hem-id (:node/id hem)]
-;;                 (when (not= (:node/state node) state)
-;;                   (st/plans-merge-node {:plan/plid plid :node/id update-uid
-;;                                         :node/state state}))
-;;                 (when hem-id
-;;                   (if (not= (:node/state hem) state)
-;;                     (st/plans-merge-node {:plan/plid corresponding
-;;                                           :node/id hem-id
-;;                                           :node/state state})))
-;;                 (when (and (= node-id tpn-end) (= state :reached))
-;;                   (status-msg "finished" plid)))
-;;               (let [edge (st/plans-get-edge (composite-key plid update-uid))
-;;                     {:keys [edge/htn-node]} edge
-;;                     hpt-hent (if (and corresponding htn-node)
-;;                                (st/plans-get-node htn-node))
-;;                     {:keys [node/parent]} hpt-hent
-;;                     network-parent (st/get-network-parent parent)
-;;                     hem-id network-parent
-;;                     hem (st/plans-get-node hem-id)]
-;;                 (when (not= (:edge/state edge) state)
-;;                   (st/plans-merge-edge {:plan/plid plid
-;;                                         :edge/id update-uid
-;;                                         :edge/state state}))
-;;                 (when hem-id
-;;                   (if (not= (:node/state hem) state)
-;;                     (st/plans-merge-node {:plan/plid corresponding
-;;                                           :node/id hem-id
-;;                                           :node/state state})))))))))))
-
 (declare set-aggregated?)
 
 (defn network-updates [updates]
@@ -251,8 +201,8 @@
             plan-data (if plid (get plans plid))
             {:keys [tpn-end]} plan-data]
         (st/network-updates updates)
-        (when (and (= state :reached)
-                (= (composite-key plid update-uid) tpn-end))
+        (when (and (keyword-identical? state :reached)
+                (keyword-identical? (composite-key plid update-uid) tpn-end))
           (status-msg "finished" plid))
         ;; recalculate aggregated edge states
         (doseq [aggregated-id (keys @aggregated-edges)]
@@ -453,8 +403,68 @@
 (defn unfollow []
   (follow "-"))
 
+(defn save-settings
+  "Save settings on the server"
+  [& [new-filename]]
+  (let [{:keys [settings/shown? settings/settings-action
+                settings/filename] :as settings} (st/app-get-settings)
+        new-filename (or new-filename filename "default")
+        settings (assoc (apply dissoc settings ui/planviz-settings-ignore)
+                   :settings/filename new-filename)
+        start (tasks/deferred)
+        finish (-> start
+                 (chain-rmethod :save-settings settings)
+                 (chain
+                   (fn [settings]
+                     (if (and (map? settings) (not (:error settings)))
+                       (let [{:keys [settings/filename]} settings
+                             was-unsafe? (not= filename new-filename)
+                             settings (assoc settings
+                                        :settings/shown? shown?
+                                        :settings/settings-action settings-action)]
+                         (if was-unsafe?
+                           (st/app-merge-input-box {:input-box/id :filename
+                                                    :input-box/value filename}))
+                         (st/app-set-settings settings)
+                         (st/set-ui-opts-settings settings))
+                       (status-msg "could not save settings:"
+                         (or (:error settings) new-filename)))
+                     true)))]
+    (success! start true)
+    finish
+    ;; (println "SETTINGS" settings)
+    ))
+
+(defn load-settings
+  "Load settings from the server"
+  [filename]
+  (let [{:keys [settings/shown?
+                settings/settings-action]} (st/app-get-settings)
+        start (tasks/deferred)
+        finish (-> start
+                 (chain-rmethod :load-settings filename)
+                 (chain
+                   (fn [settings]
+                     (if (and (map? settings) (not (:error settings)))
+                       (let [settings (assoc settings
+                                        :settings/shown? shown?
+                                        :settings/settings-action settings-action)]
+                         (st/app-set-settings settings)
+                         (st/set-ui-opts-settings settings))
+                       (status-msg "could not load settings:"
+                         (or (:error settings) filename)))
+                     true)))]
+    (success! start true)
+    finish))
+
+(defn list-settings-filenames
+  "List settings filenames from the server"
+  []
+  (rmethod {:success-fn generic-reply :error-fn generic-reply}
+    :list-settings-filenames))
+
 (defn auto? []
-  (= (or (st/app-get :app/mode) :manual) :auto))
+  (keyword-identical? (or (st/app-get :app/mode) :manual) :auto))
 
 (defn manual
   "Switch to manual mode"
@@ -462,6 +472,9 @@
   (when (auto?)
     (st/app-set :app/mode :manual)
     (unfollow)
+    (when (:settings/auto (st/app-get-settings))
+      (st/app-merge-settings {:settings/auto false})
+      (st/merge-ui-opts-settings {:settings/auto false}))
     (status-msg "switching to manual mode")))
 
 (defn auto
@@ -469,6 +482,9 @@
   []
   (when-not (auto?)
     (st/app-set :app/mode :auto)
+    (when-not (:settings/auto (st/app-get-settings))
+      (st/app-merge-settings {:settings/auto true})
+      (st/merge-ui-opts-settings {:settings/auto true}))
     (status-msg "switching to automatic mode")))
 
 (defn zoom! [z]
@@ -587,10 +603,7 @@
 (defn reset
   "Reset view to see entire plan"
   [&[opts]]
-  ;; (println "DEBUG reset")
   (let [from-auto? (:auto opts)]
-    ;; (pan! [0.0 0.0])
-    ;; (zoom! 1.0)
     (pan-zoom! [0.0 0.0] 1.0)
     (if-not from-auto?
       (my-user-action {:type :pan-zoom
@@ -618,7 +631,7 @@
   (let [node (st/plans-get-node node-id)
         {:keys [node/number]} node
         [element id] sel
-        sel-number (if (= :node element)
+        sel-number (if (keyword-identical? :node element)
                      (:node/number (st/plans-get-node id))
                      (:edge/number (st/plans-get-edge id)))
         number-n (count number)
@@ -650,7 +663,7 @@
     (case type
       :edge ;; only a TPN activity for now
       (let [o-id (edge-key-fn edge)
-            edge (if (= id o-id)
+            edge (if (keyword-identical? id o-id)
                    edge (st/plans-get-edge id))
             {:keys [edge/selected? edge/type edge/from edge/to]} edge]
         (when (not= selected? new-selected?)
@@ -690,7 +703,7 @@
                           (node-key-fn to)))))))))))
       :node
       (let [o-id (node-key-fn node)
-            node (if (= id o-id)
+            node (if (keyword-identical? id o-id)
                    node (st/plans-get-node id))
             {:keys [node/end node/type node/selected?]} node]
         (when (not= selected? new-selected?)
@@ -742,7 +755,7 @@
 
 (defn add-to-selection [plid sel & [opts]]
   (let [selection (st/app-get-plan-value plid :selection)]
-    (when-not (some #(= % sel) selection)
+    (when-not (some #(keyword-identical? % sel) selection)
       (set-selected? true plid sel opts)
       (plan-selection plid (conj selection sel)))))
 
@@ -779,10 +792,10 @@
       (when (not= new-selection selection)
         (when (and (vector? selection) (pos? (count selection)))
           (doseq [sel selection]
-            (when-not (some #(= % sel) new-selection)
+            (when-not (some #(keyword-identical? % sel) new-selection)
               (set-selected? false plid sel opts))))
         (doseq [sel new-selection]
-          (when-not (some #(= % sel) selection)
+          (when-not (some #(keyword-identical? % sel) selection)
             (set-selected? true plid sel opts))))
       (plan-selection plid new-selection opts))))
 
@@ -814,7 +827,7 @@
                       hpt-hent (if htn-node (st/plans-get-node htn-node))
                       {:keys [node/type node/parent]} hpt-hent
                       network-parent (st/get-network-parent parent)
-                      hem (if (= type :htn-expanded-method)
+                      hem (if (keyword-identical? type :htn-expanded-method)
                             hpt-hent
                             (if network-parent
                               (st/plans-get-node network-parent)))
@@ -831,8 +844,8 @@
 ;; then add in any non comprised edges
 (defn minimal-selection [sel]
   ;; (println "MIN SEL" sel)
-  (let [mnodes (vec (remove nil? (filter #(= :node (first %)) sel)))
-        medges (remove nil? (filter #(= :edge (first %)) sel))
+  (let [mnodes (vec (remove nil? (filter #(keyword-identical? :node (first %)) sel)))
+        medges (remove nil? (filter #(keyword-identical? :edge (first %)) sel))
         msel (loop [msel [] n (first mnodes) more (rest mnodes)]
                ;; (println "MNTOP" msel "N" n)
                (if-not n
@@ -1024,7 +1037,7 @@
               (visit-nodes begin #{node-id}
                 (fn [node]
                   (let [{:keys [node/hidden node/x node/y]} node]
-                    (println "NODE BOUND" x y)
+                    ;; (println "NODE BOUND" x y) ;; DEBUG
                     (swap! bounds (fn [{:keys [xbounds ybounds]}]
                                     {:xbounds (min-max-fn xbounds [x x])
                                      :ybounds (min-max-fn ybounds [y y])}))
@@ -1051,7 +1064,7 @@
                   from-y (:node/y from)
                   to-x (:node/x to)
                   to-y (:node/y to)]
-              (println "EDGE BOUND FROM" from-x from-y "TO" to-x to-y)
+              ;; (println "EDGE BOUND FROM" from-x from-y "TO" to-x to-y) ;; DEBUG
               (swap! bounds (fn [{:keys [xbounds ybounds]}]
                               {:xbounds (min-max-fn xbounds
                                           [(min from-x to-x)
@@ -1105,7 +1118,9 @@
           (do
             ;; (status-msg "display-plan" plid)
             (st/app-set :app/title (name plid))
-            (st/tooltips tooltips?)
+            ;; (st/tooltips tooltips?)
+            (st/app-merge-settings {:settings/tooltips tooltips?})
+            (st/merge-ui-opts-settings {:settings/tooltips tooltips?})
             (st/show-plan plid)
             (reset opts)
             (if corresponding
@@ -1209,13 +1224,23 @@
     finish))
 
 (defn login []
-  (let [dlogin (tasks/connect
+  (let [{:keys [settings/settings-action]} (st/app-get-settings)
+        dlogin (tasks/connect
                  (rmethod {} :login)
                  (tasks/deferred))
         finish (-> dlogin
                  (chain #(if (:error %) false
-                             (do
-                               (if (get-in % [:login/settings :auto]) (auto))
+                             (let [settings
+                                   (assoc (:login/settings %)
+                                     :settings/shown? false
+                                     :settings/settings-action settings-action)
+                                   filename (:settings/filename settings)]
+                               (if (:settings/auto settings)
+                                 (auto))
+                               (st/app-merge-input-box {:input-box/id :filename
+                                                        :input-box/value filename})
+                               (st/app-set-settings settings)
+                               (st/set-ui-opts-settings settings)
                                (:login/remote %))))
                  (chain #(do (status-msg "logged in as" %)
                              (st/app-set :app/client %)
@@ -1242,10 +1267,14 @@
               :success-fn recv-msg :error-fn generic-reply}
       :msg user (apply str (interpose " " comments)))))
 
+(defn stop-propagation [e]
+  (when e
+    (.preventDefault e)
+    (.stopPropagation e)))
+
 (defn menu-click-handled [e]
   (st/merge-ui-opts {:ui/menu nil})
-  (.preventDefault e)
-  (.stopPropagation e)
+  (stop-propagation e)
   false)
 
 (defn info-menu-fn [node edge option e]
@@ -1257,7 +1286,7 @@
       (status-msg info)
       (my-user-action {:type :menu :tag tag :plid plid :node id :info info}))
     edge
-    (let [_ (println "EDGE props:" (remove-fn edge))
+    (let [;; _ (println "EDGE props:" (remove-fn edge)) ;; DEBUG
           {:keys [tag]} option
           {:keys [plan/plid edge/id edge/type edge/state edge/network-flows
                   edge/controllable]} edge
@@ -1468,10 +1497,10 @@
                       (not= remote client))
                   (or corresponding plid))
         ready? (or
-                 (= :chat action-type)
+                 (keyword-identical? :chat action-type)
                  (and plid-loaded? (not load-corresponding?))
                  ;; do NOT require showing this HTN or TPN
-                 ;; (= showing to-show)
+                 ;; (keyword-identical? showing to-show)
                  )
         opts {:auto true}]
     (when (not= remote client)
@@ -1487,7 +1516,7 @@
             (if (keyword-identical? corresponding showing)
               (highlight-relevant (or nick remote))))
           :pan-zoom
-          (when (and (not= remote client) auto-on? (= plid showing))
+          (when (and (not= remote client) auto-on? (keyword-identical? plid showing))
             ;; (println "REMOTE PAN-ZOOM" pan zoom)
             (if pan (pan! pan))
             (if zoom (zoom! zoom))
@@ -1558,7 +1587,7 @@
     (status-msg "executing" plid)
     (if loaded?
       ;; only switch if not currently showing this plan or the corresponding one
-      (when-not (or (= show-plan plid) (= show-plan corresponding))
+      (when-not (or (keyword-identical? show-plan plid) (keyword-identical? show-plan corresponding))
         (display-plan plid))
       (-> (load-plan plid) ;; loading on demand
         (sleep 30) ;; pace the browser
@@ -1609,7 +1638,7 @@
   "End node/edge state color test"
   []
   (let [{:keys [ui/show-plan ui/show-network]} (st/get-ui-opts)]
-    (if (or (not show-network) (= show-network :all))
+    (if (or (not show-network) (keyword-identical? show-network :all))
       (status-msg "cannot run color-test for network:" show-network)
       (let [network (st/get-network show-network)
             {:keys [network/nodes network/edges]} network]
@@ -1630,7 +1659,7 @@
   "Start node/edge state color test"
   []
   (let [{:keys [ui/show-plan ui/show-network]} (st/get-ui-opts)]
-    (if (or (not show-network) (= show-network :all))
+    (if (or (not show-network) (keyword-identical? show-network :all))
       (status-msg "cannot run color-test for network:" show-network)
       (let [network (st/get-network show-network)
             {:keys [network/nodes network/edges]} network
@@ -1742,9 +1771,49 @@
 
 (defn help-click [e]
   (help-menu-hide)
-  (when e
-    (.preventDefault e)
-    (.stopPropagation e)))
+  (stop-propagation e))
+
+(defn settings-menu
+  "Toggle showing the settings menu"
+  []
+  (let [{:keys [settings/xchar settings/ychar settings/auto
+                settings/filename
+                settings/shown?] :as settings} (st/app-get-settings)]
+    (if shown?
+      (let [settings (assoc settings
+                       :settings/shown? false
+                       :settings/auto (auto?))]
+        (st/app-set-settings settings)
+        (st/merge-ui-opts-settings settings)
+        (status-msg ""))
+      (let [start (tasks/deferred)
+            finish (-> start
+                     (chain-rmethod :list-settings-filenames)
+                     (chain
+                       (fn [filenames]
+                         (if (vector? filenames)
+                           (do
+                             (status-msg "settings")
+                             (st/app-merge-input-box {:input-box/id :xchar
+                                                      :input-box/value xchar})
+                             (st/app-merge-input-box {:input-box/id :ychar
+                                                      :input-box/value ychar})
+                             (st/app-merge-input-box {:input-box/id :filename
+                                                      :input-box/value filename})
+                             (st/app-merge-settings
+                               {:settings/shown? true
+                                :settings/auto (auto?)
+                                :settings/filenames filenames}))
+                           (status-msg "could not load settings filenames"))
+                         true)))]
+        (success! start true)
+        finish))))
+
+(defn settings-menu-hide
+  "Hide the detailed settings menu"
+  []
+  (if (:settings/shown? (st/app-get-settings))
+    (settings-menu)))
 
 (declare execute-methods)
 
@@ -1770,9 +1839,15 @@
    "normal" #'color-normal
    "color" #'color-test
    "help" #'help-menu
+   "settings" #'settings-menu
    "export" #'export
    "?" #'help})
 
+(defn clear-cmd! []
+  (st/app-merge-input-box {:input-box/id :cmd :input-box/value ""})
+  nil)
+
+;; returns [new-value new-start]
 (defn execute [cmd]
   (if (string/starts-with? cmd "/")
     (let [args (string/split (subs cmd 1) #"\s")
@@ -1792,74 +1867,125 @@
           (do
             ;; (println "EXECUTE" method-name "[" arity "]" args)
             (apply method-fn args)))))
-    (my-user-action {:type :chat :chat cmd})))
+    (my-user-action {:type :chat :chat cmd}))
+  ["" 0])
 
-(defn cmd-key-fn [key]
-  (if (= key "Escape")
-    (help-menu-hide) ;; remove help menu
-    (let [cmde (gdom/getElement "cmd")
-          start (.-selectionStart cmde)
-          cmd (.-value cmde)
-          cmd-len (count cmd)
+;; return [new-value new-start]
+(defn hide-menus
+  "Hide menus"
+  [& [value]]
+  (println "HIDE-MENUS" value) ;; DEBUG
+  (help-menu-hide) ;; remove help menu
+  (settings-menu-hide)
+  [(or value "") 0]) ;; remove settings menu
+
+(defn input-box-key-fn [actions numeric?]
+  (fn [& args]
+    (let [[key id e] args
+          ;; _ (println "IB KEY" key "ID" id) ;; DEBUG
+          id-str (name id)
+          k (keyword (str "settings/" id-str)) ;; key in settings
+          elem (gdom/getElement id-str)
+          start (.-selectionStart elem)
+          end (.-selectionEnd elem)
+          value (.-value elem)
+          value-len (count value)
           ch? (= 1 (count key)) ;; regular character
-          [cmd new-start];
-          (if ch?
-            (if (>= start cmd-len)
-              [(str cmd key) (inc start)]
+          action (get actions key)
+          [value new-start]
+          (cond
+            action
+            (do
+              (stop-propagation e)
+              (action value))
+            ch?
+            (do
+              (stop-propagation e)
+              (if (>= start value-len)
+                [(str value key) (inc start)]
+                (if (zero? start)
+                  [(str key value) (inc start)]
+                  [(str (subs value 0 start) key (subs value start))
+                   (inc start)])))
+            (= key "Backspace")
+            (do
+              (stop-propagation e)
+              (if (> end start) ;; delete selection
+                (if (pos? start)
+                  [(str (subs value 0 start) (subs value end))
+                   start]
+                  [(subs value end)
+                   0])
+                (if (pos? start)
+                  (if (= start value-len)
+                    [(subs value 0 (max (dec value-len) 0))
+                     (dec start)]
+                    [(str (subs value 0 (dec start)) (subs value start))
+                     (dec start)])
+                  [value start])))
+            (and (= key "ArrowLeft") (pos? start))
+            (do
+              (stop-propagation e)
+              [value (dec start)])
+            (and (= key "ArrowRight") (< start value-len))
+            (do
+              (stop-propagation e)
+              [value (inc start)])
+            (and (= key "C-d") (< start value-len))
+            (do
+              (stop-propagation e)
               (if (zero? start)
-                [(str key cmd) (inc start)]
-                [(str (subs cmd 0 start) key (subs cmd start)) (inc start)]))
-            (cond
-              (= key "Enter")
-              (do
-                (execute cmd)
-                ["" 0])
-              (and (= key "Backspace") (pos? start))
-              (if (= start cmd-len)
-                [(subs cmd 0 (max (dec cmd-len) 0)) (dec start)]
-                [(str (subs cmd 0 (dec start)) (subs cmd start)) (dec start)])
-              (and (= key "ArrowLeft") (pos? start))
-              [cmd (dec start)]
-              (and (= key "ArrowRight") (< start cmd-len))
-              [cmd (inc start)]
-              (and (= key "C-d") (< start cmd-len))
-              (if (zero? start)
-                [(subs cmd 1) start]
-                [(str (subs cmd 0 start) (subs cmd (inc start))) start])
-              (= key "C-a")
-              [cmd 0]
-              (= key "C-e")
-              [cmd cmd-len]
-              :else
-              [cmd start]))]
-      (st/app-merge-input-box {:input-box/value cmd :input-box/start new-start})
-      (when (<= new-start (inc cmd-len))
-        (tasks/timeout #(.setSelectionRange cmde new-start new-start) 10))
+                [(subs value 1) start]
+                [(str (subs value 0 start) (subs value (inc start))) start]))
+            (= key "C-a")
+            (do
+              (stop-propagation e)
+              [value 0])
+            (= key "C-e")
+            (do
+              (stop-propagation e)
+              [value value-len])
+            :else
+            ;; NO (stop-propagation e)
+            [value start])
+          value (if numeric?
+                      (if (and value (re-find #"^[\d.]+$" value))
+                        (as-int value)
+                        0)
+                      value)]
+      (st/app-merge-input-box {:input-box/id id :input-box/value value})
+      ;; mutate settings key
+      (st/app-merge-settings {k value})
+      (when (<= new-start (inc value-len))
+        (tasks/timeout #(.setSelectionRange elem new-start new-start) 10))
       nil)))
 
-(defn show-extra-keys []
-  ;; disable the META_KEY (problematic on Mac OS X)
-  (if (get @keys/extra-keys keys/META_KEY)
-    (swap! keys/extra-keys assoc keys/META_KEY false))
-  (let [ektxt (keys/extra-keys-text)
-        placeholder (str st/input-box-placeholder
-                      (if (pos? (count ektxt)) "⎇ ")
-                      ektxt)]
-    (st/app-merge-input-box {:input-box/placeholder placeholder})))
+;; (defn input-box-enter-fn [id numeric?]
+;;   (fn [value-str]
+;;     (let [k (keyword (str "settings/" (name id)))
+;;           value (if numeric?
+;;                   (if (and value-str (re-find #"^[\d.]+$" value-str))
+;;                     (as-int value-str)
+;;                     10)
+;;                   value-str)]
+;;       (println "IB ENTER" id "VALUE" value)
+;;       (st/merge-ui-opts-settings {k value})
+;;       [value-str 0])))
 
-(defn clear-cmd! []
-  (st/app-merge-input-box {:input-box/value "" :input-box/start 0})
-  nil)
+(defn show-extra-keys [& args]
+  (let [[key id e] args
+        input-box (st/app-get-input-box id)
+        {:keys [input-box/placeholder-orig]} input-box
+        placeholder-orig (or placeholder-orig "")
+        ektxt (keys/extra-keys-text)
+        placeholder (str placeholder-orig (if (pos? (count ektxt)) "⎇ ") ektxt)]
+    ;; (println "EXTRA KEY" key "ID" id "PLACEHOLDER" placeholder) ;; DEBUG
+    (st/app-merge-input-box {:input-box/id id
+                             :input-box/placeholder placeholder})))
 
 (defn show-network [network]
   (st/show-network network)
   (reset))
-
-;; (defn show-all []
-;;   (st/show-network :all)
-;;   (st/show-plan :all)
-;;   (status-msg "show-plan" :all)
-;;   (reset))
 
 (defn render-plans [rendering]
   (st/render-plans rendering)
@@ -1889,10 +2015,8 @@
                   h (.-innerHeight js/window)]
               (when (or (not= w vp-width) (not= h vp-height))
                 (vp-resize [w h])))
-;; DEBUG
             ) 1000)]
-;;            ) 60000)]
-    ;; (println "Starting vp listener:" vp-timer)
+    ;; (println "Starting vp listener:" vp-timer) ;; DEBUG
     vp-timer))
 
 (defn test-list-plans []
@@ -1918,12 +2042,12 @@
     ;; (println "ACTION NODECLICK" plid id "type" type "selected?" selected?)
     ;; "NODE" (remove-fn node))
     (cond
-      (= type :state)
+      (keyword-identical? type :state)
       (doseq [edge-id outgoing]
         (let [edge (st/plans-get-edge edge-id)]
           (if (keyword-identical? (:edge/type edge) :activity)
             (edgeclick edge))))
-      (= type :htn-expanded-method)
+      (keyword-identical? type :htn-expanded-method)
       (do
         ;; (manual)
         (if (keys/shift?)
@@ -1964,13 +2088,61 @@
   "Show node/edge tooltips"
   []
   (status-msg "showing tooltips")
-  (st/tooltips true))
+  (st/app-merge-settings {:settings/tooltips true})
+  (st/merge-ui-opts-settings {:settings/tooltips true}))
 
 (defn hide-tooltips
   "Hide node/edge tooltips"
   []
   (status-msg "hiding tooltips")
-  (st/tooltips false))
+  (st/app-merge-settings {:settings/tooltips false})
+  (st/merge-ui-opts-settings {:settings/tooltips false}))
+
+(defn settings-action [id e]
+  ;; (println "SETTINGS-ACTION ID" id) ;; DEBUG
+  (cond
+    (keyword-identical? id :settings-menu-close)
+    (settings-menu) ;; was (settings-menu-hide)
+    (#{:rewrap-htn-labels :auto :tooltips} id) ;; checkboxes
+    (let [id-str (name id)
+          q (str "#" id-str ":checked")
+          qs (.querySelector js/document q)
+          checked (boolean (and qs (.-value qs)))]
+      ;; (println (str "  checked=" checked "=")) ;; DEBUG
+      (cond
+        (keyword-identical? id :rewrap-htn-labels)
+        (st/app-merge-settings {:settings/rewrap-htn-labels checked})
+        (keyword-identical? id :auto)
+        (do
+          (if (auto?)
+            (if-not checked (manual))
+            (if checked (auto)))
+          (st/app-merge-settings {:settings/auto checked}))
+        (keyword-identical? id :tooltips)
+        (if checked (show-tooltips) (hide-tooltips))))
+    (#{:filenames :load :save} id)
+    (let [filenames (gdom/getElement "filenames")
+          index (.-selectedIndex filenames)
+          filename (.-value (aget (.-options filenames) index))
+          settings (st/app-get-settings)]
+      (if (not= filename (:settings/filename settings))
+        (st/app-merge-settings {:settings/filename filename}))
+      (when (keyword-identical? id :filenames)
+        ;; (println "filenames" index "filename" filename) ;; DEBUG
+        (st/app-merge-input-box {:input-box/id :filename
+                                 :input-box/value filename}))
+      (when (keyword-identical? id :load)
+        (load-settings filename))
+      (when (keyword-identical? id :save)
+        (save-settings filename)))
+    :else ;; font change
+    (let [id-str (name id)
+          value (.-value (gdom/getElement id-str))
+          k (keyword (str "settings/" id-str))]
+      ;; (println (str "  value=" value "=")) ;; DEBUG
+      (st/app-merge-settings {k value})
+      ))
+  (stop-propagation e))
 
 (defn add-url-options [options plid node-id edge-id]
   (let [url-config (st/app-get :app/url-config)
@@ -1991,9 +2163,9 @@
                     (string/replace "%plan" (name plid))
                     (string/replace "%node" (if node-id (name node-id) ""))
                     (string/replace "%edge" (if edge-id (name edge-id) "")))
-              option (if (and (or (= plid plan) (= plan :|))
-                           (or (and node-id (or (= node-id node) (= node :|)))
-                             (and edge-id (or (= edge-id edge) (= edge :|)))))
+              option (if (and (or (keyword-identical? plid plan) (keyword-identical? plan :|))
+                           (or (and node-id (or (keyword-identical? node-id node) (keyword-identical? node :|)))
+                             (and edge-id (or (keyword-identical? edge-id edge) (keyword-identical? edge :|)))))
                        {:tag :url :text link :url url :tab tab :fn url-menu-fn})
               options (if option (conj options option) options)]
           (recur options (first more) (rest more)))))))
@@ -2039,15 +2211,7 @@
   (let [button (.-button e)
         browser-contextmenu? false
         menu (:ui/menu (st/get-ui-opts))
-        target (.-target e)
-        ]
-    ;; (println "CLICK" button "@" (.-clientX e) "," (.-clientY e)
-    ;;   "b?" browser-contextmenu?)
-    ;; (reset! debug-target target)
-    ;; (println "bubbles" (.-bubbles e)
-    ;;   "cancelable" (.-cancelable e))
-    ;; (if menu ;; any click will remove menu
-    ;;   (st/merge-ui-opts {:ui/menu nil}))
+        target (.-target e)]
     (if menu
       (do
         (st/merge-ui-opts {:ui/menu nil})
@@ -2055,8 +2219,7 @@
       (do
         (case button
           0 (do
-              (.preventDefault e)
-              (.stopPropagation e)
+              (stop-propagation e)
               (cond
                 (:edge/type x)
                 (edgeclick x)
@@ -2066,8 +2229,7 @@
                 (clear-selection (:ui/show-plan (st/get-ui-opts)))))
           1 (println "middle button not used")
           2 (do
-              (.preventDefault e)
-              (.stopPropagation e)
+              (stop-propagation e)
               (cond
                 (:edge/type x)
                 (edge-right-click x)
@@ -2093,16 +2255,18 @@
    "?" #'help-menu
    "g" #'clear-plans
    "p" #'list-plans
+   "s" #'settings-menu
    "1" #'reset
    "6" #'update-plan-list
    "t" #'show-tooltips
    "T" #'hide-tooltips
-   "Escape" #'help-menu-hide})
+   "Escape" #'hide-menus})
 
-(defn app-key-fn [key]
-  ;; (println "app-key-fn" key)
-  (let [key-fn-var (get app-bindings key)
+(defn app-key-fn [& args]
+  (let [[key id e] args
+        key-fn-var (get app-bindings key)
         key-fn (if key-fn-var (deref key-fn-var))]
+    ;; (println "APP KEY" key "ID" id) ;; DEBUG
     (if key-fn
       (key-fn))))
 
@@ -2142,8 +2306,14 @@
                                   [[:i k]])))
                             [:br]])))
         content (concatv commands [[:br]] key-bindings)]
-    ;; (pprint content)
     (st/app-set-help (assoc help :help/content content))))
+
+(defn initialize-settings []
+  (let [settings (assoc ui/planviz-settings
+                   :settings/shown? false
+                   :settings/settings-action settings-action)]
+    (st/app-set-settings settings)
+    (st/set-ui-opts-settings settings)))
 
 (defn vp-initialize []
   (let [initialized (st/app-get :app/initialized)
@@ -2156,12 +2326,18 @@
     initialized))
 
 (defn initialize []
-  (keys/register-key-fn "cmd" cmd-key-fn)
-  (keys/register-key-fn :default app-key-fn)
-  (keys/register-key-fn :extra show-extra-keys)
-  (set! (.-onkeydown js/window) keys/keydown)
-  (set! (.-onkeyup js/window) keys/keyup)
-  (initialize-help)
-  (st/add-plans-root! graph-click)
-  (st/add-app-root!)
-  (vp-initialize)) ;; get and track viewport size
+  (let [escape-action {"Escape" hide-menus}]
+    (keys/register-key-fn :cmd
+      (input-box-key-fn (assoc escape-action "Enter" execute) false))
+    (keys/register-key-fn :xchar (input-box-key-fn escape-action true))
+    (keys/register-key-fn :ychar (input-box-key-fn escape-action true))
+    (keys/register-key-fn :filename (input-box-key-fn escape-action false))
+    (keys/register-key-fn :extra show-extra-keys)
+    (keys/register-key-fn :default app-key-fn)
+    (set! (.-onkeydown js/window) keys/keydown)
+    (set! (.-onkeyup js/window) keys/keyup)
+    (initialize-help)
+    (initialize-settings)
+    (st/add-plans-root! graph-click)
+    (st/add-app-root!)
+    (vp-initialize))) ;; get and track viewport size

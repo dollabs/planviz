@@ -81,6 +81,7 @@
     :default server/planviz-default-port
     :parse-fn #(Long/parseLong %)]
    ["-s" "--strict" "Enforce strict plan schema checking"]
+   ["-S" "--settings SETTINGS" "Settings filename config/SETTINGS.settings.edn"]
    ["-u" "--url-config URLCONFIG" "URL Configuration file(s)"
     :default []
     :assoc-fn (fn [m k v] (assoc m k (conj (get m k []) v)))]])
@@ -144,7 +145,8 @@
         {:keys [options arguments errors summary]}
         (config-parse-opts cwd args cli-options)
         {:keys [help version verbose auto exchange input
-                log-level rmq-host rmq-port host port strict url-config]} options
+                log-level rmq-host rmq-port host port strict
+                settings url-config]} options
         log-level (keyword (or log-level "warn"))
         _ (server/log-initialize port log-level (apply pr-str args))
         auto (as-boolean auto)

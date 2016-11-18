@@ -43,14 +43,14 @@
                (cond
                  (vector? v) (mapv rkv v)
                  (map? v)
-                 (if (= k replace-k)
+                 (if (keyword-identical? k replace-k)
                    replace-v
                    (reduce-kv rkv {}
                      (if (and ensure-k (get v ensure-k)
                            (not (get v replace-k)))
                        (assoc v replace-k nil)
                        v)))
-                 :else (if (= k replace-k)
+                 :else (if (keyword-identical? k replace-k)
                          replace-v
                          v)))))]
     rkv))
@@ -90,8 +90,9 @@
    :ui/show-virtual? false;; nodes and edges
    :ui/node-ids? false ;; show node ids
    :ui/edge-ids? false ;; show edge -ids
-   :ui/tooltips? true ;; show tooltips
-   :ui/graph-click nil})
+   ;; :ui/tooltips? true ;; show tooltips
+   :ui/graph-click nil
+   :ui/settings {}})
 
 (def plans-state-initial-empty
   (let [tables (set (vals comp/plans-refs))]
@@ -102,9 +103,9 @@
        :om.next/tables tables}
       (for [table tables]
         (cond
-          (= table :pan-zoom/pan-zoom-by-id)
+          (keyword-identical? table :pan-zoom/pan-zoom-by-id)
           {table {(pan-zoom-key-fn pan-zoom-plans) pan-zoom-plans}}
-          (= table :ui/singleton)
+          (keyword-identical? table :ui/singleton)
           {table {:singleton ui-opts-initial}}
           :else
           {table {}})))))
@@ -246,14 +247,14 @@
                       node/node-by-plid-id edge/edge-by-plid-id]} st
               node-normal-fn (fn [m k v]
                                (assoc m k
-                                 (if (= (:plan/plid v) plid)
+                                 (if (keyword-identical? (:plan/plid v) plid)
                                    (dissoc (assoc v :node/state :normal)
                                      :node/begin-state)
                                      v)))
               node-by-plid-id (reduce-kv node-normal-fn {} node-by-plid-id)
               edge-normal-fn (fn [m k v]
                                (assoc m k
-                                 (if (= (:plan/plid v) plid)
+                                 (if (keyword-identical? (:plan/plid v) plid)
                                    (assoc v :edge/state :normal) v)))
               edge-by-plid-id (reduce-kv edge-normal-fn {} edge-by-plid-id)]
           (assoc st
@@ -286,7 +287,7 @@
                                 (assoc node :node/state state))
                               node-by-plid-id)
             {:keys [node/type node/end]} node
-            begin-states (if (or (= type :c-begin) (= type :p-begin))
+            begin-states (if (or (keyword-identical? type :c-begin) (keyword-identical? type :p-begin))
                            (conj begin-states [end state])
                            begin-states)]
         (recur node-by-plid-id (first more) (rest more) begin-states)))))
@@ -370,16 +371,31 @@
   {:message-box/id message-box-id
    :message-box/value "planviz"})
 
-(def input-box-id :cmd)
-(def input-box-placeholder "/command, or /? for help ")
+(def cmd-box-placeholder "/command, or /? for help ")
 
-(def input-box-initial
-  {:input-box/id input-box-id
+(def cmd-box-initial
+  {:input-box/id :cmd
    :input-box/value ""
-   :input-box/start 0
-   :input-box/end 0
-   :input-box/placeholder input-box-placeholder
+   :input-box/placeholder-orig cmd-box-placeholder
+   :input-box/placeholder cmd-box-placeholder
    :input-box/size 80})
+
+(def xchar-box-initial
+  {:input-box/id :xchar
+   :input-box/numeric? true
+   :input-box/value ""
+   :input-box/size 5})
+
+(def ychar-box-initial
+  {:input-box/id :ychar
+   :input-box/numeric? true
+   :input-box/value ""
+   :input-box/size 5})
+
+(def filename-box-initial
+  {:input-box/id :filename
+   :input-box/value "default"
+   :input-box/size 20})
 
 (def app-state-initial
   (let [tables (set (vals comp/app-refs))]
@@ -389,22 +405,31 @@
        :app/vp-timer nil
        :app/mode :manual
        :app/plans {}
+       :app/settings {}
        :app/message-box
        [:message-box/message-box-by-id
         (message-box-key-fn message-box-initial)]
-       :app/input-box
-       [:input-box/input-box-by-id (input-box-key-fn input-box-initial)]
        :app/pan-zoom
        [:pan-zoom/pan-zoom-by-id (pan-zoom-key-fn pan-zoom-app)]
+       :app/cmd-box [:input-box/input-box-by-id (input-box-key-fn cmd-box-initial)]
+       :app/xchar-box [:input-box/input-box-by-id
+                       (input-box-key-fn xchar-box-initial)]
+       :app/ychar-box [:input-box/input-box-by-id
+                       (input-box-key-fn ychar-box-initial)]
+       :app/filename-box [:input-box/input-box-by-id
+                            (input-box-key-fn filename-box-initial)]
        :om.next/tables tables}
       (for [table tables]
         (cond
-          (= table :message-box/message-box-by-id)
+          (keyword-identical? table :message-box/message-box-by-id)
           {table {(message-box-key-fn message-box-initial)
                   message-box-initial}}
-          (= table :input-box/input-box-by-id)
-          {table {(input-box-key-fn input-box-initial) input-box-initial}}
-          (= table :pan-zoom/pan-zoom-by-id)
+          (keyword-identical? table :input-box/input-box-by-id)
+          {table {(input-box-key-fn cmd-box-initial) cmd-box-initial
+                  (input-box-key-fn xchar-box-initial) xchar-box-initial
+                  (input-box-key-fn ychar-box-initial) ychar-box-initial
+                  (input-box-key-fn filename-box-initial) filename-box-initial}}
+          (keyword-identical? table :pan-zoom/pan-zoom-by-id)
           {table {(pan-zoom-key-fn pan-zoom-app) pan-zoom-app}}
           :else
           {table {}})))))
@@ -428,7 +453,19 @@
   [env _ _]
   (denormalize-by-key-fn env))
 
-(defmethod app-read :app/input-box
+(defmethod app-read :app/cmd-box
+  [env k _]
+  (denormalize env k))
+
+(defmethod app-read :app/xchar-box
+  [env k _]
+  (denormalize env k))
+
+(defmethod app-read :app/ychar-box
+  [env k _]
+  (denormalize env k))
+
+(defmethod app-read :app/filename-box
   [env k _]
   (denormalize env k))
 
@@ -493,8 +530,6 @@
   nil)
 
 (defn plans-merge-edge [edge]
-  ;; DEBUG
-  ;; (println "PLANS-MERGE-EDGE" edge)
   (plans-query `[(plans/edge {:edge ~edge})])
   nil)
 
@@ -509,19 +544,16 @@
     (get (plans-query q) ref)))
 
 (defn app-get [k]
-  ;; DEBUG
-  ;; (println "app-get" k)
   (let [q (cond
-            (= k :app/message-box)
+            (keyword-identical? k :app/message-box)
             [{:app/message-box comp/message-box-query}]
-            (= k :app/input-box)
-            [{:app/input-box comp/input-box-query}]
-            (= k :app/pan-zoom)
+            (keyword-identical? k :app/pan-zoom)
             [{:app/pan-zoom comp/pan-zoom-query}]
+            (#{:app/cmd-box :app/xchar-box :app/ychar-box :app/filename-box} k)
+            [{k comp/input-box-query}]
             :else
             [k])]
-    (get (app-query q) k))
-  )
+    (get (app-query q) k)))
 
 (defn app-set [k v]
   (app-query `[(app/set {:k ~k :v ~v})])
@@ -532,10 +564,16 @@
     (app-query `[(app/message-box {:message-box ~mb})])
     nil))
 
-(defn app-merge-input-box [ib]
-  (let [ib (assoc ib :input-box/id input-box-id)]
-    (app-query `[(app/input-box {:input-box ~ib})])
-    nil))
+(defn app-get-input-box [input-box]
+  (let [input-box-id (or (and (map? input-box) (:input-box/id input-box))
+                       input-box)
+        ref [:input-box/input-box-by-id input-box-id]
+        q [{ref comp/input-box-query}]]
+    (get (app-query q) ref)))
+
+(defn app-merge-input-box [input-box]
+  (app-query `[(app/input-box {:input-box ~input-box})])
+  nil)
 
 (defn app-get-plan [plid]
   (get (app-get :app/plans) plid))
@@ -564,6 +602,16 @@
   (let [help (app-get-help)]
     (app-set-help (assoc help :help/shown shown?))))
 
+(defn app-get-settings []
+  (app-get :app/settings))
+
+(defn app-set-settings [settings]
+  (app-set :app/settings settings))
+
+(defn app-merge-settings [settings]
+  (app-set :app/settings
+    (merge (app-get-settings) settings)))
+
 (defn get-bigplan []
   (let [bigplan (gdom/getElement "bigplan")]
     (if bigplan
@@ -584,8 +632,7 @@
       (.setAttribute bigplan "style", style))))
 
 (defn app-merge-pan-zoom [pz & [both?]]
-  ;; DEBUG
-  ;; (println "app-merge-pan-zoom" pz "both?" both?)
+  ;; (println "app-merge-pan-zoom" pz "both?" both?) ;; DEBUG
   (let [pz (assoc pz :pan-zoom/id pan-zoom-app-id)]
     (app-query `[(app/pan-zoom {:pan-zoom ~pz})])
     (if-not both? ;; cheat!
@@ -600,21 +647,28 @@
                          vp-width vp-height zoom pan)]
             (when (not= bp bp-new)
               ;; (println "FORCE" bp-new)
-              (set-bigplan bp-new)))))))
-  )
+              (set-bigplan bp-new))))))))
 
 (defn plans-merge-pan-zoom [pz]
-  ;; DEBUG
-  ;; (println "plans-merge-pan-zoom" pz)
+  ;; (println "plans-merge-pan-zoom" pz) ;; DEBUG
   (let [pz (assoc pz :pan-zoom/id pan-zoom-plans-id)]
     (plans-query `[(plans/pan-zoom {:pan-zoom ~pz})])
-    nil)
-  )
+    nil))
 
 (defn get-ui-opts []
   (let [k :plans/ui-opts
         query [{k comp/ui-opts-query}]]
     (get (plans-query query) k)))
+
+(defn get-ui-opts-settings []
+  (:ui/settings (get-ui-opts)))
+
+(defn set-ui-opts-settings [settings]
+  (merge-ui-opts {:ui/settings settings}))
+
+(defn merge-ui-opts-settings [settings]
+  (set-ui-opts-settings
+    (merge (get-ui-opts-settings) settings)))
 
 (defn get-plan [plid]
   (let [ref [:plan/by-plid plid]
@@ -680,7 +734,7 @@
   (let [{:keys [network/id network/width network/height network/type]}
         (if (not (#{:none :loading} plid)) (get-network-basics plid))
         begin (if id (composite-key plid id))
-        [width height] (if (= plid :none) [800 800] [width height])]
+        [width height] (if (keyword-identical? plid :none) [800 800] [width height])]
     (merge-ui-opts {:ui/show-plan plid
                     :ui/show-network begin
                     :ui/network-type type})
@@ -712,9 +766,6 @@
 
 (defn edge-ids [edge-ids?]
   (merge-ui-opts {:ui/edge-ids? edge-ids?}))
-
-(defn tooltips [tooltips?]
-  (merge-ui-opts {:ui/tooltips? tooltips?}))
 
 (defn all-normal [plid]
   (plans-query `[(plans/all-normal {:plid ~plid})])

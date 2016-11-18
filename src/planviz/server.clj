@@ -62,6 +62,20 @@
 (defn partition-map [n m]
   (mapv (partial into {}) (partition-all n m)))
 
+(def settings-suffix ".settings.edn")
+
+(def planviz-settings {:settings/auto false
+                       :settings/tooltips true
+                       :settings/font-family "font-family-helvetica"
+                       :settings/font-size "font-size-9"
+                       :settings/font-weight "font-weight-light"
+                       :settings/rewrap-htn-labels true
+                       :settings/xchar 5
+                       :settings/ychar 10
+                       :settings/filename "default"
+                       :settings/filenames ["default"]
+                       })
+
 (defn repl?
   "Helper function returns true if on the REPL (for development)"
   {:added "0.2.0"}
@@ -300,6 +314,83 @@
           :let [nick (or (:nick client) remote)]]
       nick)))
 
+(defn safe-char [ch]
+  (if (#{\- \_} ch)
+    ch
+    (let [c (int ch)]
+      (if (or (and (>= c 48) (<= c 57)) ;; digit
+            (and (>= c 65) (<= c 90)) ;; upper
+            (and (>= c 97) (<= c 122))) ;; lower
+        ch
+        \_))))
+
+(defn safe-filename [filename]
+  (apply str (map safe-char (seq filename))))
+
+(defn make-config-dir []
+  (let [cwd (or (:cwd @state) (:planviz-cwd env) (:user-dir env))
+        config-dir (str cwd "/config")]
+    (when (not (fs/exists? config-dir))
+      (log/trace "Making config directory:" config-dir)
+      (fs/mkdir config-dir))))
+
+(defn list-settings-filenames []
+  (let [cwd (or (:cwd @state) (:planviz-cwd env) (:user-dir env))
+        config-dir (fs/file (str cwd "/config"))
+        glob (str "*" settings-suffix)]
+    (mapv #(string/replace (.getName %) settings-suffix "")
+      (fs/glob config-dir glob))))
+
+;; assume filename is safe
+(defn save-settings-filename [filename settings]
+  (let [cwd (or (:cwd @state) (:planviz-cwd env) (:user-dir env))
+        pathname (str cwd "/config/" filename settings-suffix)
+        out (with-out-str (pprint (dissoc settings
+                                    :settings/filename
+                                    :settings/filenames)))
+        _ (spit pathname out)
+        filenames (list-settings-filenames)
+        settings (assoc settings
+                     :settings/filename filename
+                     :settings/filenames filenames)]
+    (swap! state assoc :settings settings)
+    settings))
+
+;; add auto to specify the setting of --auto
+(defn load-settings-filename [filename & [auto]]
+  (let [cwd (or (:cwd @state) (:planviz-cwd env) (:user-dir env))
+        pathname (str cwd "/config/" filename settings-suffix)
+        filenames (list-settings-filenames)
+        settings (if (fs/exists? pathname)
+                   (load-file pathname)
+                   (if (= filename "default") planviz-settings))
+        settings (if settings
+                   (assoc settings
+                     :settings/filename filename
+                     :settings/filenames filenames
+                     :settings/auto (boolean
+                                      (or auto
+                                        (:settings/auto settings)))))]
+    (if settings
+      (swap! state assoc :settings settings))
+    settings))
+
+(defn load-settings [filename]
+  (if *remote*
+    (let [settings (load-settings-filename filename)]
+      (if settings
+        settings
+        {:error (str "The settings file named \"" filename "\" is not found")}))
+    false))
+
+(defn save-settings [settings]
+  (if *remote*
+    (let [{:keys [settings/filename]} settings
+          filename (safe-filename (or filename "default"))
+          settings (save-settings-filename filename settings)]
+      settings)
+    false))
+
 (declare xmit-to-client)
 
 ;; reply with.. to sender and receipient
@@ -411,7 +502,11 @@
                :msg msg
                :user-action user-action
                :login login
-               :get-url-config get-url-config})
+               :get-url-config get-url-config
+               :save-settings save-settings
+               :load-settings load-settings
+               :list-settings-filenames list-settings-filenames
+               })
 
 ;; server functions -------------------------------------------
 
@@ -1136,7 +1231,16 @@
 (defn sort-url-config [url-config]
   (vec (sort compare-url-config (set url-config))))
 
-;; given a vector of filenames return a vector of URL maps
+(defn load-default-settings [cwd]
+  (let [filename "default"
+        config-dir (str cwd "/config")
+        path (str config-dir "/" filename settings-suffix)]
+    (make-config-dir)
+    (if (fs/exists? path)
+      (log/error "LOAD-DEFAULT-SETTINGS\n"
+        (with-out-str (pprint (load-file path))))))
+  {:auto false}) ;; FIXME
+
 (defn setup-url-config [cwd url-config]
   (doseq [url-filename url-config]
     (let [url-filename (pschema/validate-input url-filename cwd)]
@@ -1154,8 +1258,10 @@
   {:added "0.8.0"}
   [options]
   (let [{:keys [cwd verbose log-level auto exchange rmq-host rmq-port
-                host port input url-config strict]} options
-        settings {:auto auto}
+                host port input url-config strict settings]} options
+        _ (swap! state assoc-in [:cwd] cwd)
+        _ (make-config-dir) ;; ensure /config exists
+        settings (load-settings-filename (or settings "default") auto)
         exchange (or exchange rmq-default-exchange)
         rmq-host (or rmq-host rmq-default-host)
         rmq-port (or rmq-port rmq-default-port)
@@ -1167,7 +1273,6 @@
         (log-if-possible msg))
       (do
         (setup-url-config cwd url-config)
-        (swap! state assoc :settings settings)
         (swap! state update-in [:rmq]
           assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
         (startup host port input cwd log-level))))) ;; lazily does start-msgs
