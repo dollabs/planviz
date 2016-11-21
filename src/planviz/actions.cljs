@@ -804,39 +804,47 @@
   (loop [sel #{} c (first csel) more (rest csel)]
     (if-not c
       (vec sel)
-      (let [[type id] c
+      (let [[stype id] c
             ;; _ (println "Corresponding selection" c "in TPN" tpn-plid)
-            s (case type
+            s (case stype
                 :edge
                 (let [edge (st/plans-get-edge id)
                       {:keys [edge/htn-node]} edge
                       ;; _ (println "htn-node" htn-node)
                       hpt-hent (if htn-node (st/plans-get-node htn-node))
-                      {:keys [node/parent]} hpt-hent
-                      ;; _ (println "hpt-hent parent" parent)
-                      network-parent (st/get-network-parent parent)
-                      hem (if network-parent (st/plans-get-node network-parent))
-                      hem-id (:node/id hem)]
+                      {:keys [node/type node/parent]} hpt-hent
+                      ;; _ (println "hpt-hent type" type "parent" parent)
+                      network-parent (if parent (st/get-network-parent parent))
+                      hem (if (keyword-identical? type :htn-expanded-method)
+                            hpt-hent
+                            (if network-parent
+                              (st/plans-get-node network-parent)))
+                      hem-id (:node/id hem)
+                      hem-id (if hem-id
+                               [:node (composite-key htn-plid hem-id)])]
                   ;; (println "HEM" hem-id)
                   ;; (add-to-selection htn-plid [:node hem-id] {:node hem})
-                  (if hem-id [:node (composite-key htn-plid hem-id)]))
+                  hem-id)
                 :node
                 (let [node (st/plans-get-node id)
                       {:keys [node/htn-node]} node
                       ;; _ (println "htn-node" htn-node)
                       hpt-hent (if htn-node (st/plans-get-node htn-node))
                       {:keys [node/type node/parent]} hpt-hent
-                      network-parent (st/get-network-parent parent)
+                      ;; _ (println "hpt-hent type" type "parent" parent)
+                      network-parent (if parent (st/get-network-parent parent))
                       hem (if (keyword-identical? type :htn-expanded-method)
                             hpt-hent
                             (if network-parent
                               (st/plans-get-node network-parent)))
-                      hem-id (:node/id hem)]
+                      hem-id (:node/id hem)
+                      hem-id (if hem-id
+                               [:node (composite-key htn-plid hem-id)])]
                   ;; (println "HEM" hem-id)
                   ;; (add-to-selection htn-plid [:node hem-id] {:node hem})
-                  (if hem-id [:node (composite-key htn-plid hem-id)]))
+                  hem-id)
                 (do
-                  (println "highlight of TPN" type "not supported")))]
+                  (println "highlight of TPN" stype "not supported")))]
         (recur (if s (conj sel s) sel) (first more) (rest more))))))
 
 ;; return the minimal representation of sel
@@ -889,13 +897,13 @@
       ;; already pre-computed to be minimal!
       ;; (minimal-selection (vec sel))
       (vec sel)
-      (let [[type id] c
+      (let [[stype id] c
             ;; _ (println "Corresponding selection" c "in HTN" htn-plid)
-            sel (case type
+            sel (case stype
                   :node
                   (let [{:keys [node/tpn-selection]} (st/plans-get-node id)
                         tsel (atom sel)]
-                    (println "  TPN-SELECTION" tpn-selection)
+                    ;; (println "  TPN-SELECTION" tpn-selection)
                     (doseq [s tpn-selection]
                       (let [node-id (if (:node/id s) (node-key-fn s))
                             edge-id (if (:edge/id s) (edge-key-fn s))]
@@ -911,7 +919,7 @@
                         ))
                     @tsel)
                   (do
-                    (println "highlight of HTN" type "not supported")
+                    (println "highlight of HTN" stype "not supported")
                     sel))]
         (recur sel (first more) (rest more))))))
 
