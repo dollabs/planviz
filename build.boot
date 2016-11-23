@@ -120,33 +120,11 @@
             commit!
             next-handler))))))
 
-(deftask clj-dev
-  "Clojure REPL for CIDER"
-  []
-  (comp
-    (cider)
-    (repl :server true)
-    (wait)))
-
 (deftask server-resources
   "force dev resources"
   []
   (set-env! :resource-paths #{"resources"})
   identity)
-
-(deftask cljs-dev
-  "ClojureScript Browser REPL for CIDER"
-  []
-  (comp
-    (sift :include #{#"~$"} :invert true) ;; don't include emacs backups
-    (set-mode!)
-    (cider)
-    (serve :dir "resources/public" :port 3000)
-    (watch :verbose false)
-    (reload)
-    (cljs-repl) ;; before cljs
-    (cljs)
-    (target :dir #{"resources"})))
 
 (deftask build-cljs
   "Run the project."
@@ -157,16 +135,6 @@
       (set-mode!)
       (cljs)
       (target :dir #{dir}))))
-
-(deftask cider-boot
-  "Cider boot params task"
-  []
-  (if false ;; CIDER works on the client (true) or server (false)
-    (cljs-dev)
-    (comp
-      (server-resources)
-      (build-cljs)
-      (clj-dev))))
 
 (deftask build-jar
   "Build the project locally as a JAR."

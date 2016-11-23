@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file. This change
 
 Changed
 - Updated plan-schema to 0.2.13 (fixes TPN selection bug)
-- _TBD_
+- Removed CIDER references from build.boot
 
 ### [0.9.0] - 2016-11-16
 
