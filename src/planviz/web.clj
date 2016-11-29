@@ -10,13 +10,11 @@
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
             [ring.util.response :refer [response content-type]]))
 
-(def public "../../resources/public/")
-
 (def app-css-uri  "css/planviz.css")
 (def app-css2-uri  "css/tplan.css")
 
-(def app-css (str public app-css-uri))
-(def app-css2 (str public app-css-uri))
+(def app-css app-css-uri)
+(def app-css2 app-css-uri)
 
 (def app "js/app.js")
 

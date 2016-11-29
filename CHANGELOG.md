@@ -8,6 +8,8 @@ Changed
 - Updated plan-schema to 0.2.13 (fixes TPN selection bug)
 - Removed CIDER references from build.boot
 - Added boot.properties to ensure BOOT_CLOJURE_VERSION=1.8.0
+- Updated dependencies
+- Streamlined build.boot (use conventional "resources" instead of "html")
 
 ### [0.9.0] - 2016-11-16
 

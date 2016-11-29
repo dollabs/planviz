@@ -696,19 +696,8 @@
 
 (def web-html-memo (memoize web-html))
 
-(defn hello-world-handler
-  "A basic Ring handler which immediately returns 'hello world'"
-  [req]
-  ;; (if-not (:logging @state)
-  ;;   (log-initialize))
-  (log/info "HELLO" (with-out-str (pprint req)))
-  {:status 200
-   :headers {"content-type" "text/plain"}
-   :body "hello world!"})
-
 (defroutes routes
   (GET "/ws" [] ws-handler)
-  (GET "/hello" [] hello-world-handler)
   (GET "/" req web-html-memo)
   (ANY "*" []
     (not-found (slurp (io/resource "404.html")))))

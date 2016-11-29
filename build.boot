@@ -11,50 +11,50 @@
 (def main 'planviz.cli)
 
 (set-env!
-  :source-paths #{"src" "html"}
-  :resource-paths #{"src" "html"}
-  :dependencies   '[[org.clojure/clojure "1.8.0"]
-                    [org.clojure/clojurescript "1.9.293"]
+  :source-paths #{"src"}
+  :resource-paths #{"resources"}
+  :dependencies   '[[org.clojure/clojure          "1.8.0"]
+                    [org.clojure/clojurescript    "1.9.293"]
                     ;; both
-                    [avenir "0.2.1"]
-                    [dollabs/webtasks "0.2.1"]
-                    [dollabs/webkeys "0.4.0"]
-                    [org.clojure/core.async "0.2.395"]
+                    [avenir                       "0.2.1"]
+                    [dollabs/webtasks             "0.2.1"]
+                    [dollabs/webkeys              "0.4.0"]
+                    [org.clojure/core.async       "0.2.395"]
                     ;; server
-                    [org.clojure/tools.cli "0.3.5"]
-                    [me.raynes/fs "1.4.6"]
-                    [com.cognitect/transit-clj "0.8.293"]
-                    [environ "1.1.0"]
-                    [clj-time "0.12.2"]
-                    [com.taoensso/timbre "4.7.4"]
-                    [org.slf4j/slf4j-api "1.7.21"]
-                    [com.fzakaria/slf4j-timbre "0.3.2"]
-                    [org.clojure/tools.logging "0.3.1"]
-                    [com.novemberain/langohr "3.6.1"]
-                    [dollabs/plan-schema "0.2.13"]
+                    [org.clojure/tools.cli        "0.3.5"]
+                    [me.raynes/fs                 "1.4.6"]
+                    [com.cognitect/transit-clj    "0.8.295"]
+                    [environ                      "1.1.0"]
+                    [clj-time                     "0.12.2"]
+                    [com.taoensso/timbre          "4.7.4"]
+                    [org.slf4j/slf4j-api          "1.7.21"]
+                    [com.fzakaria/slf4j-timbre    "0.3.2"]
+                    [org.clojure/tools.logging    "0.3.1"]
+                    [com.novemberain/langohr      "3.6.1"]
+                    [dollabs/plan-schema          "0.2.13"]
                     ;; web server
-                    [org.clojure/data.json "0.2.6"]
-                    [ring/ring-core "1.5.0"]
-                    [ring "1.5.0"]
-                    [ring/ring-defaults "0.2.1"]
+                    [org.clojure/data.json        "0.2.6"]
+                    [ring/ring-core               "1.5.0"]
+                    [ring                         "1.5.0"]
+                    [ring/ring-defaults           "0.2.1"]
                     [amalloy/ring-gzip-middleware "0.1.3"]
-                    [compojure "1.5.0"]
-                    [enlive "1.1.6"]
-                    [aleph "0.4.2-alpha8"]
+                    [compojure                    "1.5.0"]
+                    [enlive                       "1.1.6"]
+                    [aleph                        "0.4.2-alpha10"]
                     ;; client
-                    [com.cognitect/transit-cljs "0.8.239"]
-                    [cljsjs/react-dom-server "15.3.1-1"]  ;; for sablono
-                    [cljsjs/react-dom "15.3.1-1"] ;; for sablono
-                    [org.omcljs/om "1.0.0-alpha40"]
+                    [com.cognitect/transit-cljs   "0.8.239"]
+                    [cljsjs/react-dom-server      "15.3.1-1"]  ;; for sablono
+                    [cljsjs/react-dom             "15.3.1-1"] ;; for sablono
+                    [org.omcljs/om                "1.0.0-alpha40"]
                     [sablono "0.7.6"]
                     ;; cljs-dev
-                    [com.cemerick/piggieback "0.2.1"     :scope "test"]
-                    [weasel                 "0.7.0"      :scope "test"]
-                    [org.clojure/tools.nrepl "0.2.12"    :scope "test"]
-                    [adzerk/boot-reload     "0.4.13"     :scope "test"]
-                    [pandeiro/boot-http "0.7.6" :scope "test"]
-                    [adzerk/boot-cljs       "1.7.228-2"  :scope "test"]
-                    [adzerk/boot-cljs-repl  "0.3.3"      :scope "test"]
+                    [com.cemerick/piggieback      "0.2.1"     :scope "test"]
+                    [weasel                       "0.7.0"     :scope "test"]
+                    [org.clojure/tools.nrepl      "0.2.12"    :scope "test"]
+                    [adzerk/boot-reload           "0.4.13"    :scope "test"]
+                    [pandeiro/boot-http           "0.7.6"     :scope "test"]
+                    [adzerk/boot-cljs             "1.7.228-2" :scope "test"]
+                    [adzerk/boot-cljs-repl        "0.3.3"     :scope "test"]
                     ;; testing/development
                     ;; [adzerk/boot-test "1.1.1" :scope "test"]
                     ;; [crisptrutski/boot-cljs-test "0.2.2-SNAPSHOT" :scope "test"]
@@ -89,52 +89,13 @@
   ;;            :namespaces #{"testing.planviz.client"}}
   )
 
-;; suboptimal approach to chosing which edn file to use
-;; for specifying ClojureScript options
-;; https://github.com/adzerk-oss/boot-cljs/wiki/Usage
-(deftask set-mode!
-  "set-mode!"
-  [m mode KW kw "mode: :dev or :prod."]
-  (let [mode (or mode :dev)
-        ext (str "." (name mode))
-        tmp (tmp-dir!)]
-    ;; (println (str "MODE =" mode "=") (type mode))
-    (fn middleware [next-handler]
-      (fn handler [fileset]
-        (empty-dir! tmp)
-        (let [in-files (input-files fileset)
-              mode-files (by-ext [ext] in-files)]
-          (doseq [in mode-files]
-            (let [in-file  (tmp-file in)
-                  in-path  (tmp-path in)
-                  out-path (string/replace in-path ext "")
-                  out-file (io/file tmp out-path)
-                  ]
-              ;; (println "in-path" in-path "out-path" out-path)
-              (doto out-file
-                io/make-parents
-                (spit (slurp in-file)))
-              ))
-          (-> fileset
-            (add-resource tmp)
-            commit!
-            next-handler))))))
-
-(deftask server-resources
-  "force dev resources"
-  []
-  (set-env! :resource-paths #{"resources"})
-  identity)
-
 (deftask build-cljs
-  "Run the project."
-  [d dir PATH str "the  directory to write to (resources)."]
-  (let [dir (if (string? dir) dir "resources")]
-    (comp
-      (sift :include #{#"~$"} :invert true) ;; don't include emacs backups
-      (set-mode!)
-      (cljs)
-      (target :dir #{dir}))))
+  "Compile ClojureScript"
+  []
+  (comp
+    (sift :include #{#"~$"} :invert true) ;; don't include emacs backups
+    (cljs)
+    (target :dir #{"target"})))
 
 (deftask build-jar
   "Build the project locally as a JAR."
@@ -142,7 +103,6 @@
   (let [dir (if (seq dir) dir #{"target"})]
     (comp
       (sift :include #{#"~$"} :invert true) ;; don't include emacs backups
-      (set-mode! :mode :prod)
       (cljs)
       (aot)
       ;; (pom)
@@ -163,7 +123,7 @@
 (deftask run
   "Run the project."
   [a args ARG [str] "the arguments for the application."]
-  (reset! util/*verbosity* 0) ;; quiet output
+  ;; (reset! util/*verbosity* 0) ;; quiet output
   (comp
     (build-cljs)
     (cli :args args)))
