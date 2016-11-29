@@ -5,11 +5,11 @@
 ;; the file LICENSE at the root of this distribution.
 
 {:require [planviz.client]
- ;; :init-fns [planviz.client/reload]
+ :init-fns [planviz.client/reload]
  :compiler-options {:asset-path "js/app.out"
                     :source-map true
                     :source-map-timestamp true
                     :verbose false
                     :cache-analysis true
-                    :optimizations :advanced
+                    :optimizations :advanced ;; :none
                     :pretty-print false}}
