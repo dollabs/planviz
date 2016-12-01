@@ -898,7 +898,7 @@
 ;; We'll define message-max to be 90% of that
 (defn new-rmq-tpn [json-str]
   (if-let [tmpdir (user-tmpdir "planviz")]
-    (let [rmq-tpn-json (str tmpdir "/rmq-tpn.json")
+    (let [rmq-tpn-json (str tmpdir "/rmq.tpn.json")
           _ (spit rmq-tpn-json json-str)
           tpn (pschema/tpn-plan {:input [rmq-tpn-json]})
           error (:error tpn)]
