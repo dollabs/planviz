@@ -5,7 +5,7 @@
 ;; the file LICENSE at the root of this distribution.
 
 (def project 'dollabs/planviz)
-(def version "0.9.1")
+(def version "0.9.2")
 (def description "Planning Network Visualization")
 (def project-url "https://github.com/dollabs/planviz")
 (def main 'planviz.cli)
@@ -17,8 +17,8 @@
                     [org.clojure/clojurescript    "1.9.293"]
                     ;; both
                     [avenir                       "0.2.1"]
-                    [dollabs/webtasks             "0.2.1"]
-                    [dollabs/webkeys              "0.4.0"]
+                    [dollabs/webtasks             "0.2.2"]
+                    [dollabs/webkeys              "0.4.1"]
                     [org.clojure/core.async       "0.2.395"]
                     ;; server
                     [org.clojure/tools.cli        "0.3.5"]
