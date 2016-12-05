@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Changed
-* _TBD_
+* Fixed error with exporting SVG
 
 ### [0.9.2] - 2016-12-01
 

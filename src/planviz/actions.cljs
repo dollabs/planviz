@@ -1730,13 +1730,18 @@
         plans (gdom/getElement "plans")
         svg (.-innerHTML plans)
         gt (inc (string/index-of svg ">"))
+        svg-attrs (subs svg 4 gt)
+        svg-body (-> svg
+                   (subs gt)
+                   (string/replace #"div>$" "svg>")
+                   (string/replace #">" ">\n"))
         svg-header "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>\n"
         svg-begin "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n "
         css-begin "\n<style type=\"text/css\">\n<![CDATA[\n"
         css-end "\n]]>\n</style>\n"
-        svg (str svg-header svg-begin (subs svg 4 gt)
+        svg (str svg-header svg-begin svg-attrs
               css-begin css css-end
-              (string/replace (subs svg gt) #">" ">\n"))
+              svg-body)
         dataurl (create-data-url svg "image/svg+xml")
         a (.createElement js/document "a")]
     (println "exporting" show-plan "as" filename)
