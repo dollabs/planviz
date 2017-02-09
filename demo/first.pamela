@@ -1,0 +1,42 @@
+;; A TPN with constraints
+;; TODO Planviz cannot display first.json.
+
+(defpclass plant []
+  :meta {:doc "The Plant API"}
+
+  :methods [(defpmethod do-a {:bounds [2 4]} [])
+            (defpmethod do-b {:bounds [3 6]} [])
+            (defpmethod do-c {:bounds [85 90]} [])
+            (defpmethod do-d {:bounds [1 7]} [])
+            (defpmethod do-e {:bounds [9 16]} [])
+            (defpmethod do-f {:bounds [1 3]} [])
+            (defpmethod do-g {:bounds [2 5]} [])
+            ])
+
+(defpclass first-tpn [plnt]
+  :meta {:doc "A example with constraints. "}
+
+  :methods [(defpmethod start
+              {:doc "Simple TPN with constraints"}
+              []
+              (parallel :bounds [1 100]
+                (sequence
+                  (plnt.do-a)
+                  (plnt.do-b :label :b))
+                (sequence
+                  (choose :label :choice :cost<= 10 :reward>= 5
+                    (choice
+                      (sequence
+                        (plnt.do-d :cost 1 :reward 2)
+                        (plnt.do-e :cost 2 :reward 1)))
+                    (choice
+                      (sequence
+                        (plnt.do-f :cost 3 :reward 1)
+                        (plnt.do-g :cost 4))))
+                  (plnt.do-c)))
+              (between :choice :b :bounds [1 100]
+                :cost<= 555 :reward>= 333))])
+
+(defpclass main []
+  :fields {:plnt (plant)
+           :tpn (first-tpn :plnt)})

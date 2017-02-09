@@ -275,7 +275,7 @@
                      (apply-network-updates false))))
                 (do
                   (error! d (str "NEW-PLAN-PART plan-id" plan-id
-                              "n-keys MISMATCH" p-keys))
+                              " n-keys MISMATCH " p-keys " (not " n-keys ")"))
                   (st/app-set :app/plans plans)
                   (st/app-set :app/loading nil)
                   (apply-network-updates false))))
