@@ -12,7 +12,9 @@
             [webtasks.tasks :as tasks :refer [on-realized]]
             [webtasks.ws :as ws]
             [plan-schema.core :as pschema :refer [composite-key-fn]]
-            [planviz.actions :as actions :refer [make-url]]))
+            [planviz.actions :as actions :refer [make-url]]
+            [weasel.repl :as repl] ;; for CIDER development
+            ))
 
 (enable-console-print!)
 
@@ -64,3 +66,15 @@
 
 (defn reload []
   (main))
+
+;; Set the value below to true if using IntelliJ/Cursive (otherwise set to false)
+;; see NOTE below
+(def cursive? true)
+
+(defonce weasel? (atom cursive?)) ;; see NOTE below
+
+(when-not @weasel?  ;; see NOTE below
+  ;; Connect via Weasel to nREPL for development
+  (println "connecting to Weasel..")
+  (repl/connect "ws://localhost:9001")
+  (reset! weasel? true))

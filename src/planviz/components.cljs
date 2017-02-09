@@ -179,8 +179,8 @@
       :node/sequence-label
       :node/sequence-end
       ;; FOR c-begin p-begin state
-      :node/cost<=
-      :node/reward<=
+      ;; :node/cost<=
+      ;; :node/reward>=
       ;; FOR c-begin p-begin
       :node/end
       ;; FOR c-end p-end
@@ -263,6 +263,8 @@
       :edge/argsmap
       :edge/cost
       :edge/reward
+      ;; :edge/cost<=
+      ;; :edge/reward>=
       :edge/controllable
       :edge/network-flows
       :edge/non-primitive ;; false or TPN network id of sub network
@@ -326,6 +328,8 @@
       :edge/argsmap
       :edge/cost
       :edge/reward
+      ;; :edge/cost<=
+      ;; :edge/reward>=
       :edge/controllable
       :edge/network-flows
       :edge/non-primitive ;; false or TPN network id of sub network

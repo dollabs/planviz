@@ -199,6 +199,10 @@
 (defn rewrap-label [settings label]
   (when label
     (let [{:keys [settings/xchar]} settings
+          ;; _ (println "DEBUG label is a"
+          ;;     (if (string? label) "String" (type label))
+          ;;     "=" label)
+          label (if (string? label) label (str label))
           raw (string/replace label "\n" "")
           len (count raw) ;; avoid fencepost
           hem-width 89
@@ -267,6 +271,7 @@
 (defn node [{:keys[plans/ui-opts plan/plid node/id
                    node/type node/state node/x node/y node/hidden
                    node/label node/sequence-label
+                   ;; node/cost<= node/reward=>
                    node/probability node/selected?
                    node/tpn-selection node/number] :as props}]
   (let [{:keys [ui/network-type ui/node-ids?
@@ -315,7 +320,9 @@
                                :x x :y (+ top (* i ychar))} lab]))
             y-node-id (+ y (if (keyword-identical? network-type :hem-network) 30 20))
             ;; tip (str (name id) " " (name state))
-            tip (str (name id) " " (name state) " " number)
+            tip (str (name id) " " (name state) " "
+                  ;; number ;; the node number is for debugging
+                  )
             ]
         (concatv
           [:g.node
@@ -409,7 +416,7 @@
               argsmap
               " controllable: "
               controllable
-              (if (non-zero? cost) "cost: ")
+              (if (non-zero? cost) " cost: ")
                 (if (non-zero? cost) cost)
                 (if (non-zero? reward) " reward: ")
                 (if (non-zero? reward) reward)
@@ -518,8 +525,11 @@
 
 (defn construct-label [name label sequence-label plant plantid command
                        args type value]
-  (if (keyword-identical? type :temporal-constraint)
-    (str value)
+  (if (constraint? type)
+    (case type
+      :cost<=-constraint (str "cost<= " value)
+      :reward>=-constraint (str "reward>= " value)
+      (str value))
     (or name
       (let [argstr (apply str (interpose ", " args))]
         (str
@@ -536,7 +546,9 @@
                     edge/sequence-label edge/hidden
                     edge/plant edge/plantid edge/command edge/args
                     edge/from edge/to edge/value
-                    edge/cost edge/reward edge/probability edge/guard
+                    edge/cost edge/reward
+                    ;; edge/cost<= edge/reward=>
+                    edge/probability edge/guard
                     edge/order] :as props}]
   (let [{:keys [ui/show-virtual? ui/edge-ids? ui/settings]} ui-opts
         {:keys [settings/ychar]} settings
@@ -558,9 +570,10 @@
                         (link-arc-memo type x0 y0 x1 y1)
                         [x0 y0 0 0])
         y (case type
-            :cost<=-constraint (- y ychar)
-            :reward>=-constraint (- y 18)
-            y)
+            :reward>=-constraint (+ (- y ychar ychar) 6)
+            :cost<=-constraint (+ (- y ychar) 4)
+            (+ y 2);; y
+            )
         order (if edge-ids? order)
         above [:text {:textAnchor "middle"
                       :x (- x 5) :y (+ y -3 (if order (* 7 order) 0))} label]
