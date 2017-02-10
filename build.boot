@@ -186,5 +186,6 @@
   "Cider boot params task"
   []
   (comp
-    (cider)
+    ; What does this task do and it is really required? FIXME/TODO
+    ;(cider)
     (cljs-dev)))
