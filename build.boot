@@ -110,12 +110,11 @@
   []
   ;; (let [dir (if (seq dir) dir #{"target"})]
   (comp
-    (aot)
-    ;; (pom)
-    (uber)
-    (jar :file (str (name project) ".jar"))
     (sift :include #{#"~$"} :invert true) ;; don't include emacs backups
     (cljs)
+    (aot)
+    (uber)
+    (jar :file (str (name project) ".jar"))
     (target :dir #{"target"}))
   ;;)
   )
