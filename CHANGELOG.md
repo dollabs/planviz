@@ -5,7 +5,13 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Changed
+* _TBD_
+
+### [0.9.3] - 2017-02-01
+
+Changed
 * Fixed error with exporting SVG
+* Updated dependencies
 
 ### [0.9.2] - 2016-12-01
 
@@ -166,4 +172,5 @@ Added
 [0.9.0]: https://github.com/dollabs/planviz/compare/0.8.9...0.9.0
 [0.9.1]: https://github.com/dollabs/planviz/compare/0.9.0...0.9.1
 [0.9.2]: https://github.com/dollabs/planviz/compare/0.9.1...0.9.2
-[Unreleased]: https://github.com/dollabs/planviz/compare/0.9.2...HEAD
+[0.9.3]: https://github.com/dollabs/planviz/compare/0.9.1...0.9.3
+[Unreleased]: https://github.com/dollabs/planviz/compare/0.9.3...HEAD

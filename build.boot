@@ -5,7 +5,7 @@
 ;; the file LICENSE at the root of this distribution.
 
 (def project 'dollabs/planviz)
-(def version "0.9.3")
+(def version "0.9.4-SNAPSHOT")
 (def description "Planning Network Visualization")
 (def project-url "https://github.com/dollabs/planviz")
 (def main 'planviz.cli)
@@ -14,9 +14,9 @@
   :source-paths #{"src"}
   :resource-paths #{"resources"}
   :dependencies   '[[org.clojure/clojure          "1.8.0"]
-                    [org.clojure/clojurescript    "1.9.456"]
+                    [org.clojure/clojurescript    "1.9.473"]
                     ;; both
-                    [avenir                       "0.2.1"]
+                    [avenir                       "0.2.2"]
                     [dollabs/webtasks             "0.2.2"]
                     [dollabs/webkeys              "0.4.1"]
                     [org.clojure/core.async       "0.2.395"]
@@ -58,7 +58,7 @@
                     [adzerk/boot-cljs-repl        "0.3.3"     :scope "test"]
                     ;; testing/development
                     ;; [adzerk/boot-test "1.2.0" :scope "test"]
-                    ;; [crisptrutski/boot-cljs-test "0.3.0-SNAPSHOT" :scope "test"]
+                    ;; [crisptrutski/boot-cljs-test "0.3.0" :scope "test"]
                     ])
 
 (require
@@ -113,6 +113,7 @@
     (sift :include #{#"~$"} :invert true) ;; don't include emacs backups
     (cljs)
     (aot)
+    (pom)
     (uber)
     (jar :file (str (name project) ".jar"))
     (target :dir #{"target"}))
@@ -181,11 +182,14 @@
 ;; and another for CLJ. FFI:
 ;; https://cider.readthedocs.io/en/latest/up_and_running/#clojurescript-usage
 
-(deftask cider-boot
-  "Cider boot params task"
-  []
-  (comp
-    (cider) ;; defined in profile.boot
-    ;; FFI https://github.com/boot-clj/boot/wiki/Cider-REPL
-    ;;     https://cider.readthedocs.io/en/latest/installation/
-    (cljs-dev)))
+;; This task is commented out here for users that have not copied
+;; a profile.boot file to ~/.boot/ which defines the cider task:
+;;
+;; (deftask cider-boot
+;;   "Cider boot params task"
+;;   []
+;;   (comp
+;;     (cider) ;; defined in profile.boot
+;;     ;; FFI https://github.com/boot-clj/boot/wiki/Cider-REPL
+;;     ;;     https://cider.readthedocs.io/en/latest/installation/
+;;     (cljs-dev)))
