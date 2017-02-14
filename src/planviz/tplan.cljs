@@ -387,7 +387,7 @@
 (defn medianpos [iteration]
   (let [{:keys [plan-type ranking]} @graph-params
         ranks (count (keys ranking))]
-    ;; (println "TPLAN medianpos" iteration)
+    ;; (println "TPLAN medianpos" iteration) ;; DEBUG
     (if (odd? iteration)
       (doseq [r (range (dec ranks) -1 -1)]  ;; bottom to top, downward priority
         (let [node-ids (get ranking r)
@@ -395,7 +395,9 @@
               down-priority (map (fn [n] [(node-key-fn n)
                                           (:node/down-priority n)])
                               nodes)
-              nodes-down (map first (sort-by second > down-priority))]
+              nodes-down (map first (sort-by second > down-priority))
+              rho-y (rho nil nil)]
+          ;; (println "  ranking" r "node-ids" node-ids) ;; DEBUG
           (loop [node-id (first nodes-down) more (rest nodes-down)]
             (when node-id
               (let [{:keys [node/y node/down-priority] :as node}
@@ -422,9 +424,25 @@
                                 ;; (neg? y)
                                 )
                               y-median y))]
-                (if-not (= y-new y)
+                (when (not= y-new y)
                   (update-node (assoc node :node/y y-new)))
-                (recur (first more) (rest more)))))))
+                (recur (first more) (rest more)))))
+          ;; To handle the case where a node with higher down priority
+          ;; gets positioned before (op top of or to the left) of
+          ;; a lower priority node double check rho here.
+          (loop [y-min -1 node-id (first node-ids) more (rest node-ids)]
+            (when node-id
+              (let [node (get-node node-id)
+                    y (:node/y node)
+                    y-new (if (neg? y-min)
+                            y ;; first one does not change position
+                            (max y-min y))
+                    y-min (+ y-new rho-y)] ;; min position for next one
+                (when (not= y-new y)
+                  ;; DEBUG
+                  ;; (println "  RHO CHECK node" node-id  "moved" y "to" y-new)
+                  (update-node (assoc node :node/y y-new)))
+                (recur y-min (first more) (rest more)))))))
       (doseq [r (range ranks)] ;; top to bottom, upward priority
         (let [node-ids (get ranking r)
               nodes (map get-node node-ids)
