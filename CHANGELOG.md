@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. This change
 ### [Unreleased]
 
 Changed
-* _TBD_
+* TPLAN: added rho check to medianpos to avoid overlapping nodes (fixes #53)
 
 ### [0.9.3] - 2017-02-01
 
