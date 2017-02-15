@@ -17,8 +17,8 @@
                     [org.clojure/clojurescript    "1.9.473"]
                     ;; both
                     [avenir                       "0.2.2"]
-                    [dollabs/webtasks             "0.2.2"]
-                    [dollabs/webkeys              "0.4.1"]
+                    [dollabs/webtasks             "0.2.3"]
+                    [dollabs/webkeys              "0.4.2"]
                     [org.clojure/core.async       "0.2.395"]
                     ;; server
                     [org.clojure/tools.cli        "0.3.5"]
