@@ -348,6 +348,7 @@
         out (with-out-str (pprint (dissoc settings
                                     :settings/filename
                                     :settings/filenames)))
+        _ (make-config-dir) ;; ensure /config exists
         _ (spit pathname out)
         filenames (list-settings-filenames)
         settings (assoc settings
@@ -1224,7 +1225,6 @@
   (let [filename "default"
         config-dir (str cwd "/config")
         path (str config-dir "/" filename settings-suffix)]
-    (make-config-dir)
     (if (fs/exists? path)
       (log/error "LOAD-DEFAULT-SETTINGS\n"
         (with-out-str (pprint (load-file path))))))
@@ -1249,7 +1249,6 @@
   (let [{:keys [cwd verbose log-level auto exchange rmq-host rmq-port
                 host port input url-config strict settings]} options
         _ (swap! state assoc-in [:cwd] cwd)
-        _ (make-config-dir) ;; ensure /config exists
         settings (load-settings-filename (or settings "default") auto)
         exchange (or exchange rmq-default-exchange)
         rmq-host (or rmq-host rmq-default-host)
