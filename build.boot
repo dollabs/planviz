@@ -185,11 +185,11 @@
 ;; This task is commented out here for users that have not copied
 ;; a profile.boot file to ~/.boot/ which defines the cider task:
 ;;
-;; (deftask cider-boot
-;;   "Cider boot params task"
-;;   []
-;;   (comp
-;;     (cider) ;; defined in profile.boot
-;;     ;; FFI https://github.com/boot-clj/boot/wiki/Cider-REPL
-;;     ;;     https://cider.readthedocs.io/en/latest/installation/
-;;     (cljs-dev)))
+(deftask cider-boot
+  "Cider boot params task"
+  []
+  (comp
+    (cider) ;; defined in profile.boot
+    ;; FFI https://github.com/boot-clj/boot/wiki/Cider-REPL
+    ;;     https://cider.readthedocs.io/en/latest/installation/
+    (cljs-dev)))

@@ -1167,7 +1167,7 @@
                   plan-id)]
     (when-not (no-plan? plan-id)
       (let [d (tasks/deferred)
-            secs (* 3 60 1000)
+            secs (* 2 60 1000) ;; WAIT two minutes
             dtimeout (tasks/timeout! d secs :timed-out)
             {:keys [loaded? n-keys parts n-parts]} (st/app-get-plan plan-id)
             have-parts (if parts (count parts) 0)
