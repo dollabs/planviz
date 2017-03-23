@@ -323,7 +323,7 @@
           finish (-> start
                    (sleep 30) ;; pace
                    (chain #(balance-sweep d min-length @visit done)))]
-      (tasks/on-realized finish #(identity true)) ;; consume finish
+      (tasks/on-realized finish (constantly true)) ;; consume finish
       (success! start true)
       true ;; finish
       )))
@@ -783,7 +783,7 @@
                      (sleep 100) ;; pace
                      (chain #(mincross-sweep d max-iterations
                                (inc i) (transpose (wmedian br i) i))))]
-        (tasks/on-realized finish #(identity true)) ;; consume finish
+        (tasks/on-realized finish (constantly true)) ;; consume finish
         (success! start true)
         true)))) ;; finish
 

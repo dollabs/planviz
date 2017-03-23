@@ -1105,7 +1105,8 @@
         plid (if (string? plid)
                   (keyword (string/replace-first plid  #"^:" ""))
                   plid)]
-    (when-not (no-plan? plid)
+    (if (no-plan? plid)
+      true ;; for deferreds
       (let [{:keys [loaded? type corresponding n-keys]} (st/app-get-plan plid)
             load-delay (+ (or load-delay 0) (+ 100 (* 5 (log2 n-keys))))
             opts (assoc opts :load-delay load-delay)
@@ -1135,7 +1136,8 @@
               (highlight-relevant))
             (if (and focus (keyword-identical? type :tpn-network))
               (htn-focus-tpn plid (:ui/show-network (st/get-ui-opts))
-                corresponding focus (as-boolean focus))))
+                corresponding focus (as-boolean focus)))
+            true) ;; for deferreds
           (if load-corresponding?
             (-> (load-plan tpn-plan) ;; LOAD TPN first!
               (sleep load-delay) ;; pace the browser
@@ -1152,8 +1154,7 @@
               (tasks/catch #(do
                               (status-msg "unable to show" plid)
                               (st/loading false)
-                              (st/app-set :app/loading nil))))))
-        true)))) ;; for deferreds
+                              (st/app-set :app/loading nil))))))))))
 
 (defn show-plan-id
   "Display a plan"
@@ -1167,7 +1168,7 @@
                   plan-id)]
     (when-not (no-plan? plan-id)
       (let [d (tasks/deferred)
-            secs (* 2 60 1000) ;; WAIT two minutes
+            secs (* 3 60 1000) ;; WAIT three minutes max
             dtimeout (tasks/timeout! d secs :timed-out)
             {:keys [loaded? n-keys parts n-parts]} (st/app-get-plan plan-id)
             have-parts (if parts (count parts) 0)
@@ -1877,9 +1878,14 @@
         (if (or (and variadic (< n arity))
               (and (not variadic) (not= n arity)))
           (status-msg (str "Command \"" method-name "\" expects " arity " argument" (if (not= arity 1) "s")))
-          (do
-            ;; (println "EXECUTE" method-name "[" arity "]" args)
-            (apply method-fn args)))))
+          ;; DEBUG
+          ;; (let [_ (println "EXECUTE" method-name "[" arity "]" args)
+          ;;       rv (apply method-fn args)]
+          ;;   (if (tasks/deferred? rv)
+          ;;     (println "RV deferred:" rv)
+          ;;     (println "RV:" rv)))
+          (apply method-fn args)
+          )))
     (my-user-action {:type :chat :chat cmd}))
   ["" 0])
 
@@ -2275,13 +2281,60 @@
    "T" #'hide-tooltips
    "Escape" #'hide-menus})
 
+
+(defn wait
+  "Return a deferred which will be realized in msec milliseconds (5 by default)"
+  [&[msec]]
+  (let [finish (tasks/deferred)]
+    (tasks/timeout #(success! finish true) (or msec 5))
+    finish))
+
+;; deferreds pending in the key-fn queue
+(def key-fn-queue (atom []))
+
+;; remove d from the key-fn queue
+(defn finish-key-fn [d]
+  ;; (println "KEY-FN finished" d)
+  (swap! key-fn-queue (comp vec rest)) ;; remove head
+  (success! d true))
+
+;; exec key-fn and realize d when complete
+(defn exec-key-fn [d key-fn]
+  ;; (println "KEY-FN exec" d)
+  (let [rv (key-fn)] ;; run it now
+    (if (tasks/deferred? rv)
+      (let [start (tasks/connect rv (tasks/deferred)) ;; duplicate
+            finish (chain start #(finish-key-fn d))]
+        ;; (println "KEY-FN RV deferred" rv "for" d)
+        )
+      (finish-key-fn d))
+    true))
+
+;; add key-fn to the queue
+;; this operation *must* be quick (the key-fn is NOT executed immediately)
+(defn queue-key-fn [key-fn]
+  (swap! key-fn-queue
+    (fn [q]
+      (if (empty? q)
+        (let [d (tasks/deferred)
+              start (wait)
+              finish (chain start #(exec-key-fn d key-fn))]
+          ;; (println "KEY-FN@" (count q) "=" d)
+          [d]) ;; first entry in the queue
+        (let [d (tasks/deferred)
+              start (tasks/connect (last q) (tasks/deferred)) ;; dup
+              finish (chain start #(exec-key-fn d key-fn))]
+          ;; (println "KEY-FN@" (count q) "=" d)
+          (conj q d)))))) ;; append to the queue
+
 (defn app-key-fn [& args]
   (let [[key id e] args
         key-fn-var (get app-bindings key)
         key-fn (if key-fn-var (deref key-fn-var))]
-    ;; (println "APP KEY" key "ID" id) ;; DEBUG
-    (if key-fn
-      (key-fn))))
+    (when key-fn
+      ;; DEBUG
+      ;; (println "APP KEY" key "ID" id "NAME" (:name (meta key-fn-var)))
+      (queue-key-fn key-fn))))
 
 (defn initialize-help []
   (let [help {:help/shown false :help/help-click help-click}
