@@ -23,14 +23,14 @@
                     ;; server
                     [org.clojure/tools.cli        "0.3.5"]
                     [me.raynes/fs                 "1.4.6"]
-                    [com.cognitect/transit-clj    "0.8.297"]
+                    [com.cognitect/transit-clj    "0.8.300"]
                     [environ                      "1.1.0"]
                     [clj-time                     "0.13.0"]
                     [com.taoensso/timbre          "4.8.0"]
-                    [org.slf4j/slf4j-api          "1.7.22"]
-                    [com.fzakaria/slf4j-timbre    "0.3.2"]
+                    [org.slf4j/slf4j-api          "1.7.25"]
+                    [com.fzakaria/slf4j-timbre    "0.3.4"]
                     [org.clojure/tools.logging    "0.3.1"]
-                    [com.novemberain/langohr      "3.6.1"]
+                    [com.novemberain/langohr      "3.7.0"]
                     [dollabs/plan-schema          "0.2.18"]
                     ;; web server
                     [org.clojure/data.json        "0.2.6"]
@@ -54,7 +54,7 @@
                     [adzerk/boot-reload           "0.5.1"     :scope "test"]
                     [pandeiro/boot-http           "0.7.6"     :scope "test"
                      :exclusions [org.clojure/clojure]]
-                    [adzerk/boot-cljs             "1.7.228-2" :scope "test"]
+                    [adzerk/boot-cljs             "2.0.0" :scope "test"]
                     [adzerk/boot-cljs-repl        "0.3.3"     :scope "test"]
                     ;; testing/development
                     ;; [adzerk/boot-test "1.2.0" :scope "test"]
@@ -185,11 +185,11 @@
 ;; This task is commented out here for users that have not copied
 ;; a profile.boot file to ~/.boot/ which defines the cider task:
 ;;
-;; (deftask cider-boot
-;;   "Cider boot params task"
-;;   []
-;;   (comp
-;;     (cider) ;; defined in profile.boot
-;;     ;; FFI https://github.com/boot-clj/boot/wiki/Cider-REPL
-;;     ;;     https://cider.readthedocs.io/en/latest/installation/
-;;     (cljs-dev)))
+(deftask cider-boot
+  "Cider boot params task"
+  []
+  (comp
+    (cider) ;; defined in profile.boot
+    ;; FFI https://github.com/boot-clj/boot/wiki/Cider-REPL
+    ;;     https://cider.readthedocs.io/en/latest/installation/
+    (cljs-dev)))
