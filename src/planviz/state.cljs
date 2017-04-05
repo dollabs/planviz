@@ -13,7 +13,6 @@
               [goog.dom :as gdom]
               [avenir.utils :as au :refer [assoc-if remove-fn
                                            as-boolean as-int as-float]]
-              [webtasks.tasks :as tasks]
               [plan-schema.core :as pschema :refer [composite-key]]
               [planviz.components :as comp]
               [planviz.ui :as ui
