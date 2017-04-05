@@ -69,7 +69,7 @@
 
 ;; Set the value below to true if using IntelliJ/Cursive (otherwise set to false)
 ;; see NOTE below
-(def cursive? true)
+(def cursive? false)
 
 (defonce weasel? (atom cursive?)) ;; see NOTE below
 
