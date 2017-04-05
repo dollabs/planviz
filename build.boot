@@ -31,7 +31,7 @@
                     [com.fzakaria/slf4j-timbre    "0.3.4"]
                     [org.clojure/tools.logging    "0.3.1"]
                     [com.novemberain/langohr      "3.7.0"]
-                    [dollabs/plan-schema          "0.2.17"]
+                    [dollabs/plan-schema          "0.2.18"]
                     ;; web server
                     [org.clojure/data.json        "0.2.6"]
                     [ring/ring-core               "1.5.0"]
@@ -54,7 +54,7 @@
                     [adzerk/boot-reload           "0.5.1"     :scope "test"]
                     [pandeiro/boot-http           "0.7.6"     :scope "test"
                      :exclusions [org.clojure/clojure]]
-                    [adzerk/boot-cljs             "2.0.0" :scope "test"]
+                    [adzerk/boot-cljs             "1.7.228-2" :scope "test"]
                     [adzerk/boot-cljs-repl        "0.3.3"     :scope "test"]
                     ;; testing/development
                     ;; [adzerk/boot-test "1.2.0" :scope "test"]
@@ -185,11 +185,11 @@
 ;; This task is commented out here for users that have not copied
 ;; a profile.boot file to ~/.boot/ which defines the cider task:
 ;;
-(deftask cider-boot
-  "Cider boot params task"
-  []
-  (comp
-    (cider) ;; defined in profile.boot
-    ;; FFI https://github.com/boot-clj/boot/wiki/Cider-REPL
-    ;;     https://cider.readthedocs.io/en/latest/installation/
-    (cljs-dev)))
+;; (deftask cider-boot
+;;   "Cider boot params task"
+;;   []
+;;   (comp
+;;     (cider) ;; defined in profile.boot
+;;     ;; FFI https://github.com/boot-clj/boot/wiki/Cider-REPL
+;;     ;;     https://cider.readthedocs.io/en/latest/installation/
+;;     (cljs-dev)))
