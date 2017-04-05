@@ -32,7 +32,6 @@
                     [org.clojure/tools.logging    "0.3.1"]
                     [com.novemberain/langohr      "3.7.0"]
                     [dollabs/plan-schema          "0.2.18"]
-                    [dollabs/plan-schema          "0.2.17"]
                     ;; web server
                     [org.clojure/data.json        "0.2.6"]
                     [ring/ring-core               "1.5.0"]
