@@ -13,13 +13,13 @@
               [goog.dom :as gdom]
               [avenir.utils :as au :refer [assoc-if remove-fn
                                            as-boolean as-int as-float]]
-              [plan-schema.core :as pschema :refer [composite-key]]
               [planviz.components :as comp]
               [planviz.ui :as ui
                :refer [message-box-key-fn input-box-key-fn
                        pan-zoom-key-fn calc-bigplan
                        ui-opts-key-fn node-key-fn edge-key-fn
-                       label-key-fn network-key-fn]]))
+                       label-key-fn network-key-fn
+                       composite-key]]))
 
 ;; DEBUG
 (defn explain-exception [e]

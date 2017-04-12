@@ -14,9 +14,15 @@
             [cljsjs.react.dom.server] ;; for sablono
             [sablono.core :as html :refer-macros [html]]
             [avenir.utils :as au :refer [assoc-if remove-fn concatv]]
-            [avenir.math :as math :refer [sqrt PI_2 sin cos atan]]
-            [plan-schema.core :as pschema
-             :refer [composite-key composite-key-fn]]))
+            [avenir.math :as math :refer [sqrt PI_2 sin cos atan]]))
+
+;; from plan-schema.core
+(defn composite-key [k1 k2]
+  (keyword (subs (str k1 k2) 1)))
+
+(defn composite-key-fn [k1 k2]
+  (fn [props]
+    (keyword (subs (str (get props k1) (get props k2)) 1))))
 
 ;; generic utilities
 (defn non-zero? [x]

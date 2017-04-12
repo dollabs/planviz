@@ -11,11 +11,9 @@
               [avenir.utils :as au :refer [assoc-if]]
               [avenir.math :as math :refer [atan]]
               [webtasks.tasks :as tasks :refer [chain sleep success! error!]]
-              [plan-schema.core :as pschema :refer [composite-key]]
-              ;; [planviz.components :as comp]
               [planviz.ui :as ui
                :refer [node-key-fn edge-key-fn network-key-fn non-zero?
-                       constraint? activity-type? begin?]]))
+                       constraint? activity-type? begin? composite-key]]))
 
 ;; helper function
 (defn reversev [s]
