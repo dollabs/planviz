@@ -11,7 +11,6 @@
             [goog.string :as gstring]
             [webtasks.tasks :as tasks :refer [on-realized]]
             [webtasks.ws :as ws]
-            [plan-schema.core :as pschema :refer [composite-key-fn]]
             [planviz.actions :as actions :refer [make-url]]
             [weasel.repl :as repl] ;; for CIDER development
             ))

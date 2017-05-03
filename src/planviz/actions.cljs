@@ -23,7 +23,6 @@
                                        choice-edge-states]]
             [planviz.state :as st]
             [planviz.tplan :as tplan :refer [min-max-fn]]
-            [plan-schema.core :as pschema :refer [composite-key]]
             [goog.dom :as gdom]
             [goog.crypt.base64 :as base64]
             [goog.net.XhrIo :as xhr]))

@@ -13,7 +13,6 @@
               [goog.dom :as gdom]
               [avenir.utils :as au :refer [assoc-if remove-fn
                                            as-boolean as-int as-float]]
-              [plan-schema.core :as pschema :refer [composite-key]]
               [planviz.components :as comp]
               [planviz.ui :as ui
                :refer [message-box-key-fn input-box-key-fn
