@@ -14,9 +14,7 @@
             [cljsjs.react.dom.server] ;; for sablono
             [sablono.core :as html :refer-macros [html]]
             [avenir.utils :as au :refer [assoc-if remove-fn concatv]]
-            [avenir.math :as math :refer [sqrt PI_2 sin cos atan]]
-            [plan-schema.core :as pschema
-             :refer [composite-key composite-key-fn]]))
+            [avenir.math :as math :refer [sqrt PI_2 sin cos atan]]))
 
 ;; generic utilities
 (defn non-zero? [x]
