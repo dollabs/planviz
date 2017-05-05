@@ -1123,7 +1123,7 @@
         :else
         (let [msg (str "ERROR parsing: " htn-filename " = " tpn-filename)]
           (log/error msg)
-          (log/error "PLANS" plans)
+          ;; (log/error "PLANS" plans)
           false)))
     (pschema/htn-filename? filename)
     (let [plan (pschema/htn-plan {:input [filename] :cwd cwd})]

@@ -14,31 +14,31 @@
   :source-paths #{"src"}
   :resource-paths #{"resources"}
   :dependencies   '[[org.clojure/clojure          "1.8.0"]
-                    [org.clojure/clojurescript    "1.9.473"]
+                    [org.clojure/clojurescript    "1.9.521"]
                     ;; both
                     [avenir                       "0.2.2"]
                     [dollabs/webtasks             "0.2.3"]
                     [dollabs/webkeys              "0.4.2"]
-                    [org.clojure/core.async       "0.2.395"]
+                    [org.clojure/core.async       "0.3.442"]
                     ;; server
                     [org.clojure/tools.cli        "0.3.5"]
                     [me.raynes/fs                 "1.4.6"]
                     [com.cognitect/transit-clj    "0.8.300"]
                     [environ                      "1.1.0"]
                     [clj-time                     "0.13.0"]
-                    [com.taoensso/timbre          "4.8.0"]
+                    [com.taoensso/timbre          "4.10.0"]
                     [org.slf4j/slf4j-api          "1.7.25"]
-                    [com.fzakaria/slf4j-timbre    "0.3.4"]
+                    [com.fzakaria/slf4j-timbre    "0.3.5"]
                     [org.clojure/tools.logging    "0.3.1"]
                     [com.novemberain/langohr      "3.7.0"]
-                    [dollabs/plan-schema          "0.3.1"]
+                    [dollabs/plan-schema          "0.3.2"]
                     ;; web server
                     [org.clojure/data.json        "0.2.6"]
-                    [ring/ring-core               "1.5.0"]
-                    [ring                         "1.5.0"]
-                    [ring/ring-defaults           "0.2.3"]
+                    [ring/ring-core               "1.6.0"]
+                    [ring                         "1.6.0"]
+                    [ring/ring-defaults           "0.3.0"]
                     [amalloy/ring-gzip-middleware "0.1.3"]
-                    [compojure                    "1.5.0"]
+                    [compojure                    "1.6.0"]
                     [enlive                       "1.1.6"]
                     [aleph                        "0.4.2-alpha12"]
                     ;; client
@@ -50,11 +50,11 @@
                     ;; cljs-dev
                     [com.cemerick/piggieback      "0.2.1"     :scope "test"]
                     [weasel                       "0.7.0"     :scope "test"]
-                    [org.clojure/tools.nrepl      "0.2.12"    :scope "test"]
+                    [org.clojure/tools.nrepl      "0.2.13"    :scope "test"]
                     [adzerk/boot-reload           "0.5.1"     :scope "test"]
-                    [pandeiro/boot-http           "0.7.6"     :scope "test"
+                    [pandeiro/boot-http           "0.8.0"     :scope "test"
                      :exclusions [org.clojure/clojure]]
-                    [adzerk/boot-cljs             "1.7.228-2" :scope "test"]
+                    [adzerk/boot-cljs             "2.0.0" :scope "test"]
                     [adzerk/boot-cljs-repl        "0.3.3"     :scope "test"]
                     ;; testing/development
                     ;; [adzerk/boot-test "1.2.0" :scope "test"]

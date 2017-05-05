@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file. This change
 
 Changed
 * TPLAN: added rho check to medianpos to avoid overlapping nodes (fixes #53)
-* Updated dependencies (Updated plan-schema version to 0.2.18)
+* Updated dependencies (Updated plan-schema version to 0.3.2)
 * Planviz creates `./config` unnecessarily (Fixes #49)
 * Fixed: HTN and TPN views shift when left alone (Closes #57)
 * Support for plan-schema 0.3.0
