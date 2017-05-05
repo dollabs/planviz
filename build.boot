@@ -54,7 +54,7 @@
                     [adzerk/boot-reload           "0.5.1"     :scope "test"]
                     [pandeiro/boot-http           "0.8.0"     :scope "test"
                      :exclusions [org.clojure/clojure]]
-                    [adzerk/boot-cljs             "2.0.0" :scope "test"]
+                    [adzerk/boot-cljs             "1.7.228-2" :scope "test"]
                     [adzerk/boot-cljs-repl        "0.3.3"     :scope "test"]
                     ;; testing/development
                     ;; [adzerk/boot-test "1.2.0" :scope "test"]
