@@ -1082,7 +1082,15 @@
       (medianpos 3)
       (subgraph-balance)
       (medianpos 4)
-      (medianpos 5))
+      (medianpos 5)
+      ;; NEW: consider additional phases
+      ;; (subgraph-balance)
+      ;; (medianpos 6)
+      ;; (medianpos 7)
+      ;; (subgraph-balance)
+      ;; (medianpos 8)
+      ;; (medianpos 9)
+      )
     (set-coord plan-type)
     true)) ;; for chain
 
