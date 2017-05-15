@@ -276,7 +276,7 @@
 
 (defn node [{:keys[plans/ui-opts plan/plid node/id
                    node/type node/state node/x node/y node/hidden
-                   node/label node/sequence-label
+                   node/label node/display-name node/sequence-label
                    ;; node/cost<= node/reward=>
                    node/probability node/selected?
                    node/tpn-selection node/number] :as props}]
@@ -309,21 +309,23 @@
                        }]
             top (- y 11)
             ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
-            label (if rewrap-htn-labels
-                    (rewrap-label settings label)
-                    label)
-            label (str label (if label "\n")
-                    (if sequence-label "▹ ") sequence-label)
-            lines (if (not (empty? label)) (string/split label #"\n"))
-            labels (if (and lines (not hidden))
-                     (for [i (range (count lines))
-                           :let [lab (get lines i)]]
-                       [:text {:class (str "node-label "
-                                        font-family " "
-                                        font-size " "
-                                        font-weight)
-                               :textAnchor "middle"
-                               :x x :y (+ top (* i ychar))} lab]))
+            ;; and construct-label should be construct-display-name
+            display-name (if rewrap-htn-labels
+                    (rewrap-label settings display-name)
+                    display-name)
+            display-name (str display-name
+                           (if label "\n") label
+                           (if sequence-label "▹ ") sequence-label)
+            lines (if (not (empty? display-name)) (string/split display-name #"\n"))
+            display-names (if (and lines (not hidden))
+                            (for [i (range (count lines))
+                                  :let [lab (get lines i)]]
+                              [:text {:class (str "node-label "
+                                               font-family " "
+                                               font-size " "
+                                               font-weight)
+                                      :textAnchor "middle"
+                                      :x x :y (+ top (* i ychar))} lab]))
             y-node-id (+ y (if (keyword-identical? network-type :hem-network) 30 20))
             ;; tip (str (name id) " " (name state))
             tip (str (name id) " " (name state) " "
@@ -348,7 +350,7 @@
              [:circle {:class (target-class (and selected? (not hidden)))
                        :cx x :cy y :r 16}])]
           [use]
-          labels
+          display-names
           (if node-ids?
             [[:text {:textAnchor "middle" :x x :y y-node-id} (name id)]])
           (if tooltips
@@ -529,14 +531,20 @@
                 label)]
     label))
 
-(defn construct-label [name label sequence-label plant plantid command
+(defn construct-label [name label display-name sequence-label plant plantid command
                        args type value]
   (if (constraint? type)
     (case type
       :cost<=-constraint (str "cost<= " value)
       :reward>=-constraint (str "reward>= " value)
       (str value))
-    (or name
+    (if name
+      ;; WAS just name
+      (if label
+        (str
+          (or display-name name)
+          " " (str label)) ;; show label for debugging!
+        (or display-name name))
       (let [argstr (apply str (interpose ", " args))]
         (str
           command
@@ -548,7 +556,8 @@
           (if sequence-label " ▹ ")
           sequence-label)))))
 
-(defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
+(defn label [{:keys[plans/ui-opts edge/id edge/type edge/name
+                    edge/label edge/display-name
                     edge/sequence-label edge/hidden
                     edge/plant edge/plantid edge/command edge/args
                     edge/from edge/to edge/value
@@ -560,15 +569,15 @@
         {:keys [settings/ychar]} settings
         virtual? (keyword-identical? type :virtual)
         label? (or show-virtual? (not virtual?))
-        label (if label? (construct-label name label sequence-label
+        display-name (if label? (construct-label name label display-name sequence-label
                            plant plantid command args type value))
-        label (if edge-ids?
-                (str label " = "
+        display-name (if edge-ids?
+                (str display-name " = "
                   (clojure.core/name id)
                   (if order " {")
                   order
                   (if order "}"))
-                label)
+                display-name)
         extra nil ;; (construct-extra cost reward probability guard)
         [x0 y0] [(:node/x from) (:node/y from)]
         [x1 y1] [(:node/x to) (:node/y to)]
@@ -582,7 +591,7 @@
             )
         order (if edge-ids? order)
         above [:text {:textAnchor "middle"
-                      :x (- x 5) :y (+ y -3 (if order (* 7 order) 0))} label]
+                      :x (- x 5) :y (+ y -3 (if order (* 7 order) 0))} display-name]
         below (if (not (empty? extra))
                 [:text {:textAnchor "middle" :x x :y (+ y 12)} extra])]
     (html

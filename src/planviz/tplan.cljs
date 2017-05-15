@@ -509,14 +509,17 @@
         (let [nodes (get ranking r)
               edge-fn (fn [edge] ;; returns xrank
                         (let [{:keys [edge/hidden edge/weight
-                                      edge/name edge/label
+                                      edge/name edge/label edge/display-name
                                       edge/type edge/value
                                       edge/sequence-label
                                       edge/plant edge/plantid
                                       edge/command edge/args
                                       edge/cost edge/reward
                                       edge/probability edge/guard]} edge
-                              label (ui/construct-label name label sequence-label
+                              ;; HERE the label symbol should become display-name
+                              ;; and construct-label should be construct-display-name
+                              label (ui/construct-label name label display-name
+                                      sequence-label
                                       plant plantid command args type value)
                               ;; CONSIDER ui/construct-edge-tip length
                               ;; max-label (max (count label) (count tip))

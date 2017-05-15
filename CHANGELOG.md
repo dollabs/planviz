@@ -9,7 +9,7 @@ Changed
 * Updated dependencies (Updated plan-schema version to 0.3.2)
 * Planviz creates `./config` unnecessarily (Fixes #49)
 * Fixed: HTN and TPN views shift when left alone (Closes #57)
-* Support for plan-schema 0.3.0
+* Support for plan-schema 0.3.3
 
 ### [0.9.3] - 2017-02-01
 
