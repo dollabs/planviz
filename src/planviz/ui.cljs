@@ -276,7 +276,7 @@
 
 (defn node [{:keys[plans/ui-opts plan/plid node/id
                    node/type node/state node/x node/y node/hidden
-                   node/label node/sequence-label
+                   node/label node/display-name node/args node/sequence-label
                    ;; node/cost<= node/reward=>
                    node/probability node/selected?
                    node/tpn-selection node/number] :as props}]
@@ -309,21 +309,34 @@
                        }]
             top (- y 11)
             ;; U+25B9 	WHITE RIGHT-POINTING SMALL TRIANGLE
-            label (if rewrap-htn-labels
-                    (rewrap-label settings label)
-                    label)
-            label (str label (if label "\n")
-                    (if sequence-label "▹ ") sequence-label)
-            lines (if (not (empty? label)) (string/split label #"\n"))
-            labels (if (and lines (not hidden))
-                     (for [i (range (count lines))
-                           :let [lab (get lines i)]]
-                       [:text {:class (str "node-label "
-                                        font-family " "
-                                        font-size " "
-                                        font-weight)
-                               :textAnchor "middle"
-                               :x x :y (+ top (* i ychar))} lab]))
+            ;; and construct-label should be construct-display-name
+            show-args-pref? true ;; future user choice (default true)
+            show-args? (and show-args-pref? (not (nil? args)))
+            show-fn? (and show-args? (not (nil? display-name)))
+            display-name (or display-name label) ;; FIXME backward compat
+            display-name (str
+                           display-name
+                           (if show-fn? "(")
+                           (if show-args? (apply str (interpose ", " args)))
+                           (if show-fn? ")"))
+            display-name (if rewrap-htn-labels
+                    (rewrap-label settings display-name)
+                    display-name)
+            display-name (str display-name
+                           (if label "\n") label
+                           (if sequence-label "▹ ") sequence-label)
+            _ (println "DISPLAY-NAME" id (str "=>" display-name "<="))
+            lines (if (not (empty? display-name))
+                    (string/split display-name #"\n"))
+            display-names (if (and lines (not hidden))
+                            (for [i (range (count lines))
+                                  :let [lab (get lines i)]]
+                              [:text {:class (str "node-label "
+                                               font-family " "
+                                               font-size " "
+                                               font-weight)
+                                      :textAnchor "middle"
+                                      :x x :y (+ top (* i ychar))} lab]))
             y-node-id (+ y (if (keyword-identical? network-type :hem-network) 30 20))
             ;; tip (str (name id) " " (name state))
             tip (str (name id) " " (name state) " "
@@ -348,7 +361,7 @@
              [:circle {:class (target-class (and selected? (not hidden)))
                        :cx x :cy y :r 16}])]
           [use]
-          labels
+          display-names
           (if node-ids?
             [[:text {:textAnchor "middle" :x x :y y-node-id} (name id)]])
           (if tooltips
@@ -369,12 +382,15 @@
             offset (case type ;; FIXME differentiate constraints
                      :reward>=-constraint 0.8
                      :cost<=-constraint 0.9
-                     1.0)
+                     ;; 1.0) ;; ORIGINAL
+                     1.5)
             factor (case type ;; FIXME differentiate constraints
                      :reward>=-constraint 0.75
                      :cost<=-constraint 0.9
-                     1.1)
-            a (+ offset (* factor (max (- (min (/ dh ranksep) 16) 2) 0)))
+                     ;; 1.1) ;; ORIGINAL
+                     0.02)
+            a (+ offset
+                (* factor (max (- (min (/ dh ranksep) 16) 2) 0)))
             r (* a dh)
             z (- r (/ (sqrt (- (* 4 r r) (* dh dh))) 2))
             [x y] (if (zero? dy)
@@ -462,8 +478,9 @@
               marker-end (if cnstr?
                            (if hidden
                              nil
-                             (str "url(#arrow" length-class
-                               ;; "-" (name state)
+                             (str "url(#arrow"
+                               "-" (name state)
+                               length-class
                                ")"))
                            (if virtual? "url(#arrowlight)"
                                (if (keyword-identical? network-type :hem-network)
@@ -474,7 +491,11 @@
                                    (str "url(#arrowhead-" (name state) ")")))))
               marker-start nil ;; (if (keyword-identical? type :choice-edge) "url(#choicehem)")
               class (str (safe-type-name type) "-"
-                      (if hidden "hidden" (name state)) length-class)
+                      (if hidden "hidden" (name state)) length-class
+                      ;; consider adding just state to the class list
+                      ;; " "
+                      ;; (name state)
+                      )
               attrs (assoc-if {:class class :d d}
                       :marker-start marker-start
                       :marker-end marker-end)
@@ -529,26 +550,47 @@
                 label)]
     label))
 
-(defn construct-label [name label sequence-label plant plantid command
-                       args type value]
+(defn construct-label [name label display-name sequence-label plant plantid
+                       command args type value]
   (if (constraint? type)
     (case type
       :cost<=-constraint (str "cost<= " value)
       :reward>=-constraint (str "reward>= " value)
       (str value))
-    (or name
-      (let [argstr (apply str (interpose ", " args))]
-        (str
-          command
-          (if command "(")
-          argstr
-          (if command ")")
-          (if label " ")
-          label
-          (if sequence-label " ▹ ")
-          sequence-label)))))
+    (let [show-args-pref? true ;; future user choice (default true)
+          show-args? (and show-args-pref? (not (nil? args)))
+          show-fn? (and show-args? (not (nil? display-name)))]
+      (str
+        display-name
+        (if show-fn? "(")
+        (if show-args? (apply str (interpose ", " args)))
+        (if show-fn? ")")
+        (if label " ")
+        label
+        (if sequence-label " ▹ ")
+        sequence-label))))
 
-(defn label [{:keys[plans/ui-opts edge/id edge/type edge/name edge/label
+;; older approach
+    ;; (if name
+    ;;   ;; WAS just name
+    ;;   (if label
+    ;;     (str
+    ;;       (or display-name name)
+    ;;       " " (str label)) ;; show label for debugging!
+    ;;     (or display-name name))
+    ;;   (let [argstr (apply str (interpose ", " args))]
+    ;;     (str
+    ;;       command
+    ;;       (if command "(")
+    ;;       argstr
+    ;;       (if command ")")
+    ;;       (if label " ")
+    ;;       label
+    ;;       (if sequence-label " ▹ ")
+    ;;       sequence-label)))))
+
+(defn label [{:keys[plans/ui-opts edge/id edge/type edge/name
+                    edge/label edge/display-name
                     edge/sequence-label edge/hidden
                     edge/plant edge/plantid edge/command edge/args
                     edge/from edge/to edge/value
@@ -560,15 +602,16 @@
         {:keys [settings/ychar]} settings
         virtual? (keyword-identical? type :virtual)
         label? (or show-virtual? (not virtual?))
-        label (if label? (construct-label name label sequence-label
-                           plant plantid command args type value))
-        label (if edge-ids?
-                (str label " = "
+        display-name (if label? (construct-label name label display-name
+                                  sequence-label
+                                  plant plantid command args type value))
+        display-name (if edge-ids?
+                (str display-name " = "
                   (clojure.core/name id)
                   (if order " {")
                   order
                   (if order "}"))
-                label)
+                display-name)
         extra nil ;; (construct-extra cost reward probability guard)
         [x0 y0] [(:node/x from) (:node/y from)]
         [x1 y1] [(:node/x to) (:node/y to)]
@@ -582,7 +625,7 @@
             )
         order (if edge-ids? order)
         above [:text {:textAnchor "middle"
-                      :x (- x 5) :y (+ y -3 (if order (* 7 order) 0))} label]
+                      :x (- x 5) :y (+ y -3 (if order (* 7 order) 0))} display-name]
         below (if (not (empty? extra))
                 [:text {:textAnchor "middle" :x x :y (+ y 12)} extra])]
     (html
@@ -627,25 +670,31 @@
         [:g]
         (map network-factory networks-to-show)))))
 
-(def markers
-  (str
-    "<marker id=\"arrowhead\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowhead-normal\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowhead-impossible\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowhead-start\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowhead-negotiation\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowhead-best\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowhead-active\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowhead-started\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowhead-finished\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowhead-failed\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"choicehem\" orient=\"auto\" markerHeight=\"5\" markerWidth=\"5\" refY=\"0\" refX=\"-70\" viewBox=\"-5 -5 10 10\"><circle r=\"5\"></circle></marker>\n"
-    "<marker id=\"arrowhem\" orient=\"auto\" markerHeight=\"5\" markerWidth=\"5\" refY=\"0\" refX=\"5\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrowlight\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"19\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrow\" orient=\"auto\" markerHeight=\"3\" markerWidth=\"3\" refY=\"-2\" refX=\"22\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,-1L1,5\"></path></marker>\n"
-    "<marker id=\"arrow-long\" orient=\"auto\" markerHeight=\"3.5\" markerWidth=\"3.5\" refY=\"-0.5\" refX=\"20\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    "<marker id=\"arrow-very-long\" orient=\"auto\" markerHeight=\"8\" markerWidth=\"8\" refY=\"0\" refX=\"24\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
-    ))
+(defn markers []
+  (let [choicehem "<marker id=\"choicehem\" orient=\"auto\" markerHeight=\"5\" markerWidth=\"5\" refY=\"0\" refX=\"-70\" viewBox=\"-5 -5 10 10\"><circle r=\"5\"></circle></marker>\n"
+        arrowhem "<marker id=\"arrowhem\" orient=\"auto\" markerHeight=\"5\" markerWidth=\"5\" refY=\"0\" refX=\"5\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+        arrowlight "<marker id=\"arrowlight\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"19\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+        arrowhead "<marker id=\"arrowhead@STATE@\" orient=\"auto\" markerHeight=\"4\" markerWidth=\"4\" refY=\"0\" refX=\"17\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+        arrowhead-style (apply str
+                          (interpose "\n"
+                            (for [state (map name (keys edge-states))]
+                              (string/replace arrowhead
+                                "@STATE@" (str "-" state)))))
+        arrow (str
+                "<marker id=\"arrow@STATE@\" orient=\"auto\" markerHeight=\"3\" markerWidth=\"3\" refY=\"-2\" refX=\"22\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,-1L1,5\"></path></marker>\n"
+                "<marker id=\"arrow@STATE@-long\" orient=\"auto\" markerHeight=\"3.5\" markerWidth=\"3.5\" refY=\"-0.5\" refX=\"19\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n"
+                "<marker id=\"arrow@STATE@-very-long\" orient=\"auto\" markerHeight=\"8\" markerWidth=\"8\" refY=\"0\" refX=\"15\" viewBox=\"0 -5 10 10\"><path d=\"M0,-5L10,0L0,5\"></path></marker>\n")
+        arrow-style (apply str
+                      (interpose "\n"
+                        (for [state (map name (keys edge-states))]
+                          (string/replace arrow
+                            "@STATE@" (str "-" state)))))]
+    (str
+      choicehem
+      arrowhem
+      arrowlight
+      arrowhead-style
+      arrow-style)))
 
 (defn svg-defs []
   (let [r 10
@@ -699,7 +748,7 @@
               :x (* 2 hem-offset) :y hem-offset
               :rx 3 :ry 3
               :width (* 2 hem-size) :height hem-size}]]
-     [:g#markers {:dangerouslySetInnerHTML {:__html markers}}]
+     [:g#markers {:dangerouslySetInnerHTML {:__html (markers)}}]
      [:linearGradient#menu-gradient {:x1 "0%" :y1 "0%" :x2 "0%" :y2 "100%"}
       [:stop.menu-stop1 {:offset "0%"}]
       [:stop.menu-stop2 {:offset "50%"}]

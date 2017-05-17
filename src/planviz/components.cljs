@@ -176,6 +176,8 @@
       ;;HEM :htn-expanded-method
       ;; For ALL
       :node/label
+      :node/display-name
+      :node/args
       :node/sequence-label
       :node/sequence-end
       ;; FOR c-begin p-begin state
@@ -247,6 +249,7 @@
       :edge/name
       :edge/state
       :edge/label
+      :edge/display-name
       :edge/value ;; bounds for temporal constraint
       :edge/htn-node ; points to htn-primitive-task or HENT
       ;; FOR :temporal-constraint
@@ -315,6 +318,7 @@
       :edge/htn-node ; points to htn-primitive-task or HENT
       ;; FOR :temporal-constraint
       :edge/label
+      :edge/display-name
       :edge/between
       :edge/between-ends
       :edge/between-starts
@@ -374,6 +378,7 @@
       :network/begin ;; (htn optional) begin node
       :network/end  ;; optional end node
       :network/label
+      :network/display-name
       :network/rootnodes  ;; for :hem-network
       :network/parent
       :network/width

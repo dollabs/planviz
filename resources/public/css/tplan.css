@@ -62,12 +62,12 @@ svg, g, rect, circle, text, symbol, use {
     fill: lightblue;
 }
 
-#arrow {
+#arrow, #arrow-normal {
     /* fill: #555; */
     fill: rgba(100,100,100,0.9);
 }
 
-#arrow-long {
+#arrow-long, #arrow-normal-long {
     /* fill: #888; */
     fill: rgba(150,150,150,0.9);
 }
@@ -75,6 +75,10 @@ svg, g, rect, circle, text, symbol, use {
 #arrow-very-long {
     /* fill: #ccc; */
     fill: rgba(200,200,200,0.9);
+}
+
+#arrow-failed, #arrow-failed-long, #arrow-failed-very-long {
+    fill: red;
 }
 
 #choicehem > circle {
@@ -207,7 +211,7 @@ svg, g, rect, circle, text, symbol, use {
     stroke-width: 3.0px;
 }
 
-.activity-failed, .null-activity-failed, .delay-activity-failed, .choice-edge-failed, .parallel-edge-failed, .aggregation-failed  {
+.activity-failed, .null-activity-failed, .delay-activity-failed, .choice-edge-failed, .parallel-edge-failed, .aggregation-failed, .temporal-constraint-failed-very-long, .temporal-constraint-failed-long, .temporal-constraint-failed {
     fill: none;
     stroke: red;
     stroke-width: 3.0px;
