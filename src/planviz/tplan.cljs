@@ -519,8 +519,8 @@
                               ;; HERE the label symbol should become display-name
                               ;; and construct-label should be construct-display-name
                               label (ui/construct-label name label display-name
-                                      sequence-label
-                                      plant plantid command args type value)
+                                      sequence-label plant plantid command
+                                      args type value)
                               ;; CONSIDER ui/construct-edge-tip length
                               ;; max-label (max (count label) (count tip))
                               max-label (count label)]

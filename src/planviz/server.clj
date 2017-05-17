@@ -46,7 +46,9 @@
             [langohr.channel :as lch]
             [langohr.basic :as lb]
             [plan-schema.core :as pschema
-             :refer [composite-key read-json-str write-json-str]]
+             :refer [composite-key]]
+            [plan-schema.utils :as putils
+             :refer [read-json-str write-json-str]]
             [avenir.utils :as au :refer [assoc-if keywordize concatv and-fn]]
             [me.raynes.fs :as fs]
             [planviz.net :as net])
@@ -177,14 +179,16 @@
           (str line-break "\nargs: " debug-args)
           line-break)))
     ;; Configure plan-schema to user our logging
-    (pschema/set-logger! :debug (fn [& msgs]
+    (putils/set-logger! :trace (fn [& msgs]
+                                  (log/trace (string/join " " msgs))))
+    (putils/set-logger! :debug (fn [& msgs]
                                   (log/debug (string/join " " msgs))))
-    (pschema/set-logger! :info (fn [& msgs]
-                                  (log/debug (string/join " " msgs))))
-    (pschema/set-logger! :warn (fn [& msgs]
-                                  (log/debug (string/join " " msgs))))
-    (pschema/set-logger! :error (fn [& msgs]
-                                  (log/debug (string/join " " msgs))))
+    (putils/set-logger! :info (fn [& msgs]
+                                  (log/info (string/join " " msgs))))
+    (putils/set-logger! :warn (fn [& msgs]
+                                  (log/warn (string/join " " msgs))))
+    (putils/set-logger! :error (fn [& msgs]
+                                  (log/error (string/join " " msgs))))
     (swap! state assoc :logging log-level)))
 
 (defn log-if-possible [msg]
@@ -205,7 +209,7 @@
 ;; local functions exported to clients --------------------------------------
 
 (defn echo [& args]
-  (log/debug "(echo" (apply pr-str args) ")")
+  (log/trace "(echo" (apply pr-str args) ")")
   (cond
     (zero? (count args))
     true
@@ -215,29 +219,29 @@
     args))
 
 (defn inc-even [v]
-  (log/debug "(inc-even" v ")")
+  (log/trace "(inc-even" v ")")
   (if (even? v) (inc v) false)) ;; fail on odd
 
 (defn double-positive [v]
-  (log/debug "(double-positive" v ")")
+  (log/trace "(double-positive" v ")")
   (if (pos? v) (* 2 v) false)) ;; fail on negative
 
 ;; better error handling.. like [:error msg]
 ;; this function returns a pre-baked msg!!!
 (defn request-plan-part [plan-id part]
-  (log/debug "(request-plan-part" plan-id part ")")
+  (log/trace "(request-plan-part" plan-id part ")")
   (let [{:keys [plan n-keys parts n-parts]} (get-in @state [:plans plan-id])]
     (if (and (vector? parts) (not (neg? part)) (< part n-parts))
       [:msg-json (get parts part)]
       false))) ;; error
 
 (defn list-plans []
-  (log/debug "(list-plans)")
+  (log/trace "(list-plans)")
   (mapv #(vector (first %)
            (dissoc (second %) :plan :parts)) (seq (:plans @state))))
 
 (defn get-url-config []
-  (log/debug "(get-url-config)")
+  (log/trace "(get-url-config)")
   (:url-config @state))
 
 (defn get-client [remote]
@@ -426,7 +430,7 @@
 
 ;; expect msg as a clojure form
 (defn publish [msg]
-  (log/debug "PUBLISH PLANVIZ" msg)
+  (log/trace "PUBLISH PLANVIZ" msg)
   (let [{:keys [channel exchange]} (get @state :rmq)
         routing-key pamela-visualization-key
         app-id "planviz"
@@ -531,7 +535,7 @@
 (defn add-client [conn]
   (let [desc (s/description conn)
         remote (get-in desc [:source :connection :remote-address])]
-    (log/debug "REMOTE:" remote "DESC:" (with-out-str (pprint desc)))
+    (log/trace "REMOTE:" remote "DESC:" (with-out-str (pprint desc)))
     (swap! state update-in [:clients remote]
       assoc :conn conn :nick nil :follow nil)
     (client-count)
@@ -546,7 +550,7 @@
             error (transit-to-json {:error {:code 1001}})
             clients (if client (dissoc clients remote) clients)]
         (when (and conn (not (s/closed? conn)))
-          (log/debug "sending error to figwheel for " remote)
+          (log/trace "sending error to figwheel for " remote)
           (s/put! conn error)
           (s/close! conn))
         (assoc st :clients clients))))
@@ -557,21 +561,21 @@
 (defn heartbeat []
   (let [{:keys [clients]} @state
         remotes (keys clients)]
-    ;; (log/debug "HEARTBEAT")
+    ;; (log/trace "HEARTBEAT")
     (when (pos? (count remotes))
       (doseq [remote remotes]
         (let [client (get-client remote)
               {:keys [conn]} client]
           (when (or (nil? conn) (s/closed? conn))
-            (log/debug "client disappeared:" remote)
+            (log/trace "client disappeared:" remote)
             (remove-client remote)))))))
 
 (defn heartbeat-start []
   (let [heartbeat-cancel (:heartbeat-cancel @state)]
     (when (fn? heartbeat-cancel)
-      (log/debug "stopping heartbeat for restart")
+      (log/trace "stopping heartbeat for restart")
       (heartbeat-cancel))
-    (log/debug "starting heartbeat")
+    (log/trace "starting heartbeat")
     ;; NOTE every returns a cancel-fn, (cancel-fn) to stop
     (swap! state assoc :heartbeat-cancel
       (dtime/every heartbeat-period heartbeat))))
@@ -579,7 +583,7 @@
 (defn heartbeat-stop []
   (let [heartbeat-cancel (:heartbeat-cancel @state)]
     (when (fn? heartbeat-cancel)
-      (log/debug "stopping heartbeat")
+      (log/trace "stopping heartbeat")
       (heartbeat-cancel)
       (swap! state assoc :heartbeat-cancel nil))))
 
@@ -595,7 +599,7 @@
     (if (or (nil? conn) (s/closed? conn))
       (remove-client remote)
       (do
-        ;; (log/debug "xmit-to-client" remote "MESSAGE" msg)
+        ;; (log/trace "xmit-to-client" remote "MESSAGE" msg)
         (s/put! conn msg-json)))
     msg-json))
 
@@ -646,7 +650,7 @@
 ;; to the subsequent clients
 (defn broadcast-clients [from msg & [msg-json]]
   (let [remotes (get-client-keys)]
-    ;; (log/debug "BROADCAST" new-message)
+    ;; (log/trace "BROADCAST" new-message)
     (loop [msg-json msg-json r (first remotes) more (rest remotes)]
       (let [mj (xmit-to-client r msg msg-json)]
         (if-not (empty? more)
@@ -666,7 +670,7 @@
         (log/debug "CLIENT" remote "ERROR:" error)
         (remove-client remote))
       (let [{:keys [rmethod args return]} message]
-        (log/debug "CLIENT" remote "MESSAGE:" message)
+        (log/trace "CLIENT" remote "MESSAGE:" message)
         (if rmethod
           (invoke-rmethod remote return rmethod args)
           (broadcast-clients remote message))))))
@@ -681,7 +685,7 @@
     (-> (http/websocket-connection req)
       (d/chain
         (fn [conn]
-          (log/debug "NEW /ws REQ:" (with-out-str (pprint req)))
+          (log/trace "NEW /ws REQ:" (with-out-str (pprint req)))
           (let [remote (add-client conn)]
             (s/consume #(recv-from-client remote %)
               (s/buffer 64 conn)))))
@@ -705,15 +709,15 @@
 
 (defn log-request-handler [handler]
   (fn [req]
-    (log/debug "REQ" (:uri req))
+    (log/trace "REQ" (:uri req))
     (handler req)))
 
 (defn debug-handler [handler step]
   (fn [req]
-    ;; (log/debug "DEBUG HANDLER BEFORE" step)
+    ;; (log/trace "DEBUG HANDLER BEFORE" step)
     (try
       (let [rv (handler req)]
-      ;; (log/debug "DEBUG HANDLER AFTER" step)
+      ;; (log/trace "DEBUG HANDLER AFTER" step)
         rv)
       (catch IllegalArgumentException e
         (log/debug "BROWSER CLOSED")
@@ -930,14 +934,14 @@
                               :args [plan-id]}))))
 
 (defn tpn-object-update [json-str]
-  (let [m (pschema/read-json-str json-str)
+  (let [m (read-json-str json-str)
         plid (:rmq-plan-id @state)
         os->nu (fn [os] ;; object-state -> network-update
                  (let [{:keys [uid tpn-object-state]} os]
                    {:plid plid :update-uid (keyword uid)
                     :state (keyword tpn-object-state)}))
         updates (mapv os->nu (filter map? (vals m)))]
-    (log/debug "UPDATES" updates)
+    (log/trace "UPDATES" updates)
     (broadcast-clients nil {:rmethod :network-updates :args [updates]})))
 
 (defn unknown-update [routing-key json-str]
@@ -1255,7 +1259,7 @@
         rmq-port (or rmq-port rmq-default-port)
         host (or host planviz-default-host)
         port (or port planviz-default-port)]
-    (pschema/set-strict! strict)
+    (putils/set-strict! strict)
     (if-not (net/port-available? port)
       (let [msg (str "The port " port " is in use cannot be bound by PLANVIZ")]
         (log-if-possible msg))

@@ -177,6 +177,7 @@
       ;; For ALL
       :node/label
       :node/display-name
+      :node/args
       :node/sequence-label
       :node/sequence-end
       ;; FOR c-begin p-begin state
