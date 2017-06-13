@@ -233,7 +233,8 @@ svg, g, rect, circle, text, symbol, use {
 .temporal-constraint-normal {
     fill: none;
     stroke-dasharray: 2 2;
-    stroke: rgba(100,100,100,0.5);
+    /* stroke: rgba(100,100,100,0.5); */
+    stroke: rgba(50,50,50,0.5);
     stroke-width: 3.0px;
 }
 
@@ -250,7 +251,8 @@ svg, g, rect, circle, text, symbol, use {
 .temporal-constraint-normal-long {
     fill: none;
     stroke-dasharray: 3 3;
-    stroke: rgba(150,150,150,0.5);
+    /* stroke: rgba(150,150,150,0.5); */
+    stroke: rgba(75,75,75,0.5);
     stroke-width: 3.0px;
 }
 
@@ -267,7 +269,8 @@ svg, g, rect, circle, text, symbol, use {
 .temporal-constraint-normal-very-long {
     fill: none;
     stroke-dasharray: 4 4;
-    stroke: rgba(200,200,200,0.5);
+    /* stroke: rgba(200,200,200,0.5); */
+    stroke: rgba(100,100,100,0.5);
     stroke-width: 1px;
 }
 

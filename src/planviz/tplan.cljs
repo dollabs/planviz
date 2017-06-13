@@ -488,7 +488,9 @@
   (let [{:keys [ranksep nodesep ranking label-char]} @graph-params
         ranks (range (count (keys ranking)))
         x0 (/ ranksep 2)
-        y0 (* 2 nodesep)
+        ;; allow enough vertical space for long constraints
+        y0 (* (if (keyword-identical? plan-type :tpn-network) 5 2)
+             nodesep)
         x-key (if (keyword-identical? plan-type :htn-network) :node/y :node/x)
         y-key (if (keyword-identical? plan-type :htn-network) :node/x :node/y)
         ]
