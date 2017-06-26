@@ -31,7 +31,7 @@
                     [com.fzakaria/slf4j-timbre    "0.3.5"]
                     [org.clojure/tools.logging    "0.3.1"]
                     [com.novemberain/langohr      "3.7.0"]
-                    [dollabs/plan-schema          "0.3.3"]
+                    [dollabs/plan-schema          "0.3.5"]
                     ;; web server
                     [org.clojure/data.json        "0.2.6"]
                     [ring/ring-core               "1.6.0"]
