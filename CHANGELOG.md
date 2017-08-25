@@ -4,12 +4,16 @@ All notable changes to this project will be documented in this file. This change
 
 ### [Unreleased]
 
+* _TBD_
+
+### [0.9.4] - 2017-08-25
+
 Changed
 * TPLAN: added rho check to medianpos to avoid overlapping nodes (fixes #53)
 * Updated dependencies (Updated plan-schema version to 0.3.2)
 * Planviz creates `./config` unnecessarily (Fixes #49)
 * Fixed: HTN and TPN views shift when left alone (Closes #57)
-* Support for plan-schema 0.3.3
+* Support for plan-schema 0.3.6
 
 ### [0.9.3] - 2017-02-01
 
@@ -176,5 +180,6 @@ Added
 [0.9.0]: https://github.com/dollabs/planviz/compare/0.8.9...0.9.0
 [0.9.1]: https://github.com/dollabs/planviz/compare/0.9.0...0.9.1
 [0.9.2]: https://github.com/dollabs/planviz/compare/0.9.1...0.9.2
-[0.9.3]: https://github.com/dollabs/planviz/compare/0.9.1...0.9.3
-[Unreleased]: https://github.com/dollabs/planviz/compare/0.9.3...HEAD
+[0.9.3]: https://github.com/dollabs/planviz/compare/0.9.2...0.9.3
+[0.9.4]: https://github.com/dollabs/planviz/compare/0.9.3...0.9.4
+[Unreleased]: https://github.com/dollabs/planviz/compare/0.9.4...HEAD
