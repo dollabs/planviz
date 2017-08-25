@@ -138,7 +138,7 @@
 (defn planviz
   "planviz command line processor. (see usage for help)."
   {:added "0.1.0"
-   :version "0.8.5"}
+   :version "0.9.4"}
   [& args]
   ;; (println (str "DEBUG planviz args: " (pr-str args)))
   (let [cwd (or (:planviz-cwd env) (:user-dir env))
