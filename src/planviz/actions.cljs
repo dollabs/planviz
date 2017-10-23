@@ -1314,27 +1314,17 @@
       (my-user-action {:type :menu :tag tag :info info})))
   (menu-click-handled e))
 
-(defn cancel-activity-or-htn-node
+(defn cancel-activity
   "option is m. See add-url-options method
   e is event object"
   [node edge option e]
-  ;(println "cancel-activity-or-htn-node")
-  ;(println "node")
-  ;(pprint node)
-  ;(println "edge")
-  ;(pprint edge)
-  ;(println "option")
-  ;(pprint option)
-  ;(println "e")
-  ;(pprint e)
-  (when node
-    (println "Impl cancel for htn node"))
   (when edge
-    ;(println "Cancel activity" (select-keys edge #{:edge/id}))
-    ;(println "network-id" (:plan/plid edge))
-    ;(println "edge-id" (:edge/id edge))
-
     (rmethod {} :cancel-activity {:plid (:plan/plid edge) :uid (:edge/id edge)}))
+  (menu-click-handled e))
+
+(defn do-not-wait-activity [node edge option e]
+  (when edge
+    (rmethod {} :do-not-wait-activity {:plid (:plan/plid edge) :uid (:edge/id edge)}))
   (menu-click-handled e))
 
 ;; https://developer.mozilla.org/en-US/docs/Web/API/Window/open#Position_and_size_features
@@ -2192,11 +2182,12 @@
     (loop [options options a (first url-config) more (rest url-config)]
       (if-not a
         (conj options
-              (if node-id
-                {:tag :info :text (str "✋ Cancel activities for node. Not yet impl " node-id)
-                 :fn  cancel-activity-or-htn-node}
-                {:tag :info :text (str "✋ Cancel this activity " edge-id)
-                 :fn  cancel-activity-or-htn-node})
+              (if edge-id
+                {:tag :info :text (str "✋ Do not wait! " edge-id)
+                 :fn  do-not-wait-activity})
+              (if edge-id
+                {:tag :info :text (str "✋ Cancel activity! " edge-id)
+                 :fn  cancel-activity})
               (if node-id
                 {:tag :info :text (str "✋ node information for " node-id)
                  :fn  info-menu-fn}
