@@ -510,8 +510,28 @@
                                       :state        :observations
                                       :observations [{:field :tpn-object-state
                                                       :value {:network-id network-id
-                                                       uid         {:uid uid :tpn-object-state :do-not-wait}}}
+                                                       uid         {:uid uid :tpn-object-state :cancel-activity}}}
                                                       ]})]
+        (lb/publish channel exchange rkey msg-json {:app-id "planviz"})))))
+
+(defn do-not-wait-activity
+  "Handler when the user does not want the planner to wait for an activity to finish"
+  [args]
+  (let [plan (get-in @state [:plans (:plid args)])
+        network-id (:begin plan)
+        uid (:uid args)]
+    (when-not plan
+      (log/error "Plan not found" (:plid args)))
+    (when plan
+      (let [{:keys [channel exchange]} (get @state :rmq)
+            rkey "observations"
+            msg-json (write-json-str {:id           nil
+                                      :plant-id     :planviz
+                                      :state        :observations
+                                      :observations [{:field :tpn-object-state
+                                                      :value {:network-id network-id
+                                                              uid         {:uid uid :tpn-object-state :do-not-wait}}}
+                                                     ]})]
         (lb/publish channel exchange rkey msg-json {:app-id "planviz"})))))
 
 ;; these are server methods
@@ -532,6 +552,7 @@
                :load-settings           load-settings
                :list-settings-filenames list-settings-filenames
                :cancel-activity         cancel-activity
+               :do-not-wait-activity    do-not-wait-activity
                })
 (defn reset-rmethods
   "Useful when working in repl" []
