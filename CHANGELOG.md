@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file. This change
 
 * _TBD_
 
+### [0.9.5] - 2017-10-30
+
+Changed
+* Added **do-not-wait** and **cancel-activity** right-click menuitems
+
 ### [0.9.4] - 2017-08-25
 
 Changed
