@@ -92,6 +92,7 @@
 (def edge-states {:normal      {:parallel 0 :choice 2 :node-state :normal}
                   :best        {:parallel 1 :choice 3 :node-state :best}
                   :finished    {:parallel 2 :choice 6 :node-state :reached}
+                  :cancelled    {:parallel 2 :choice 6 :node-state :reached}
                   :started     {:parallel 3 :choice 5 :node-state :started}
                   :active      {:parallel 3 :choice 5 :node-state :started}
                   :start       {:parallel 4 :choice 4 :node-state :started}
@@ -416,8 +417,10 @@
          (str "M" x0 " " y0 "A" r " " r " 0 0,1 " x1 " " y1)
          ratio])
       ;; default ----------------------------------------------
+      ;; Create a middle point for the path element to support cancel marker
+      ;; https://www.w3.org/TR/SVG/paths.html#PathData
       [x (- y 2)
-       (str "M" x0 " " y0 "L" x1 " " y1)
+       (str "M" x0 " " y0 "L" x " " y " " x1 " " y1)
        0])))
 
 (def link-arc-memo (memoize link-arc))
@@ -460,7 +463,8 @@
                    edge/probability edge/guard
                    edge/selected? edge/hidden
                    edge/plant edge/plantid edge/argsmap
-                   edge/number]
+                   edge/number
+                   edge/marker-mid]
              :as props}
             node-factory]
   (let [{:keys [ui/network-type
@@ -490,6 +494,13 @@
                                    ;; "url(#arrowhead)"
                                    (str "url(#arrowhead-" (name state) ")")))))
               marker-start nil ;; (if (keyword-identical? type :choice-edge) "url(#choicehem)")
+              marker-mid (cond (= :cancel marker-mid)
+                               (str "url(#cancel)")
+                               (= :cancelled marker-mid)
+                               (str "url(#cancelled)")
+                               (= :check-mark marker-mid)
+                               (str "url(#check_mark)")
+                               :else nil)
               class (str (safe-type-name type) "-"
                       (if hidden "hidden" (name state)) length-class
                       ;; consider adding just state to the class list
@@ -497,8 +508,9 @@
                       ;; (name state)
                       )
               attrs (assoc-if {:class class :d d}
-                      :marker-start marker-start
-                      :marker-end marker-end)
+                              :marker-start marker-start
+                              :marker-mid marker-mid
+                              :marker-end marker-end)
               target-attrs (if (#{:activity :delay-activity :aggregation
                                   :choice-edge :parallel-edge} type)
                              {:class (target-class
@@ -688,13 +700,20 @@
                       (interpose "\n"
                         (for [state (map name (keys edge-states))]
                           (string/replace arrow
-                            "@STATE@" (str "-" state)))))]
+                            "@STATE@" (str "-" state)))))
+        cancel "<marker id=\"cancel\" markerWidth=\"10\" markerHeight=\"10\" refX=\"0\" refY=\"0\"\n            viewBox=\"-5 -5 10 10\" markerUnits=\"userSpaceOnUse\"\n            fill=\"none\">\n      <path d=\"M -4,-4 L 4,4 M -4,4 L 4,-4\" stroke=\"white\" stroke-width=\"4\"/>\n      <path d=\"M -4,-4 L 4,4 M -4,4 L 4,-4\" stroke=\"gray\" stroke-width=\"2\"/>\n    </marker>\n"
+        cancelled "<marker id=\"cancelled\" markerWidth=\"10\" markerHeight=\"10\" refX=\"0\" refY=\"0\"\n            viewBox=\"-5 -5 10 10\" markerUnits=\"userSpaceOnUse\"\n            fill=\"none\">\n      <path d=\"M -4,-4 L 4,4 M -4,4 L 4,-4\" stroke=\"white\" stroke-width=\"4\"/>\n      <path d=\"M -4,-4 L 4,4 M -4,4 L 4,-4\" stroke=\"black\" stroke-width=\"2\"/>\n    </marker>\n"
+        check_mark "<marker id=\"check_mark\" markerWidth=\"10\" markerHeight=\"10\" refX=\"5\" refY=\"5\"\n            viewBox=\"0 0 10 10\" markerUnits=\"userSpaceOnUse\"\n            fill=\"none\">\n      <path d=\"M0,7.5 L3.33,10 L10,0\" stroke=\"#009900\" stroke-width=\"1.25\"/>\n</marker>\n"
+        ]
     (str
       choicehem
       arrowhem
       arrowlight
       arrowhead-style
-      arrow-style)))
+      arrow-style
+      cancel
+      cancelled
+      check_mark)))
 
 (defn svg-defs []
   (let [r 10

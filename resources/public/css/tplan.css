@@ -56,6 +56,7 @@ svg, g, rect, circle, text, symbol, use {
 #arrowhead-active { fill: #00ff00; }
 #arrowhead-started { fill: #00ff00; } /* previously active */
 #arrowhead-finished { fill: #009900; }
+#arrowhead-cancelled { fill: #009900; }
 #arrowhead-failed { fill: red; }
 
 #arrowlight {
@@ -187,7 +188,7 @@ svg, g, rect, circle, text, symbol, use {
     100% {stroke: #80ff80;}
 }
 
-.activity-finished, .null-activity-finished, .delay-activity-finished, .choice-edge-finished, .parallel-edge-finished, .aggregation-finished {
+.activity-finished, .activity-cancelled, .null-activity-finished, .delay-activity-finished, .choice-edge-finished, .parallel-edge-finished, .aggregation-finished {
     fill: none;
     stroke: #009900;   /*dark green*/
     stroke-width: 3.0px;

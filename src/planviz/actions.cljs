@@ -1324,6 +1324,7 @@
 
 (defn do-not-wait-activity [node edge option e]
   (when edge
+    (st/update-edge-marker-mid (assoc edge :edge/marker-mid :check-mark))
     (rmethod {} :do-not-wait-activity {:plid (:plan/plid edge) :uid (:edge/id edge)}))
   (menu-click-handled e))
 
