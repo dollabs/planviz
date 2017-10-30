@@ -184,6 +184,14 @@
 
 (defmulti plans-mutate om/dispatch)
 
+(defmethod plans-mutate :default [a b c]
+  (println "WARN plans-mutate default")
+  ;(println "a keys" (keys a))
+  ;(pprint a)
+  (println "b" b)
+  ;(println "c" c)
+  )
+
 (defmethod plans-mutate 'plans/pan-zoom
   [{:keys [state] :as env} k {:keys [pan-zoom] :as params}]
   {:value {:keys comp/pan-zoom-query}
@@ -299,9 +307,18 @@
             edge-id (if (not (node-id? update-uid))
                       (composite-key plid update-uid))
             edge (if edge-id (get edge-by-plid-id edge-id))
+            prev-state (:edge/state edge)
+            ;; For cancel event, we want to preserve previous state
+            ;; and add a marker
+            cancel-event? (= :cancel state)
+            cancelled-event? (= :cancelled state)
+            new-state (if cancel-event?
+                        prev-state
+                        state)
+            edge (assoc edge :edge/marker-mid state)
             edge-by-plid-id (if edge
                               (assoc edge-by-plid-id edge-id
-                                (assoc edge :edge/state state))
+                                (assoc edge :edge/state new-state))
                               edge-by-plid-id)]
         (recur edge-by-plid-id (first more) (rest more))))))
 
@@ -340,6 +357,13 @@
    (let [edge-id (edge-key-fn edge)
          ref [:edge/edge-by-plid-id edge-id]]
      #(swap! state update-in ref merge edge))})
+
+(defmethod plans-mutate 'plans/edge-marker-mid
+  [{:keys [state]} _ {:keys [edge]}]
+  {:value {:keys comp/edge-query}
+   :action #(swap! state update-in [:edge/edge-by-plid-id (edge-key-fn edge) :edge/marker-mid]
+                   (fn [_]
+                     (:edge/marker-mid edge)))})
 
 (defonce plans-parser (om/parser {:read plans-read :mutate plans-mutate}))
 
@@ -773,3 +797,6 @@
 (defn network-updates [updates]
   (plans-query `[(plans/network-updates {:updates ~updates})])
   true) ;; for deferred
+
+(defn update-edge-marker-mid [edge]
+  (plans-query `[(plans/edge-marker-mid {:edge ~edge})]))
