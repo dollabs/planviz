@@ -703,7 +703,7 @@
                             "@STATE@" (str "-" state)))))
         cancel "<marker id=\"cancel\" markerWidth=\"10\" markerHeight=\"10\" refX=\"0\" refY=\"0\"\n            viewBox=\"-5 -5 10 10\" markerUnits=\"userSpaceOnUse\"\n            fill=\"none\">\n      <path d=\"M -4,-4 L 4,4 M -4,4 L 4,-4\" stroke=\"white\" stroke-width=\"4\"/>\n      <path d=\"M -4,-4 L 4,4 M -4,4 L 4,-4\" stroke=\"gray\" stroke-width=\"2\"/>\n    </marker>\n"
         cancelled "<marker id=\"cancelled\" markerWidth=\"10\" markerHeight=\"10\" refX=\"0\" refY=\"0\"\n            viewBox=\"-5 -5 10 10\" markerUnits=\"userSpaceOnUse\"\n            fill=\"none\">\n      <path d=\"M -4,-4 L 4,4 M -4,4 L 4,-4\" stroke=\"white\" stroke-width=\"4\"/>\n      <path d=\"M -4,-4 L 4,4 M -4,4 L 4,-4\" stroke=\"black\" stroke-width=\"2\"/>\n    </marker>\n"
-        check_mark "<marker id=\"check_mark\" markerWidth=\"10\" markerHeight=\"10\" refX=\"5\" refY=\"5\"\n            viewBox=\"0 0 10 10\" markerUnits=\"userSpaceOnUse\"\n            fill=\"none\">\n      <path d=\"M0,7.5 L3.33,10 L10,0\" stroke=\"#009900\" stroke-width=\"1.25\"/>\n</marker>\n"
+        check_mark "<marker id=\"check_mark\" markerWidth=\"10\" markerHeight=\"10\" refX=\"5\" refY=\"5\"\n            viewBox=\"0 0 10 10\" markerUnits=\"userSpaceOnUse\"\n            fill=\"none\">\n      <path d=\"M0,7.5 L3.33,10 L10,0\" stroke=\"black\" stroke-width=\"1.25\"/>\n</marker>\n"
         ]
     (str
       choicehem
