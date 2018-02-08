@@ -187,4 +187,5 @@ Added
 [0.9.2]: https://github.com/dollabs/planviz/compare/0.9.1...0.9.2
 [0.9.3]: https://github.com/dollabs/planviz/compare/0.9.2...0.9.3
 [0.9.4]: https://github.com/dollabs/planviz/compare/0.9.3...0.9.4
-[Unreleased]: https://github.com/dollabs/planviz/compare/0.9.4...HEAD
+[0.9.4]: https://github.com/dollabs/planviz/compare/0.9.4...0.9.5
+[Unreleased]: https://github.com/dollabs/planviz/compare/0.9.5...HEAD
