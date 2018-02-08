@@ -797,6 +797,3 @@
 (defn network-updates [updates]
   (plans-query `[(plans/network-updates {:updates ~updates})])
   true) ;; for deferred
-
-(defn update-edge-marker-mid [edge]
-  (plans-query `[(plans/edge-marker-mid {:edge ~edge})]))
