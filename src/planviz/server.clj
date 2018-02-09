@@ -951,6 +951,7 @@
           _ (spit rmq-tpn-json json-str)
           tpn (pschema/tpn-plan {:input [rmq-tpn-json]})
           error (:error tpn)]
+      (log/info "tmpdir:" tmpdir)
       (if error
         (do
           (log/error "Received invalid TPN over RMQ" rmq-tpn-json)
@@ -1106,6 +1107,11 @@
       (log/warn "PLANVIZ server stopped"))
     (log/warn "PLANVIZ server already stopped")))
 
+(defn update-rmq-plan-id
+  "Set :rmq-plan-id to plid if not already set"
+  [plid]
+  (if-not (:rmq-plan-id @state)
+    (swap! state assoc :rmq-plan-id plid)))
 
 ;; plan input is in normalized (validated) format
 ;; convert to a flat map and then chunk it
@@ -1129,7 +1135,9 @@
             n-parts (inc (quot n-keys keys-per-msg))
             return :deferring-request-plan-part
             parts (create-plan-parts plan-id merged-plan return)]
-        (log/info "LOAD-PLAN" plan-id)
+        (log/info "LOAD-PLAN" plan-id type)
+        (if (= :tpn-network type)
+          (update-rmq-plan-id plan-id))
         (swap! state assoc-in [:plans plan-id]
                {:plan          merged-plan
                 :begin         begin
