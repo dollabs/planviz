@@ -5,7 +5,7 @@
 ;; the file LICENSE at the root of this distribution.
 
 (def project 'dollabs/planviz)
-(def version "0.9.4")
+(def version "0.9.5")
 (def description "Planning Network Visualization")
 (def project-url "https://github.com/dollabs/planviz")
 (def main 'planviz.cli)

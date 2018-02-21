@@ -10,7 +10,7 @@
 (taoensso.timbre/set-level! :warn)
 
 (ns planviz.server
-  (:gen-class) ;; for :uberjar
+  (:gen-class)                                              ;; for :uberjar
   (:require [clojure.java.io :as io]
             [clojure.java.shell :refer [sh]]
             [clojure.pprint :as pp :refer [pprint]]
@@ -66,16 +66,16 @@
 
 (def settings-suffix ".settings.edn")
 
-(def planviz-settings {:settings/auto false
-                       :settings/tooltips true
-                       :settings/font-family "font-family-helvetica"
-                       :settings/font-size "font-size-9"
-                       :settings/font-weight "font-weight-light"
+(def planviz-settings {:settings/auto              false
+                       :settings/tooltips          true
+                       :settings/font-family       "font-family-helvetica"
+                       :settings/font-size         "font-size-9"
+                       :settings/font-weight       "font-weight-light"
                        :settings/rewrap-htn-labels true
-                       :settings/xchar 5
-                       :settings/ychar 10
-                       :settings/filename "default"
-                       :settings/filenames ["default"]
+                       :settings/xchar             5
+                       :settings/ychar             10
+                       :settings/filename          "default"
+                       :settings/filenames         ["default"]
                        })
 
 (defn repl?
@@ -106,17 +106,17 @@
 (def pamela-visualization-key "pamela.viz")
 
 (def state-initial
-  {:server nil ;; Aleph server
-   :logging false ;; true if logging has been initialized
-   :heartbeat-cancel nil ;; if running, else nil
-   :msgs nil ;; core async channel
-   :rmq {:rmq-host rmq-default-host
-         :rmq-port rmq-default-port
-         :exchange rmq-default-exchange
-         :channel nil
-         :connection nil}
-   :plans {}
-   :url-config []
+  {:server           nil                                    ;; Aleph server
+   :logging          false                                  ;; true if logging has been initialized
+   :heartbeat-cancel nil                                    ;; if running, else nil
+   :msgs             nil                                    ;; core async channel
+   :rmq              {:rmq-host   rmq-default-host
+                      :rmq-port   rmq-default-port
+                      :exchange   rmq-default-exchange
+                      :channel    nil
+                      :connection nil}
+   :plans            {}
+   :url-config       []
    }
   )
 
@@ -146,18 +146,18 @@
   {;; :level :debug  ; e/o #{:trace :debug :info :warn :error :fatal :report}
    ;; Control log filtering by namespaces/patterns. Useful for turning off
    ;; logging in noisy libraries, etc.:
-   :ns-whitelist  [] #_["my-app.foo-ns"]
-   :ns-blacklist  [] #_["taoensso.*"]
-   :middleware [] ; (fns [data]) -> ?data, applied left->right
+   :ns-whitelist   [] #_["my-app.foo-ns"]
+   :ns-blacklist   [] #_["taoensso.*"]
+   :middleware     []                                       ; (fns [data]) -> ?data, applied left->right
    ;; {:pattern _ :locale _ :timezone _}
    ;; :timestamp-opts log/default-timestamp-opts
-   :timestamp-opts   {:pattern  "yy-MMM-dd HH:mm:ss.SSS"
-                      :locale   (java.util.Locale. "en")
-                      :timezone (java.util.TimeZone/getDefault)
-                      ;; (java.util.TimeZone/getTimeZone "UTC")
-                      }
+   :timestamp-opts {:pattern  "yy-MMM-dd HH:mm:ss.SSS"
+                    :locale   (java.util.Locale. "en")
+                    :timezone (java.util.TimeZone/getDefault)
+                    ;; (java.util.TimeZone/getTimeZone "UTC")
+                    }
 
-   :output-fn timbre/default-output-fn ; (fn [data]) -> string
+   :output-fn      timbre/default-output-fn                 ; (fn [data]) -> string
    ;; :appenders
    ;; {:spit (log/spit-appender {:fname "./logs/planviz.log"})}
    })
@@ -165,7 +165,7 @@
 (defn log-initialize [port log-level & [debug-args]]
   (let [logfile (str "./logs/planviz-" port ".log")
         appenders {:println (timbre/println-appender {:stream :*err*})
-                   :spit (timbre/spit-appender {:fname logfile})}
+                   :spit    (timbre/spit-appender {:fname logfile})}
         config (assoc log-config
                  :level log-level
                  :appenders appenders)
@@ -175,34 +175,34 @@
     (timbre/set-config! config)
     (if banner?
       (log/warn "PLANVIZ logging initialized at level" log-level
-        (if debug?
-          (str line-break "\nargs: " debug-args)
-          line-break)))
+                (if debug?
+                  (str line-break "\nargs: " debug-args)
+                  line-break)))
     ;; Configure plan-schema to user our logging
     (putils/set-logger! :trace (fn [& msgs]
-                                  (log/trace (string/join " " msgs))))
+                                 (log/trace (string/join " " msgs))))
     (putils/set-logger! :debug (fn [& msgs]
-                                  (log/debug (string/join " " msgs))))
+                                 (log/debug (string/join " " msgs))))
     (putils/set-logger! :info (fn [& msgs]
-                                  (log/info (string/join " " msgs))))
+                                (log/info (string/join " " msgs))))
     (putils/set-logger! :warn (fn [& msgs]
-                                  (log/warn (string/join " " msgs))))
+                                (log/warn (string/join " " msgs))))
     (putils/set-logger! :error (fn [& msgs]
-                                  (log/error (string/join " " msgs))))
+                                 (log/error (string/join " " msgs))))
     (swap! state assoc :logging log-level)))
 
 (defn log-if-possible [msg]
-  (if(:logging @state)
+  (if (:logging @state)
     (log/error msg)
     (println msg)))
 
 (def non-websocket-request
-  {:status 400
+  {:status  400
    :headers {"content-type" "application/text"}
-   :body "Expected a websocket request."})
+   :body    "Expected a websocket request."})
 
 (def #^{:dynamic true :added "0.0.0"}
-  *remote*
+*remote*
   "current remote for this operation"
   nil)
 
@@ -220,11 +220,11 @@
 
 (defn inc-even [v]
   (log/trace "(inc-even" v ")")
-  (if (even? v) (inc v) false)) ;; fail on odd
+  (if (even? v) (inc v) false))                             ;; fail on odd
 
 (defn double-positive [v]
   (log/trace "(double-positive" v ")")
-  (if (pos? v) (* 2 v) false)) ;; fail on negative
+  (if (pos? v) (* 2 v) false))                              ;; fail on negative
 
 ;; better error handling.. like [:error msg]
 ;; this function returns a pre-baked msg!!!
@@ -233,12 +233,12 @@
   (let [{:keys [plan n-keys parts n-parts]} (get-in @state [:plans plan-id])]
     (if (and (vector? parts) (not (neg? part)) (< part n-parts))
       [:msg-json (get parts part)]
-      false))) ;; error
+      false)))                                              ;; error
 
 (defn list-plans []
   (log/trace "(list-plans)")
   (mapv #(vector (first %)
-           (dissoc (second %) :plan :parts)) (seq (:plans @state))))
+                 (dissoc (second %) :plan :parts)) (seq (:plans @state))))
 
 (defn get-url-config []
   (log/trace "(get-url-config)")
@@ -254,12 +254,12 @@
           {:keys [nick]} (if follow (get-client follow))
           follow (or nick follow)]
       (str "You are " *remote* " nick \"" my-nick "\" following \"" follow "\""))
-      ;; (str "You are " *remote* " nick \"" my-nick "\""))
+    ;; (str "You are " *remote* " nick \"" my-nick "\""))
     false))
 
 (defn login []
   (if *remote*
-    (let [login {:login/remote *remote*
+    (let [login {:login/remote   *remote*
                  :login/settings (:settings @state)}]
       (log/info "LOGIN" *remote*)
       login)
@@ -270,19 +270,19 @@
   (let [clients (:clients @state)
         other (first
                 (remove nil?
-                  (for [[remote client] clients
-                        :let [nick (:nick client)]]
-                    (if (or (= remote nickname) (= nick nickname))
-                      remote))))]
+                        (for [[remote client] clients
+                              :let [nick (:nick client)]]
+                          (if (or (= remote nickname) (= nick nickname))
+                            remote))))]
     other))
 
 (defn set-nick [remote nickname]
   (swap! state update-in [:clients remote]
-    assoc :nick nickname))
+         assoc :nick nickname))
 
 (defn set-follow [remote other]
   (swap! state update-in [:clients remote]
-    assoc :follow other))
+         assoc :follow other))
 
 (defn nick [nickname]
   (if *remote*
@@ -322,9 +322,9 @@
   (if (#{\- \_} ch)
     ch
     (let [c (int ch)]
-      (if (or (and (>= c 48) (<= c 57)) ;; digit
-            (and (>= c 65) (<= c 90)) ;; upper
-            (and (>= c 97) (<= c 122))) ;; lower
+      (if (or (and (>= c 48) (<= c 57))                     ;; digit
+              (and (>= c 65) (<= c 90))                     ;; upper
+              (and (>= c 97) (<= c 122)))                   ;; lower
         ch
         \_))))
 
@@ -343,21 +343,21 @@
         config-dir (fs/file (str cwd "/config"))
         glob (str "*" settings-suffix)]
     (mapv #(string/replace (.getName %) settings-suffix "")
-      (fs/glob config-dir glob))))
+          (fs/glob config-dir glob))))
 
 ;; assume filename is safe
 (defn save-settings-filename [filename settings]
   (let [cwd (or (:cwd @state) (:planviz-cwd env) (:user-dir env))
         pathname (str cwd "/config/" filename settings-suffix)
         out (with-out-str (pprint (dissoc settings
-                                    :settings/filename
-                                    :settings/filenames)))
-        _ (make-config-dir) ;; ensure /config exists
+                                          :settings/filename
+                                          :settings/filenames)))
+        _ (make-config-dir)                                 ;; ensure /config exists
         _ (spit pathname out)
         filenames (list-settings-filenames)
         settings (assoc settings
-                     :settings/filename filename
-                     :settings/filenames filenames)]
+                   :settings/filename filename
+                   :settings/filenames filenames)]
     (swap! state assoc :settings settings)
     settings))
 
@@ -375,7 +375,7 @@
                      :settings/filenames filenames
                      :settings/auto (boolean
                                       (or auto
-                                        (:settings/auto settings)))))]
+                                          (:settings/auto settings)))))]
     (if settings
       (swap! state assoc :settings settings))
     settings))
@@ -412,7 +412,7 @@
         {:error (str "Sorry the user \"" other "\" does not exist")}
         (do
           (xmit-to-client remote {:rmethod :recv-msg
-                                  :args [line]})
+                                  :args    [line]})
           line)))
     false))
 
@@ -443,11 +443,11 @@
           {:keys [host port]} @state
           planviz (str host ":" port)
           nick-action (assoc-if action
-                        :remote *remote*
-                        :nick nick
-                        :planviz planviz
-                        )]
-          (publish nick-action)
+                                :remote *remote*
+                                :nick nick
+                                :planviz planviz
+                                )]
+      (publish nick-action)
       true)
     false))
 
@@ -468,51 +468,95 @@
           edge (if edge (keyword edge))
           selection (if selection
                       (doall (mapv #(vector (keyword (first %)) (keyword (second %)))
-                               selection)))
+                                   selection)))
           action (assoc-if action
-                   :planviz planviz :remote remote :nick nick
-                   :type type :plid plid
-                   :selection selection
-                   :tag tag :node node :edge edge)]
+                           :planviz planviz :remote remote :nick nick
+                           :type type :plid plid
+                           :selection selection
+                           :tag tag :node node :edge edge)]
       (broadcast-clients nil {:rmethod :user-action
-                              :args [action]}))
+                              :args    [action]}))
     (catch Exception e
       (log/error "broadcast-user-action ERROR:" (.. e getCause getMessage)))))
 
 (defn broadcast-chat [msg]
   (let [{:keys [host port]} @state
         server (str host ":" port)
-        action {:type :chat
+        action {:type    :chat
                 :planviz server
-                :remote server
+                :remote  server
                 ;; :nick "server"
-                :chat msg}]
+                :chat    msg}]
     (broadcast-clients nil {:rmethod :user-action
-                            :args [action]})))
+                            :args    [action]})))
 
 (defn broadcast-add-plan [plan-id plan-details]
   (broadcast-clients nil {:rmethod :add-plan
-                          :args [plan-id plan-details]}))
+                          :args    [plan-id plan-details]}))
+
+(defn cancel-activity
+  "Handler when the user cancels an activity in UI"
+  [args]
+  (let [plan (get-in @state [:plans (:plid args)])
+        network-id (:begin plan)
+        uid (:uid args)]
+    (when-not plan
+      (log/error "Plan not found" (:plid args)))
+    (when plan
+      (let [{:keys [channel exchange]} (get @state :rmq)
+            rkey "observations"
+            msg-json (write-json-str {:id           nil
+                                      :plant-id     :planviz
+                                      :state        :observations
+                                      :observations [{:field :tpn-object-state
+                                                      :value {:network-id network-id
+                                                       uid         {:uid uid :tpn-object-state :cancel-activity}}}
+                                                      ]})]
+        (lb/publish channel exchange rkey msg-json {:app-id "planviz"})))))
+
+(defn do-not-wait-activity
+  "Handler when the user does not want the planner to wait for an activity to finish"
+  [args]
+  (let [plan (get-in @state [:plans (:plid args)])
+        network-id (:begin plan)
+        uid (:uid args)]
+    (when-not plan
+      (log/error "Plan not found" (:plid args)))
+    (when plan
+      (let [{:keys [channel exchange]} (get @state :rmq)
+            rkey "observations"
+            msg-json (write-json-str {:id           nil
+                                      :plant-id     :planviz
+                                      :state        :observations
+                                      :observations [{:field :tpn-object-state
+                                                      :value {:network-id network-id
+                                                              uid         {:uid uid :tpn-object-state :do-not-wait}}}
+                                                     ]})]
+        (lb/publish channel exchange rkey msg-json {:app-id "planviz"})))))
 
 ;; these are server methods
-(def rmethods {:echo echo
-               :inc-even inc-even
-               :double-positive double-positive
-               :list-plans list-plans
-               :request-plan-part request-plan-part
-               :whoami whoami
-               :who who
-               :nick nick
-               :follow follow
-               :msg msg
-               :user-action user-action
-               :login login
-               :get-url-config get-url-config
-               :save-settings save-settings
-               :load-settings load-settings
+(def rmethods {:echo                    echo
+               :inc-even                inc-even
+               :double-positive         double-positive
+               :list-plans              list-plans
+               :request-plan-part       request-plan-part
+               :whoami                  whoami
+               :who                     who
+               :nick                    nick
+               :follow                  follow
+               :msg                     msg
+               :user-action             user-action
+               :login                   login
+               :get-url-config          get-url-config
+               :save-settings           save-settings
+               :load-settings           load-settings
                :list-settings-filenames list-settings-filenames
+               :cancel-activity         cancel-activity
+               :do-not-wait-activity    do-not-wait-activity
                })
-
+(defn reset-rmethods
+  "Useful when working in repl" []
+  (swap! state assoc :rmethods rmethods))
 ;; server functions -------------------------------------------
 
 (defn client-count []
@@ -537,23 +581,23 @@
         remote (get-in desc [:source :connection :remote-address])]
     (log/trace "REMOTE:" remote "DESC:" (with-out-str (pprint desc)))
     (swap! state update-in [:clients remote]
-      assoc :conn conn :nick nil :follow nil)
+           assoc :conn conn :nick nil :follow nil)
     (client-count)
     remote))
 
 (defn remove-client [remote]
   (swap! state
-    (fn [st]
-      (let [clients (:clients st)
-            client (get clients remote)
-            {:keys [conn]} client
-            error (transit-to-json {:error {:code 1001}})
-            clients (if client (dissoc clients remote) clients)]
-        (when (and conn (not (s/closed? conn)))
-          (log/trace "sending error to figwheel for " remote)
-          (s/put! conn error)
-          (s/close! conn))
-        (assoc st :clients clients))))
+         (fn [st]
+           (let [clients (:clients st)
+                 client (get clients remote)
+                 {:keys [conn]} client
+                 error (transit-to-json {:error {:code 1001}})
+                 clients (if client (dissoc clients remote) clients)]
+             (when (and conn (not (s/closed? conn)))
+               (log/trace "sending error to figwheel for " remote)
+               (s/put! conn error)
+               (s/close! conn))
+             (assoc st :clients clients))))
   (client-count))
 
 (def heartbeat-period (* 60 1000))
@@ -578,7 +622,7 @@
     (log/trace "starting heartbeat")
     ;; NOTE every returns a cancel-fn, (cancel-fn) to stop
     (swap! state assoc :heartbeat-cancel
-      (dtime/every heartbeat-period heartbeat))))
+           (dtime/every heartbeat-period heartbeat))))
 
 (defn heartbeat-stop []
   (let [heartbeat-cancel (:heartbeat-cancel @state)]
@@ -612,7 +656,7 @@
 (defn rmethod [remote return rmethod & args]
   (let [remote (or remote (client0))
         message (assoc-if {:rmethod rmethod :args args}
-                  :return return)]
+                          :return return)]
     (xmit-to-client remote message)
     return))
 
@@ -641,8 +685,8 @@
               msg (if-not msg-json
                     {:rmethod result :args [return rv]})]
           (log/debug "invoke-rmethod" remote return rmethod
-            (apply pr-str args) "->" result "=" rv)
-          (when return ;; client has a deferred
+                     (apply pr-str args) "->" result "=" rv)
+          (when return                                      ;; client has a deferred
             (xmit-to-client remote msg msg-json)))))))
 
 ;; we might have pre-determined the outgoing message in msg-json
@@ -683,13 +727,13 @@
   ;;   (log/debug (str "remote: " remote " figremote? " (not (nil? figremote))))
   (do
     (-> (http/websocket-connection req)
-      (d/chain
-        (fn [conn]
-          (log/trace "NEW /ws REQ:" (with-out-str (pprint req)))
-          (let [remote (add-client conn)]
-            (s/consume #(recv-from-client remote %)
-              (s/buffer 64 conn)))))
-      (d/catch
+        (d/chain
+          (fn [conn]
+            (log/trace "NEW /ws REQ:" (with-out-str (pprint req)))
+            (let [remote (add-client conn)]
+              (s/consume #(recv-from-client remote %)
+                         (s/buffer 64 conn)))))
+        (d/catch
           (fn [_]
             non-websocket-request)))))
 
@@ -702,10 +746,10 @@
 (def web-html-memo (memoize web-html))
 
 (defroutes routes
-  (GET "/ws" [] ws-handler)
-  (GET "/" req web-html-memo)
-  (ANY "*" []
-    (not-found (slurp (io/resource "404.html")))))
+           (GET "/ws" [] ws-handler)
+           (GET "/" req web-html-memo)
+           (ANY "*" []
+             (not-found (slurp (io/resource "404.html")))))
 
 (defn log-request-handler [handler]
   (fn [req]
@@ -717,7 +761,7 @@
     ;; (log/trace "DEBUG HANDLER BEFORE" step)
     (try
       (let [rv (handler req)]
-      ;; (log/trace "DEBUG HANDLER AFTER" step)
+        ;; (log/trace "DEBUG HANDLER AFTER" step)
         rv)
       (catch IllegalArgumentException e
         (log/debug "BROWSER CLOSED")
@@ -730,23 +774,23 @@
   (let [not-modified? (if (#{:trace :debug} (:logging @state))
                         false true)
         defaults (-> site-defaults
-                   (dissoc :security)
-                   (assoc-in [:responses :not-modified-responses]
-                     not-modified?))]
+                     (dissoc :security)
+                     (assoc-in [:responses :not-modified-responses]
+                               not-modified?))]
     (-> routes
-      (debug-handler :routes)
-      (log-request-handler)
-      ;; (debug-handler :log-request-handler)
-      (wrap-defaults defaults)
-      ;; (debug-handler :wrap-defaults)
-      ;; (wrap-cors
-      ;;   :access-control-allow-origin #"localhost:*"
-      ;;   :access-control-allow-methods [:get]
-      ;;   :access-control-allow-headers ["Origin" "X-Requested-With"
-      ;;                                  "Content-Type" "Accept"])
-      (wrap-gzip)
-      ;; (debug-handler :wrap-gzip)
-      )))
+        (debug-handler :routes)
+        (log-request-handler)
+        ;; (debug-handler :log-request-handler)
+        (wrap-defaults defaults)
+        ;; (debug-handler :wrap-defaults)
+        ;; (wrap-cors
+        ;;   :access-control-allow-origin #"localhost:*"
+        ;;   :access-control-allow-methods [:get]
+        ;;   :access-control-allow-headers ["Origin" "X-Requested-With"
+        ;;                                  "Content-Type" "Accept"])
+        (wrap-gzip)
+        ;; (debug-handler :wrap-gzip)
+        )))
 
 ;; TPN functions
 ;; NOTE: assumes only one active network for now
@@ -783,11 +827,11 @@
         plan-begins (map #(vector % (get-in plans [% :begin])) plan-ids)]
     (ffirst
       (remove nil?
-        (filter #(= begin (second %)) plan-begins)))))
+              (filter #(= begin (second %)) plan-begins)))))
 
 (defn remove-plan [plan-id]
   (swap! state update-in [:plans] dissoc plan-id)
-  true) ;; don't return the current value of @state
+  true)                                                     ;; don't return the current value of @state
 
 (defn rename-key [plan-id plid-thing]
   (let [thing (keyword (second (string/split (name plid-thing) #":")))]
@@ -796,10 +840,10 @@
 (defn rename-plan [plan-id by-plid]
   (let [{:keys [plan/type plan/begin plan/networks]} (first (vals by-plid))]
     {plan-id
-     {:plan/plid plan-id
-      :plan/name (name plan-id)
-      :plan/type type
-      :plan/begin (rename-key plan-id begin)
+     {:plan/plid     plan-id
+      :plan/name     (name plan-id)
+      :plan/type     type
+      :plan/begin    (rename-key plan-id begin)
       :plan/networks (doall (mapv (partial rename-key plan-id) networks))}}))
 
 (defn rename-networks [plan-id network-by-plid-id]
@@ -811,15 +855,15 @@
               k (rename-key plan-id k)
               {:keys [network/id network/type network/begin network/end
                       network/nodes network/edges]} v
-              v {:plan/plid plan-id
-                 :network/id id
-                 :network/type type
+              v {:plan/plid     plan-id
+                 :network/id    id
+                 :network/type  type
                  :network/begin (rename-key plan-id begin)
-                 :network/end (rename-key plan-id end)
+                 :network/end   (rename-key plan-id end)
                  :network/nodes
-                 (doall (mapv (partial rename-key plan-id) nodes))
+                                (doall (mapv (partial rename-key plan-id) nodes))
                  :network/edges
-                 (doall (mapv (partial rename-key plan-id) edges))}]
+                                (doall (mapv (partial rename-key plan-id) edges))}]
           (recur (assoc nbpi k v) (first more) (rest more))
           )))))
 
@@ -832,9 +876,9 @@
               k (rename-key plan-id k)
               {:keys [node/parent node/end]} v
               v (assoc-if v
-                  :plan/plid plan-id
-                  :node/parent (if parent (rename-key plan-id parent))
-                  :node/end (if end (rename-key plan-id end)))]
+                          :plan/plid plan-id
+                          :node/parent (if parent (rename-key plan-id parent))
+                          :node/end (if end (rename-key plan-id end)))]
           (recur (assoc nbpi k v) (first more) (rest more))
           )))))
 
@@ -847,14 +891,14 @@
               k (rename-key plan-id k)
               {:keys [edge/from edge/to]} v
               v (assoc-if v
-                  :plan/plid plan-id
-                  :edge/from (rename-key plan-id from)
-                  :edge/to (rename-key plan-id to))]
+                          :plan/plid plan-id
+                          :edge/from (rename-key plan-id from)
+                          :edge/to (rename-key plan-id to))]
           (recur (assoc ebpi k v) (first more) (rest more))
           )))))
 
 (def message-max (int (* 65536 0.9)))
-(def size-per-key 192) ;; emperical
+(def size-per-key 192)                                      ;; emperical
 (def keys-per-msg (quot message-max size-per-key))
 
 (defn create-plan-parts [plan-id plan return]
@@ -881,21 +925,21 @@
         node-by-plid-id (rename-nodes plan-id node-by-plid-id)
         edge-by-plid-id (rename-edges plan-id edge-by-plid-id)
         merged-plan (merge by-plid network-by-plid-id
-                      node-by-plid-id edge-by-plid-id)
+                           node-by-plid-id edge-by-plid-id)
         n-keys (count (keys merged-plan))
         n-parts (inc (quot n-keys keys-per-msg))
         return :deferring-request-plan-part
         parts (create-plan-parts plan-id merged-plan return)
-        plan-details {:plan merged-plan
-                      :begin begin
-                      :n-keys n-keys
-                      :parts parts
+        plan-details {:plan    merged-plan
+                      :begin   begin
+                      :n-keys  n-keys
+                      :parts   parts
                       :n-parts n-parts
-                      :type :tpn-network
+                      :type    :tpn-network
                       ;; NOTE: we do NOT have a corresponding HTN!
                       }]
     (log/info "NEW RMQ PLAN, switch plan-id to" plan-id)
-    (swap! state assoc :rmq-plan-id plan-id) ;; most recent rmq plan
+    (swap! state assoc :rmq-plan-id plan-id)                ;; most recent rmq plan
     (swap! state assoc-in [:plans plan-id] plan-details)
     (broadcast-add-plan plan-id (dissoc plan-details :plan :parts))))
 
@@ -907,6 +951,7 @@
           _ (spit rmq-tpn-json json-str)
           tpn (pschema/tpn-plan {:input [rmq-tpn-json]})
           error (:error tpn)]
+      (log/info "tmpdir:" tmpdir)
       (if error
         (do
           (log/error "Received invalid TPN over RMQ" rmq-tpn-json)
@@ -924,21 +969,21 @@
               ;; most recent rmq plan
               (swap! state assoc :rmq-plan-id existing-plan-id)
               (broadcast-add-plan existing-plan-id
-                (dissoc plan-details :plan :parts)))
+                                  (dissoc plan-details :plan :parts)))
             (load-rmq-plan tpn plan-id begin)))))))
 
 (defn network-reset []
   (let [plan-id (:rmq-plan-id @state)]
     (when plan-id
       (broadcast-clients nil {:rmethod :network-reset
-                              :args [plan-id]}))))
+                              :args    [plan-id]}))))
 
 (defn tpn-object-update [json-str]
   (let [m (read-json-str json-str)
         plid (:rmq-plan-id @state)
-        os->nu (fn [os] ;; object-state -> network-update
+        os->nu (fn [os]                                     ;; object-state -> network-update
                  (let [{:keys [uid tpn-object-state]} os]
-                   {:plid plid :update-uid (keyword uid)
+                   {:plid  plid :update-uid (keyword uid)
                     :state (keyword tpn-object-state)}))
         updates (mapv os->nu (filter map? (vals m)))]
     (log/trace "UPDATES" updates)
@@ -946,7 +991,7 @@
 
 (defn unknown-update [routing-key json-str]
   (log/info "UNKNOWN routing-key" routing-key
-    "VALUE" (with-out-str (pprint json-str))))
+            "VALUE" (with-out-str (pprint json-str))))
 
 (defn wants-updates-from [r remote]
   (let [{:keys [follow]} (get-client r)]
@@ -968,16 +1013,16 @@
         plid (if plid (keyword plid))
         selection (if selection
                     (doall (mapv #(vector (keyword (first %))
-                                    (keyword (second %)))
-                             selection)))
+                                          (keyword (second %)))
+                                 selection)))
         tag (if tag (keyword tag))
         node (if node (keyword node))
         edge (if edge (keyword edge))
         action (assoc-if action
-                 :planviz planviz :remote remote :nick nick
-                 :type type :plid plid
-                 :selection selection
-                 :tag tag :node node :edge edge)
+                         :planviz planviz :remote remote :nick nick
+                         :type type :plid plid
+                         :selection selection
+                         :tag tag :node node :edge edge)
         msg {:rmethod :user-action :args [action]}
         remotes (get-client-keys)]
     (loop [msg-json nil r (first remotes) more (rest remotes)]
@@ -993,12 +1038,12 @@
   (let [[metadata json-str] msg
         {:keys [exchange routing-key app-id]} metadata
         details (str "MSG from exchange: " exchange " routing-key: " routing-key
-                  " app-id: " app-id)]
+                     " app-id: " app-id)]
     (log/info details)
     (log/trace (str \newline (with-out-str (clojure.pprint/pprint json-str))))
-    (condp = routing-key ;; case does not work with a symbol below
+    (condp = routing-key                                    ;; case does not work with a symbol below
       "network.new" (new-rmq-tpn json-str)
-      "network.reset" (network-reset) ;;(tpn-object-update json-str)
+      "network.reset" (network-reset)                       ;;(tpn-object-update json-str)
       "tpn.object.update" (tpn-object-update json-str)
       "tpn.activity.active" (tpn-object-update json-str)
       "tpn.activity.finished" (tpn-object-update json-str)
@@ -1040,7 +1085,7 @@
 
 (defn incoming-msgs [_ metadata ^bytes payload]
   (push-msg [metadata (String. payload "UTF-8")])
-  true) ;; FIXME
+  true)                                                     ;; FIXME
 
 (defn running? []
   (not (nil? (:server @state))))
@@ -1062,6 +1107,11 @@
       (log/warn "PLANVIZ server stopped"))
     (log/warn "PLANVIZ server already stopped")))
 
+(defn update-rmq-plan-id
+  "Set :rmq-plan-id to plid if not already set"
+  [plid]
+  (if-not (:rmq-plan-id @state)
+    (swap! state assoc :rmq-plan-id plid)))
 
 ;; plan input is in normalized (validated) format
 ;; convert to a flat map and then chunk it
@@ -1080,25 +1130,27 @@
       (log/error "LOAD-PLAN failed for plan" plan)
       (let [begin (keyword (second (string/split (name plan-begin) #":")))
             merged-plan (merge by-plid network-by-plid-id
-                          node-by-plid-id edge-by-plid-id)
+                               node-by-plid-id edge-by-plid-id)
             n-keys (count (keys merged-plan))
             n-parts (inc (quot n-keys keys-per-msg))
             return :deferring-request-plan-part
             parts (create-plan-parts plan-id merged-plan return)]
-        (log/info "LOAD-PLAN" plan-id)
+        (log/info "LOAD-PLAN" plan-id type)
+        (if (= :tpn-network type)
+          (update-rmq-plan-id plan-id))
         (swap! state assoc-in [:plans plan-id]
-          {:plan merged-plan
-           :begin begin
-           :n-keys n-keys
-           :parts parts
-           :n-parts n-parts
-           :type type
-           :corresponding corresponding})))))
+               {:plan          merged-plan
+                :begin         begin
+                :n-keys        n-keys
+                :parts         parts
+                :n-parts       n-parts
+                :type          type
+                :corresponding corresponding})))))
 
 ;; returns true on success
 (defn load-input [filename cwd]
   (cond
-    (= filename "-") ;; ignore
+    (= filename "-")                                        ;; ignore
     true
     (string/index-of filename "=")
     (let [[htn-name tpn-name] (string/split filename #"=")
@@ -1121,7 +1173,7 @@
         (and (vector? plans) (= 2 (count plans)))
         (do
           (log/info "plans parsed correctly for:" htn-filename
-            " = " tpn-filename)
+                    " = " tpn-filename)
           (doall (map load-plan plans))
           true)
         :else
@@ -1167,7 +1219,7 @@
 ;; {TPN|HTN|HTN=TPN}
 (defn startup [host port input cwd log-level]
   (if-not (get-msgs)
-    (start-msgs port log-level)) ;; lazily does log-initialize
+    (start-msgs port log-level))                            ;; lazily does log-initialize
   (if (get-in @state [:rmq :connection])
     (shutdown))
   (let [{:keys [rmq-host rmq-port exchange]} (:rmq @state)
@@ -1187,12 +1239,12 @@
         (lq/bind channel qname exchange {:routing-key "#"})
         (lc/subscribe channel qname incoming-msgs {:auto-ack true})
         (swap! state update-in [:rmq]
-          assoc :connection connection :channel channel)
+               assoc :connection connection :channel channel)
         (log/info (str "RMQ host: " rmq-host " port: " rmq-port
-                    " exchange: " exchange))
+                       " exchange: " exchange))
         (heartbeat-start)
         (swap! state assoc :server server
-          :host host :port port :rmethods rmethods)
+               :host host :port port :rmethods rmethods)
         (if-not (reduce and-fn true (for [i input] (load-input i cwd)))
           (log/info "PLANVIZ not starting due to errors!")
           (do
@@ -1231,8 +1283,8 @@
         path (str config-dir "/" filename settings-suffix)]
     (if (fs/exists? path)
       (log/error "LOAD-DEFAULT-SETTINGS\n"
-        (with-out-str (pprint (load-file path))))))
-  {:auto false}) ;; FIXME
+                 (with-out-str (pprint (load-file path))))))
+  {:auto false})                                            ;; FIXME
 
 (defn setup-url-config [cwd url-config]
   (doseq [url-filename url-config]
@@ -1266,5 +1318,5 @@
       (do
         (setup-url-config cwd url-config)
         (swap! state update-in [:rmq]
-          assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
-        (startup host port input cwd log-level))))) ;; lazily does start-msgs
+               assoc :rmq-host rmq-host :rmq-port rmq-port :exchange exchange)
+        (startup host port input cwd log-level)))))         ;; lazily does start-msgs

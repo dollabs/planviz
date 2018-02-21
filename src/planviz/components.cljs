@@ -280,6 +280,7 @@
       ;; for display
       :edge/selected?
       :edge/number
+      :edge/marker-mid                                      ;can be cancel, cancelled or check_mark
       {:edge/from ?node} {:edge/to ?node}])
   Object
   (render [this]
