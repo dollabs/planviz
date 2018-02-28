@@ -262,7 +262,7 @@
               edge-normal-fn (fn [m k v]
                                (assoc m k
                                  (if (keyword-identical? (:plan/plid v) plid)
-                                   (assoc v :edge/state :normal) v)))
+                                   (assoc v :edge/state :normal :edge/marker-mid nil) v)))
               edge-by-plid-id (reduce-kv edge-normal-fn {} edge-by-plid-id)]
           (assoc st
             :edge/edge-by-plid-id edge-by-plid-id
