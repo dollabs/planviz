@@ -87,7 +87,7 @@ ul.circle {
 }
 
 .help-hidden, .settings-hidden {
-    top: -100em;
+    top: -200em;
 }
 
 #help-menu, #settings-menu {
