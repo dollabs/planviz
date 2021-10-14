@@ -48,14 +48,15 @@
                     [org.omcljs/om                "1.0.0-alpha40"]
                     [sablono "0.7.6"]
                     ;; cljs-dev
-                    [com.cemerick/piggieback      "0.2.1"     :scope "test"]
-                    [weasel                       "0.7.0"     :scope "test"]
+                    [cider/piggieback      "0.3.9"     :scope "test"]
+                    [weasel                       "0.7.1"     :scope "test"]
                     [org.clojure/tools.nrepl      "0.2.13"    :scope "test"]
-                    [adzerk/boot-reload           "0.5.1"     :scope "test"]
-                    [pandeiro/boot-http           "0.8.1"     :scope "test"
+                    [nrepl                        "0.4.5"    :scope "test"]
+                    [adzerk/boot-reload           "0.6.1"     :scope "test"]
+                    [pandeiro/boot-http           "0.8.3"     :scope "test"
                      :exclusions [org.clojure/clojure]]
-                    [adzerk/boot-cljs             "1.7.228-2" :scope "test"]
-                    [adzerk/boot-cljs-repl        "0.3.3"     :scope "test"]
+                    [adzerk/boot-cljs             "2.1.5" :scope "test"]
+                    [adzerk/boot-cljs-repl        "0.4.0"     :scope "test"]
                     ;; testing/development
                     ;; [adzerk/boot-test "1.2.0" :scope "test"]
                     ;; [crisptrutski/boot-cljs-test "0.3.0" :scope "test"]
