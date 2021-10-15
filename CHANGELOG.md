@@ -4,7 +4,8 @@ All notable changes to this project will be documented in this file. This change
 
 ### [Unreleased]
 
-* _TBD_
+Changed
+* Activity `display-name` can be updated via a message.
 
 ### [0.9.5] - 2017-10-30
 

@@ -982,9 +982,10 @@
   (let [m (read-json-str json-str)
         plid (:rmq-plan-id @state)
         os->nu (fn [os]                                     ;; object-state -> network-update
-                 (let [{:keys [uid tpn-object-state]} os]
+                 (let [{:keys [uid tpn-object-state display-name]} os]
                    {:plid  plid :update-uid (keyword uid)
-                    :state (keyword tpn-object-state)}))
+                    :state (keyword tpn-object-state)
+                    :display-name display-name}))
         updates (mapv os->nu (filter map? (vals m)))]
     (log/trace "UPDATES" updates)
     (broadcast-clients nil {:rmethod :network-updates :args [updates]})))

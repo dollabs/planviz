@@ -303,7 +303,7 @@
   (loop [edge-by-plid-id edge-by-plid-id u (first updates) more (rest updates)]
     (if-not u
       edge-by-plid-id
-      (let [{:keys [plid update-uid state]} u
+      (let [{:keys [plid update-uid state display-name]} u
             edge-id (if (not (node-id? update-uid))
                       (composite-key plid update-uid))
             edge (if edge-id (get edge-by-plid-id edge-id))
@@ -314,11 +314,11 @@
             cancelled-event? (= :cancelled state)
             new-state (if cancel-event?
                         prev-state
-                        state)
+                        (or state prev-state))
             edge (assoc edge :edge/marker-mid state)
             edge-by-plid-id (if edge
                               (assoc edge-by-plid-id edge-id
-                                (assoc edge :edge/state new-state))
+                                (assoc edge :edge/state new-state :edge/display-name (or display-name (:edge/display-name edge))))
                               edge-by-plid-id)]
         (recur edge-by-plid-id (first more) (rest more))))))
 
