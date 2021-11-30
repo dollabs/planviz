@@ -18,5 +18,7 @@
  * Create new run configuration using nrepl [See Details](https://github.com/tmarble/tenzing3)
  * `boot cljs-dev`
  * Connect to nrepl from Ideaj
+ * Then `(start-repl)`
+ * Planviz will be hosted on [localhost:3000](localhost:3000)
 
 [Complete exmaple](https://github.com/tmarble/tenzing3)
