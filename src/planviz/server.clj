@@ -972,11 +972,15 @@
                                   (dissoc plan-details :plan :parts)))
             (load-rmq-plan tpn plan-id begin)))))))
 
-(defn network-reset []
-  (let [plan-id (:rmq-plan-id @state)]
-    (when plan-id
+(defn network-reset [json-str]
+  (let [parsed (json/read-str json-str :key-fn #(keyword %))
+        netid (keyword (:network-id parsed))
+        ;A plan exists for the tpn network being reset
+        existing-plan-id (find-plan netid)]
+    (when existing-plan-id
+      (swap! state assoc :rmq-plan-id existing-plan-id)
       (broadcast-clients nil {:rmethod :network-reset
-                              :args    [plan-id]}))))
+                              :args    [existing-plan-id]}))))
 
 (defn tpn-object-update [json-str]
   (let [m (read-json-str json-str)
@@ -1044,7 +1048,7 @@
     (log/trace (str \newline (with-out-str (clojure.pprint/pprint json-str))))
     (condp = routing-key                                    ;; case does not work with a symbol below
       "network.new" (new-rmq-tpn json-str)
-      "network.reset" (network-reset)                       ;;(tpn-object-update json-str)
+      "network.reset" (network-reset json-str)                       ;;(tpn-object-update json-str)
       "tpn.object.update" (tpn-object-update json-str)
       "tpn.activity.active" (tpn-object-update json-str)
       "tpn.activity.finished" (tpn-object-update json-str)
